@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "test": "jest",
-    "postinstall": "chmod +x node_modules/react-native/sdks/hermesc/linux64-bin/hermesc || true"
+    "postinstall": ""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",
