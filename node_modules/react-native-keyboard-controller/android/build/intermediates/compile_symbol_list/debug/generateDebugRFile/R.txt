@@ -1,0 +1,16 @@
+int attr color 0x0
+int attr tone 0x0
+int style aosp_light 0x0
+int style gboard_dark 0x0
+int style gboard_light 0x0
+int style gboard_tts_dark 0x0
+int style gboard_tts_light 0x0
+int style samsung_dark 0x0
+int style samsung_light 0x0
+int style swiftkey_dark 0x0
+int style swiftkey_light 0x0
+int style yandex_dark 0x0
+int style yandex_light 0x0
+int[] styleable ColorProperties { 0x0, 0x0 }
+int styleable ColorProperties_color 0
+int styleable ColorProperties_tone 1
