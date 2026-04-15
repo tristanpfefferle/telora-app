@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GiftedChat, Bubble, Send, InputToolbar } from 'react-native-gifted-chat';
+import { GiftedChat, Bubble, Send, InputToolbar, Message } from 'react-native-gifted-chat';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius } from '../../lib/theme';
 import { useBudgetStore } from '../../stores/budgetStore';
 import { budgetAPI } from '../../lib/api';
+import { TypingIndicator } from '../../components/chat/TypingIndicator';
+import { QuickReplies } from '../../components/chat/QuickReplies';
+import { MessageCard } from '../../components/chat/MessageCard';
+import { ProgressIndicator } from '../../components/chat/ProgressIndicator';
 
-interface Message {
-  _id: string | number;
-  text: string;
-  createdAt: Date;
-  user: {
-    _id: number;
-    name: string;
-    avatar?: string;
-  };
+interface CustomMessage extends Message {
+  step?: string;
+  showCard?: boolean;
+  cardType?: 'budget_summary' | 'tip' | 'warning' | 'success';
+  cardData?: any;
+  quickReplies?: Array<{ id: string; label: string; value: any }>;
 }
 
 const BOT_USER = {
@@ -29,7 +30,6 @@ const USER_USER = {
   name: 'Toi',
 };
 
-// Étapes de la conversation
 const CONVERSATION_STEPS = {
   WELCOME: 'welcome',
   REVENUS: 'revenus',
@@ -41,56 +41,116 @@ const CONVERSATION_STEPS = {
   DONE: 'done',
 };
 
+const STEP_LABELS: Record<string, number> = {
+  [CONVERSATION_STEPS.WELCOME]: 1,
+  [CONVERSATION_STEPS.REVENUS]: 2,
+  [CONVERSATION_STEPS.DEPENSES_FIXES]: 3,
+  [CONVERSATION_STEPS.DEPENSES_VARIABLES]: 4,
+  [CONVERSATION_STEPS.EPARGNE]: 5,
+  [CONVERSATION_STEPS.OBJECTIFS]: 6,
+  [CONVERSATION_STEPS.RECAP]: 7,
+  [CONVERSATION_STEPS.DONE]: 7,
+};
+
 export default function ChatScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { id: assistantId } = params as { id: string };
   
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<CustomMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [currentStep, setCurrentStep] = useState(CONVERSATION_STEPS.WELCOME);
-  const [tempData, setTempData] = useState<any>({});
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [currentQuickReplies, setCurrentQuickReplies] = useState<Array<{ id: string; label: string; value: any }>>([]);
   
   const budgetStore = useBudgetStore();
+  const messagesEndRef = useRef<ScrollView>(null);
 
-  // Initialisation de la conversation
   useEffect(() => {
     startConversation();
   }, []);
 
   const startConversation = () => {
-    const welcomeMessage: Message = {
+    const welcomeMessage: CustomMessage = {
       _id: 1,
       text: "Salut ! Je suis ton Budget Coach 👋\n\nJe vais t'aider à créer ton budget personnalisé en toute simplicité.\n\nPrêt à commencer ?",
       createdAt: new Date(),
       user: BOT_USER,
+      step: CONVERSATION_STEPS.WELCOME,
+      quickReplies: [
+        { id: 'yes', label: 'Oui, prêt !', value: 'oui', icon: '✅' },
+        { id: 'later', label: 'Plus tard', value: 'plus_tard' },
+      ],
     };
     setMessages([welcomeMessage]);
+    setShowQuickReplies(true);
+    setCurrentQuickReplies(welcomeMessage.quickReplies || []);
   };
 
-  const sendBotMessage = useCallback((text: string, delay: number = 1000) => {
+  const sendBotMessage = useCallback((
+    text: string, 
+    options: {
+      delay?: number;
+      step?: string;
+      showCard?: boolean;
+      cardType?: 'budget_summary' | 'tip' | 'warning' | 'success';
+      cardData?: any;
+      quickReplies?: Array<{ id: string; label: string; value: any }>;
+    } = {}
+  ) => {
     setIsTyping(true);
     
     setTimeout(() => {
-      const botMessage: Message = {
+      const botMessage: CustomMessage = {
         _id: Date.now(),
         text,
         createdAt: new Date(),
         user: BOT_USER,
+        step: options.step,
+        showCard: options.showCard,
+        cardType: options.cardType,
+        cardData: options.cardData,
+        quickReplies: options.quickReplies,
       };
       
-      setMessages(previousMessages => GiftedChat.append(previousMessages, [botMessage]));
+      setMessages(previousMessages => {
+        const newMessages = GiftedChat.append(previousMessages, [botMessage]);
+        
+        // Update quick replies if provided
+        if (options.quickReplies) {
+          setShowQuickReplies(true);
+          setCurrentQuickReplies(options.quickReplies);
+        } else {
+          setShowQuickReplies(false);
+        }
+        
+        return newMessages;
+      });
+      
       setIsTyping(false);
-    }, delay);
+    }, options.delay || 1000);
   }, []);
 
   const onSend = useCallback((newMessages: Message[] = []) => {
-    const userMessage = newMessages[0];
+    const userMessage = newMessages[0] as CustomMessage;
     setMessages(previousMessages => GiftedChat.append(previousMessages, [userMessage]));
+    setShowQuickReplies(false);
     
-    // Traiter la réponse de l'utilisateur selon l'étape actuelle
     handleUserResponse(userMessage.text);
-  }, [currentStep, tempData]);
+  }, [currentStep]);
+
+  const handleQuickReplySelect = (reply: { id: string; label: string; value: any }) => {
+    const replyMessage: CustomMessage = {
+      _id: Date.now(),
+      text: reply.label,
+      createdAt: new Date(),
+      user: USER_USER,
+    };
+    setMessages(previousMessages => GiftedChat.append(previousMessages, [replyMessage]));
+    setShowQuickReplies(false);
+    
+    handleUserResponse(reply.value);
+  };
 
   const handleUserResponse = (text: string) => {
     switch (currentStep) {
@@ -125,18 +185,28 @@ export default function ChatScreen() {
       setCurrentStep(CONVERSATION_STEPS.REVENUS);
       sendBotMessage(
         "Parfait ! Commençons par tes revenus 💰\n\nQuel est ton revenu mensuel net (après impôts) ?\n\n(Salaire, allocations, revenus freelance...)",
-        800
+        {
+          delay: 800,
+          step: CONVERSATION_STEPS.REVENUS,
+          quickReplies: [
+            { id: 'help', label: 'Aide', value: 'help', icon: '❓' },
+          ],
+        }
       );
     } else {
       sendBotMessage(
         "Pas de souci ! Quand tu seras prêt, dis-moi 'oui' et on commence 😊",
-        800
+        {
+          delay: 800,
+          quickReplies: [
+            { id: 'yes', label: "C'est bon !", value: 'oui', icon: '✅' },
+          ],
+        }
       );
     }
   };
 
   const handleRevenusResponse = (text: string) => {
-    // Extraire le montant (cherche des chiffres)
     const match = text.match(/(\d+(?:[.,]\d{1,2})?)/);
     
     if (match) {
@@ -148,19 +218,43 @@ export default function ChatScreen() {
         
         setCurrentStep(CONVERSATION_STEPS.DEPENSES_FIXES);
         sendBotMessage(
-          `👍 Revenu de ${montant.toLocaleString('fr-CH')} CHF enregistré !\n\nMaintenant, parlons de tes dépenses fixes 📋\n\nQuelles sont tes dépenses fixes mensuelles ?\n\n(Loyer, assurances, transports, abonnements...)\n\nTu peux me donner un montant total ou détailler.`,
-          1000
+          `👍 Revenu de ${montant.toLocaleString('fr-CH')} CHF enregistré !`,
+          { delay: 800 }
         );
+        
+        setTimeout(() => {
+          sendBotMessage(
+            "Maintenant, parlons de tes dépenses fixes 📋\n\nQuelles sont tes dépenses fixes mensuelles ?\n\n(Loyer, assurances, transports, abonnements...)",
+            {
+              delay: 600,
+              step: CONVERSATION_STEPS.DEPENSES_FIXES,
+              quickReplies: [
+                { id: 'help', label: 'Aide', value: 'help', icon: '❓' },
+              ],
+            }
+          );
+        }, 1600);
       } else {
         sendBotMessage(
           "Hmm, ce montant semble inhabituel. Peux-tu me confirmer ton revenu mensuel en CHF ?",
-          800
+          { delay: 800 }
         );
       }
+    } else if (text.toLowerCase().includes('help')) {
+      sendBotMessage(
+        "💡 Conseil : Additionne tous tes revenus mensuels nets (après impôts).\n\nExemples :\n• Salaire net\n• Revenus freelance\n• Allocations\n• Rentes\n\nDonne-moi le total en CHF.",
+        {
+          delay: 800,
+          cardType: 'tip',
+          quickReplies: [
+            { id: 'got_it', label: "J'ai compris", value: '3000', icon: '👍' },
+          ],
+        }
+      );
     } else {
       sendBotMessage(
         "Je n'arrive pas à trouver un montant. Peux-tu me donner ton revenu en chiffres ? (exemple: 5000)",
-        800
+        { delay: 800 }
       );
     }
   };
@@ -177,19 +271,40 @@ export default function ChatScreen() {
         
         setCurrentStep(CONVERSATION_STEPS.DEPENSES_VARIABLES);
         sendBotMessage(
-          `✅ Dépenses fixes de ${montant.toLocaleString('fr-CH')} CHF notées !\n\nEt tes dépenses variables ? 🛒\n\n(Alimentation, loisirs, shopping, restaurants...)\n\nDonne-moi un montant mensuel moyen.`,
-          1000
+          `✅ Dépenses fixes de ${montant.toLocaleString('fr-CH')} CHF notées !`,
+          { delay: 800 }
         );
+        
+        setTimeout(() => {
+          sendBotMessage(
+            "Et tes dépenses variables ? 🛒\n\n(Alimentation, loisirs, shopping, restaurants...)",
+            {
+              delay: 600,
+              step: CONVERSATION_STEPS.DEPENSES_VARIABLES,
+              quickReplies: [
+                { id: 'help', label: 'Aide', value: 'help', icon: '❓' },
+              ],
+            }
+          );
+        }, 1600);
       } else {
         sendBotMessage(
           "Ce montant semble inhabituel. Peux-tu me confirmer tes dépenses fixes mensuelles en CHF ?",
-          800
+          { delay: 800 }
         );
       }
+    } else if (text.toLowerCase().includes('help')) {
+      sendBotMessage(
+        "💡 Conseil : Les dépenses fixes incluent :\n• Loyer\n• Assurances (LAMal, etc.)\n• Transports (CFF, AG)\n• Abonnements (téléphone, internet)\n• Impôts (si mensuels)\n\nDonne-moi le total mensuel.",
+        {
+          delay: 800,
+          cardType: 'tip',
+        }
+      );
     } else {
       sendBotMessage(
         "Je cherche un montant en chiffres. Peux-tu me donner tes dépenses fixes ? (exemple: 2500)",
-        800
+        { delay: 800 }
       );
     }
   };
@@ -206,19 +321,41 @@ export default function ChatScreen() {
         
         setCurrentStep(CONVERSATION_STEPS.EPARGNE);
         sendBotMessage(
-          `👌 Dépenses variables de ${montant.toLocaleString('fr-CH')} CHF enregistrées !\n\nParlons épargne maintenant 💎\n\nCombien arrives-tu à épargner actuellement chaque mois ?\n\n(Mets 0 si tu n'épargnes pas encore, c'est normal !)`,
-          1000
+          `👌 Dépenses variables de ${montant.toLocaleString('fr-CH')} CHF enregistrées !`,
+          { delay: 800 }
         );
+        
+        setTimeout(() => {
+          sendBotMessage(
+            "Parlons épargne maintenant 💎\n\nCombien arrives-tu à épargner actuellement chaque mois ?",
+            {
+              delay: 600,
+              step: CONVERSATION_STEPS.EPARGNE,
+              quickReplies: [
+                { id: 'zero', label: '0 CHF', value: '0', icon: '💸' },
+                { id: 'help', label: 'Aide', value: 'help', icon: '❓' },
+              ],
+            }
+          );
+        }, 1600);
       } else {
         sendBotMessage(
           "Peux-tu me confirmer tes dépenses variables mensuelles en CHF ?",
-          800
+          { delay: 800 }
         );
       }
+    } else if (text.toLowerCase().includes('help')) {
+      sendBotMessage(
+        "💡 Conseil : Les dépenses variables sont :\n• Alimentation\n• Restaurants\n• Loisirs\n• Shopping\n• Sorties\n\nC'est tout ce qui change d'un mois à l'autre !",
+        {
+          delay: 800,
+          cardType: 'tip',
+        }
+      );
     } else {
       sendBotMessage(
         "Donne-moi un montant en chiffres pour tes dépenses variables. (exemple: 800)",
-        800
+        { delay: 800 }
       );
     }
   };
@@ -243,19 +380,34 @@ export default function ChatScreen() {
           message += `D'après ce qu'on a vu, tu pourrais épargner jusqu'à ${capaciteEpargne.toLocaleString('fr-CH')} CHF par mois (${ratioEpargne.toFixed(1)}% de tes revenus).\n\n`;
         }
         
-        message += `Quel est ton objectif d'épargne mensuel ? 💪\n\n(Un montant réaliste que tu veux atteindre)`;
+        message += `Quel est ton objectif d'épargne mensuel ? 💪`;
         
-        sendBotMessage(message, 1200);
+        sendBotMessage(message, {
+          delay: 1200,
+          step: CONVERSATION_STEPS.OBJECTIFS,
+          quickReplies: [
+            { id: 'same', label: `${Math.round(capaciteEpargne)} CHF`, value: String(Math.round(capaciteEpargne)), icon: '🎯' },
+            { id: 'help', label: 'Aide', value: 'help', icon: '❓' },
+          ],
+        });
       } else {
         sendBotMessage(
           "Peux-tu me donner un montant d'épargne en CHF ?",
-          800
+          { delay: 800 }
         );
       }
+    } else if (text.toLowerCase().includes('help')) {
+      sendBotMessage(
+        "💡 Conseil : La règle du 50/30/20 suggère d'épargner 20% de tes revenus.\n\nAvec tes revenus actuels, ce serait environ CHF. Mais l'important est de commencer, même avec un petit montant !",
+        {
+          delay: 800,
+          cardType: 'tip',
+        }
+      );
     } else {
       sendBotMessage(
-        "Donne-moi un montant en chiffres pour ton épargne. (exemple: 300)",
-        800
+        "Quel montant veux-tu épargner chaque mois ? (exemple: 500)",
+        { delay: 800 }
       );
     }
   };
@@ -267,7 +419,6 @@ export default function ChatScreen() {
       const objectif = parseFloat(match[0].replace(',', '.'));
       budgetStore.setEpargneObjectif(objectif);
       
-      // Sauvegarder le budget
       saveBudget();
       
       setCurrentStep(CONVERSATION_STEPS.RECAP);
@@ -278,7 +429,7 @@ export default function ChatScreen() {
     } else {
       sendBotMessage(
         "Quel montant veux-tu épargner chaque mois ? (exemple: 500)",
-        800
+        { delay: 800 }
       );
     }
   };
@@ -304,19 +455,44 @@ export default function ChatScreen() {
   const showRecap = () => {
     const { totalRevenus, totalFixes, totalVariables, capaciteEpargne, ratioEpargne } = budgetStore;
     
-    const recapMessage = `🎉 FÉLICITATIONS ! Ton budget est créé !\n\n` +
-      `📊 RÉCAPITULATIF\n\n` +
-      `💰 Revenus: ${totalRevenus.toLocaleString('fr-CH')} CHF\n` +
-      `📋 Dépenses fixes: ${totalFixes.toLocaleString('fr-CH')} CHF\n` +
-      `🛒 Dépenses variables: ${totalVariables.toLocaleString('fr-CH')} CHF\n\n` +
-      `💎 Capacité d'épargne: ${capaciteEpargne.toLocaleString('fr-CH')} CHF\n` +
-      `📈 Taux d'épargne: ${ratioEpargne.toFixed(1)}%\n\n` +
-      `Ton budget a été sauvegardé avec succès ! 🚀\n\n` +
-      `Tu peux le consulter dans l'onglet Dashboard.\n\n` +
-      `Besoin d'autre chose ?`;
+    const recapMessage = `🎉 FÉLICITATIONS ! Ton budget est créé !`;
     
-    sendBotMessage(recapMessage, 1500);
-    setCurrentStep(CONVERSATION_STEPS.DONE);
+    sendBotMessage(recapMessage, {
+      delay: 500,
+    });
+    
+    setTimeout(() => {
+      sendBotMessage(
+        "📊 Voici ton récapitulatif :",
+        {
+          delay: 600,
+          showCard: true,
+          cardType: 'budget_summary',
+          cardData: {
+            revenus: totalRevenus,
+            depensesFixes: totalFixes,
+            depensesVariables: totalVariables,
+            epargne: capaciteEpargne,
+            capaciteEpargne,
+            ratioEpargne,
+          },
+        }
+      );
+    }, 1100);
+    
+    setTimeout(() => {
+      sendBotMessage(
+        `Ton budget a été sauvegardé avec succès ! 🚀\n\nTu peux le consulter dans l'onglet Dashboard.\n\nBesoin d'autre chose ?`,
+        {
+          delay: 1200,
+          step: CONVERSATION_STEPS.DONE,
+          quickReplies: [
+            { id: 'thanks', label: 'Merci !', value: 'merci', icon: '🙏' },
+            { id: 'dashboard', label: 'Voir Dashboard', value: 'dashboard', icon: '📊' },
+          ],
+        }
+      );
+    }, 1700);
   };
 
   const handleRecapResponse = (text: string) => {
@@ -325,12 +501,20 @@ export default function ChatScreen() {
     if (lowerText.includes('merci') || lowerText.includes('non') || lowerText.includes('rien')) {
       sendBotMessage(
         "Avec plaisir ! Je suis là quand tu veux 💪\n\nÀ bientôt !",
-        800
+        { delay: 800 }
       );
+    } else if (lowerText.includes('dashboard')) {
+      sendBotMessage(
+        "Je te redirige vers le dashboard... 📊",
+        { delay: 800 }
+      );
+      setTimeout(() => {
+        router.push('/(main)');
+      }, 1500);
     } else {
       sendBotMessage(
         "N'hésite pas si tu as des questions ! Sinon, retourne au dashboard pour voir ton budget 📊",
-        800
+        { delay: 800 }
       );
     }
   };
@@ -368,6 +552,18 @@ export default function ChatScreen() {
             fontSize: 15,
           },
         }}
+        renderMessageImage={() => {
+          if (currentMessage?.showCard && currentMessage.cardType) {
+            return (
+              <MessageCard
+                type={currentMessage.cardType}
+                title={currentMessage.cardType === 'budget_summary' ? '📊 Ton Budget' : '💡 Conseil'}
+                data={currentMessage.cardData}
+              />
+            );
+          }
+          return null;
+        }}
       />
     );
   };
@@ -391,7 +587,7 @@ export default function ChatScreen() {
 
   const renderInputToolbar = (props: any) => {
     if (currentStep === CONVERSATION_STEPS.DONE) {
-      return null; // Cacher l'input à la fin
+      return null;
     }
     
     return (
@@ -409,12 +605,26 @@ export default function ChatScreen() {
     );
   };
 
+  const renderFooter = () => {
+    if (showQuickReplies && currentQuickReplies.length > 0) {
+      return (
+        <QuickReplies
+          replies={currentQuickReplies}
+          onSelect={handleQuickReplySelect}
+          visible={true}
+        />
+      );
+    }
+    return null;
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
       keyboardVerticalOffset={90}
     >
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarEmoji}>💰</Text>
@@ -425,6 +635,14 @@ export default function ChatScreen() {
         </View>
       </View>
 
+      {/* Progress Indicator */}
+      <ProgressIndicator
+        current={STEP_LABELS[currentStep] || 1}
+        total={7}
+        visible={currentStep !== CONVERSATION_STEPS.WELCOME && currentStep !== CONVERSATION_STEPS.DONE}
+      />
+
+      {/* Chat */}
       <GiftedChat
         messages={messages}
         onSend={(messages) => onSend(messages)}
@@ -432,6 +650,7 @@ export default function ChatScreen() {
         renderBubble={renderBubble}
         renderInputToolbar={renderInputToolbar}
         renderSend={renderSend}
+        renderFooter={renderFooter}
         placeholder="Écris ton message..."
         placeholderTextColor={colors.textMuted}
         textInputStyle={{
@@ -442,22 +661,7 @@ export default function ChatScreen() {
           cursorColor: colors.primary,
         }}
         isTyping={isTyping}
-        renderTypingIndicator={() => (
-          <View style={styles.typingContainer}>
-            <MotiView
-              from={{ opacity: 0.5 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                type: 'timing',
-                duration: 500,
-                loop: true,
-              }}
-              style={styles.typingBubble}
-            >
-              <Text style={styles.typingText}>Budget Coach écrit...</Text>
-            </MotiView>
-          </View>
-        )}
+        renderTypingIndicator={() => <TypingIndicator visible={isTyping} />}
         alwaysShowSend
         scrollToBottom
         scrollToBottomStyle={{
@@ -518,20 +722,5 @@ const styles = StyleSheet.create({
   sendIcon: {
     color: colors.textPrimary,
     fontSize: 16,
-  },
-  typingContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  typingBubble: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    alignSelf: 'flex-start',
-  },
-  typingText: {
-    color: colors.textSecondary,
-    fontSize: 13,
   },
 });
