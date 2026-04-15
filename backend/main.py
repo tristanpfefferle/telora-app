@@ -11,7 +11,7 @@ from typing import List, Optional
 import os
 
 from database import engine, get_db, create_tables
-from models import User, Budget, UserProgress
+from models import User, Budget, UserProgress, ConversationHistory
 from schemas import (
     UserCreate, UserResponse, Token,
     BudgetCreate, BudgetResponse,
@@ -19,6 +19,7 @@ from schemas import (
 )
 from services.auth import authenticate_user, create_access_token, get_password_hash
 from services.gamification import calculate_level, award_xp, check_streak
+from routes import budget_assistant as budget_assistant_router
 
 # Configuration
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
@@ -42,6 +43,9 @@ app.add_middleware(
 
 # Security
 security = HTTPBearer()
+
+# Include routers
+app.include_router(budget_assistant_router.router)
 
 # Create tables on startup
 @app.on_event("startup")

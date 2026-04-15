@@ -46,6 +46,7 @@ class Budget(Base):
     
     # Relation
     user = relationship("User", back_populates="budgets")
+    conversations = relationship("ConversationHistory", back_populates="budget", lazy="dynamic")
     
     def __repr__(self):
         return f"<Budget(id={self.id}, user_id={self.user_id})>"
