@@ -9,9 +9,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from database import engine, get_db, create_tables
 from models import User, Budget, UserProgress
