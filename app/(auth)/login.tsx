@@ -142,6 +142,16 @@ export default function LoginScreen() {
               Créer un compte
             </Button>
           </View>
+          
+          {/* Bouton de test réseau pour debug */}
+          <TouchableOpacity
+            onPress={() => router.push('/network-test')}
+            style={styles.networkTestButton}
+          >
+            <Text style={styles.networkTestText}>
+              🧪 Tester la connexion réseau
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -209,5 +219,14 @@ const styles = StyleSheet.create({
   signupText: {
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  networkTestButton: {
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  networkTestText: {
+    color: colors.textSecondary,
+    fontSize: 12,
   },
 });
