@@ -3,23 +3,23 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-na
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { GiftedChat, Bubble, Send, InputToolbar } from 'react-native-gifted-chat';
 import { MotiView } from 'moti';
-import { colors, spacing, borderRadius } from '../../lib/theme';
-import { useBudgetStore } from '../../stores/budgetStore';
-import { budgetAPI } from '../../lib/api';
+import { colors, spacing, borderRadius } from '../../../lib/theme';
+import { useBudgetStore } from '../../../stores/budgetStore';
+import { budgetAPI } from '../../../lib/api';
 import {
   conversationManager,
   formatCHF,
   extractAmount,
   getSuggestions,
   getContextualAdvice,
-} from '../../lib/budget-assistant';
-import { TypingIndicator } from '../../components/chat/TypingIndicator';
-import { QuickReplies } from '../../components/chat/QuickReplies';
-import { MessageCard } from '../../components/chat/MessageCard';
-import { ProgressIndicator } from '../../components/chat/ProgressIndicator';
-import { BudgetSummaryCard } from '../../components/chat/BudgetSummaryCard';
-import { TipCard, AchievementBadge, ComparisonCard, TimelineCard } from '../../components/chat/TipCard';
-import { Celebration, SparkleEffect } from '../../components/chat/EmojiAnimations';
+} from '../../../lib/budget-assistant';
+import { TypingIndicator } from '../../../components/chat/TypingIndicator';
+import { QuickReplies } from '../../../components/chat/QuickReplies';
+import { MessageCard } from '../../../components/chat/MessageCard';
+import { ProgressIndicator } from '../../../components/chat/ProgressIndicator';
+import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
+import { TipCard, AchievementBadge, ComparisonCard, TimelineCard } from '../../../components/chat/TipCard';
+import { Celebration, SparkleEffect } from '../../../components/chat/EmojiAnimations';
 
 interface CustomMessage {
   _id: number | string;
