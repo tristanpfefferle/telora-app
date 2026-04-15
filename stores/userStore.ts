@@ -1,10 +1,38 @@
 /**
  * Store Zustand pour l'état utilisateur avec persistance
+ * Utilise expo-secure-store comme adapter de stockage pour React Native
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { User, UserProgress } from '../lib/api';
+
+// Adapter de stockage pour React Native via expo-secure-store
+const secureStoreAdapter: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    try {
+      return await SecureStore.getItemAsync(name);
+    } catch {
+      return null;
+    }
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    try {
+      await SecureStore.setItemAsync(name, value);
+    } catch {
+      console.warn('SecureStore setItem failed for key:', name);
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    try {
+      await SecureStore.deleteItemAsync(name);
+    } catch {
+      console.warn('SecureStore removeItem failed for key:', name);
+    }
+  },
+};
 
 interface UserState {
   user: User | null;
@@ -57,6 +85,11 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: 'telora-storage',
+      storage: createJSONStorage(() =>
+        Platform.OS === 'web'
+          ? localStorage
+          : secureStoreAdapter
+      ),
       partialize: (state) => ({
         token: state.token,
         user: state.user,

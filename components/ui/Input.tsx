@@ -10,6 +10,8 @@ interface InputProps {
   error?: string;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
   autoFocus?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  secureTextEntry?: boolean;
   multiline?: boolean;
   className?: string;
 }
@@ -22,6 +24,8 @@ export function Input({
   error,
   keyboardType = 'default',
   autoFocus = false,
+  autoCapitalize,
+  secureTextEntry = false,
   multiline = false,
   className,
 }: InputProps) {
@@ -39,6 +43,8 @@ export function Input({
         placeholderTextColor="#71717A"
         keyboardType={keyboardType}
         autoFocus={autoFocus}
+        autoCapitalize={autoCapitalize}
+        secureTextEntry={secureTextEntry}
         multiline={multiline}
         className={clsx(
           'bg-surface border rounded-lg px-4 py-3',

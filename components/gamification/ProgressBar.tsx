@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Animated } from 'react-native';
 import { clsx } from 'clsx';
-import MotiView from 'moti';
+import { MotiView } from 'moti';
 
 interface ProgressBarProps {
   progress: number; // 0-100
