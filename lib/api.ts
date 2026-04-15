@@ -5,9 +5,9 @@
 import axios from 'axios';
 import { useUserStore } from '../stores/userStore';
 
-// URL de l'API - Hardcodée pour le MVP
-// TODO: Utiliser des variables d'environnement Expo quand configurées correctement
-const API_URL = 'http://187.124.218.190:8001';
+// URL de l'API - HTTPS obligatoire pour Android
+// Cloudflare Tunnel vers le backend Telora
+const API_URL = 'https://mixed-grants-trivia-spaces.trycloudflare.com';
 
 console.log('[API] Using URL:', API_URL);
 
