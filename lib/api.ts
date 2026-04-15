@@ -5,8 +5,13 @@
 import axios from 'axios';
 import { useUserStore } from '../stores/userStore';
 
-// URL de l'API - utilise la variable d'environnement
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://187.124.218.190:8001';
+// URL de l'API - utilise la variable d'environnement avec fallback explicite
+const API_URL = 
+  (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_API_URL) ||
+  'http://187.124.218.190:8001';
+
+// Debug log - à retirer en production
+console.log('[API] Using URL:', API_URL);
 
 // Création de l'instance Axios
 export const api = axios.create({
