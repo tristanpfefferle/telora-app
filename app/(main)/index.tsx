@@ -109,13 +109,6 @@ export default function DashboardScreen() {
               <Text style={styles.sectionTitle}>
                 Tes budgets
               </Text>
-              <Button
-                onPress={() => router.push('/(main)/budget')}
-                variant="ghost"
-                size="sm"
-              >
-                Voir tout
-              </Button>
             </View>
             
             {budgets.slice(0, 3).map((budget: any) => (
