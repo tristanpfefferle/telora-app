@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text, TextInput, View } from 'react-native';
-import { clsx } from 'clsx';
+import { Text, TextInput, View, StyleSheet } from 'react-native';
+import { colors, borderRadius } from '../../lib/theme';
 
 interface InputProps {
   value: string;
@@ -13,7 +13,6 @@ interface InputProps {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   secureTextEntry?: boolean;
   multiline?: boolean;
-  className?: string;
 }
 
 export function Input({
@@ -27,36 +26,53 @@ export function Input({
   autoCapitalize,
   secureTextEntry = false,
   multiline = false,
-  className,
 }: InputProps) {
   return (
-    <View className={clsx('w-full', className)}>
-      {label && (
-        <Text className="text-textPrimary font-heading mb-2 text-sm">
-          {label}
-        </Text>
-      )}
+    <View style={styles.container}>
+      {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor="#71717A"
+        placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType}
         autoFocus={autoFocus}
         autoCapitalize={autoCapitalize}
         secureTextEntry={secureTextEntry}
         multiline={multiline}
-        className={clsx(
-          'bg-surface border rounded-lg px-4 py-3',
-          'text-textPrimary font-body text-base',
-          error ? 'border-error' : 'border-border',
-          'focus:border-primary',
-          multiline && 'h-24'
-        )}
+        style={[
+          styles.input,
+          error ? styles.inputError : styles.inputNormal,
+          multiline && { height: 96, textAlignVertical: 'top' },
+        ]}
       />
-      {error && (
-        <Text className="text-error text-xs mt-1">{error}</Text>
-      )}
+      {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { width: '100%' },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  inputNormal: { borderColor: colors.border },
+  inputError: { borderColor: colors.error },
+  error: {
+    fontSize: 12,
+    color: colors.error,
+    marginTop: 4,
+  },
+});

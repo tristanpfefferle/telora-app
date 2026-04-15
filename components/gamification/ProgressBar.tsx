@@ -1,28 +1,27 @@
 import React from 'react';
-import { View, Text, Animated } from 'react-native';
-import { clsx } from 'clsx';
+import { View, Text, StyleSheet } from 'react-native';
 import { MotiView } from 'moti';
+import { colors, borderRadius } from '../../lib/theme';
 
 interface ProgressBarProps {
-  progress: number; // 0-100
+  progress: number;
   label?: string;
   showValue?: boolean;
   color?: 'primary' | 'secondary' | 'accent';
   size?: 'sm' | 'md' | 'lg';
   animated?: boolean;
-  className?: string;
 }
 
 const colorMap = {
-  primary: 'bg-primary',
-  secondary: 'bg-secondary',
-  accent: 'bg-accent',
+  primary: colors.primary,
+  secondary: colors.secondary,
+  accent: colors.accent,
 };
 
 const sizeMap = {
-  sm: 'h-2',
-  md: 'h-3',
-  lg: 'h-4',
+  sm: { height: 8 },
+  md: { height: 12 },
+  lg: { height: 16 },
 };
 
 export function ProgressBar({
@@ -32,12 +31,11 @@ export function ProgressBar({
   color = 'primary',
   size = 'md',
   animated = true,
-  className,
 }: ProgressBarProps) {
   const clampedProgress = Math.min(Math.max(progress, 0), 100);
 
   const renderBar = () => (
-    <View className={clsx('w-full bg-surfaceLight rounded-full overflow-hidden', sizeMap[size])}>
+    <View style={[styles.barContainer, sizeMap[size]]}>
       {animated ? (
         <MotiView
           from={{ width: '0%' }}
@@ -46,28 +44,27 @@ export function ProgressBar({
             type: 'timing',
             duration: 500,
           }}
-          className={clsx('h-full rounded-full', colorMap[color])}
+          style={[styles.barFill, { backgroundColor: colorMap[color] }]}
         />
       ) : (
         <View
-          className={clsx('h-full rounded-full', colorMap[color])}
-          style={{ width: `${clampedProgress}%` }}
+          style={[styles.barFill, { backgroundColor: colorMap[color], width: `${clampedProgress}%` }]}
         />
       )}
     </View>
   );
 
   return (
-    <View className={clsx('w-full', className)}>
+    <View style={styles.container}>
       {(label || showValue) && (
-        <View className="flex-row justify-between items-center mb-2">
+        <View style={styles.labelRow}>
           {label && (
-            <Text className="text-textSecondary text-sm font-body">
+            <Text style={styles.label}>
               {label}
             </Text>
           )}
           {showValue && (
-            <Text className="text-textPrimary font-mono text-sm">
+            <Text style={styles.value}>
               {clampedProgress.toFixed(0)}%
             </Text>
           )}
@@ -77,3 +74,33 @@ export function ProgressBar({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  label: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  value: {
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  barContainer: {
+    width: '100%',
+    backgroundColor: colors.surfaceLight,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: borderRadius.full,
+  },
+});

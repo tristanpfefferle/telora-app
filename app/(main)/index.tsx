@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -7,6 +7,7 @@ import { ProgressBar } from '../../components/gamification/ProgressBar';
 import { XPDisplay, StreakDisplay, Badge } from '../../components/gamification/Gamification';
 import { useUserStore } from '../../stores/userStore';
 import { progressAPI, budgetAPI, formatCHF } from '../../lib/api';
+import { colors, borderRadius, spacing } from '../../lib/theme';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -16,11 +17,9 @@ export default function DashboardScreen() {
 
   const loadData = async () => {
     try {
-      // Charger la progression
       const progressResponse = await progressAPI.get();
       setProgress(progressResponse.data);
       
-      // Charger les budgets
       const budgetsResponse = await budgetAPI.list();
       setBudgets(budgetsResponse.data);
     } catch (error) {
@@ -47,24 +46,24 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-background"
+      style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF6B35" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      <View className="px-6 py-8 space-y-6">
+      <View style={styles.content}>
         {/* Header */}
-        <View className="flex-row justify-between items-center">
+        <View style={styles.header}>
           <View>
-            <Text className="text-textSecondary text-sm">
+            <Text style={styles.welcomeText}>
               {getWelcomeMessage()},
             </Text>
-            <Text className="text-2xl font-heading text-textPrimary">
+            <Text style={styles.userName}>
               {user?.firstName || 'Telora'} 👋
             </Text>
           </View>
-          <View className="bg-surface rounded-full px-4 py-2 border border-border">
-            <Text className="text-primary font-mono text-sm">
+          <View style={styles.levelBadge}>
+            <Text style={styles.levelText}>
               Niv. {progress?.level || 1}
             </Text>
           </View>
@@ -90,14 +89,13 @@ export default function DashboardScreen() {
             <CardTitle>🎯 Nouveau Budget</CardTitle>
           </CardHeader>
           <CardContent>
-            <Text className="text-textSecondary mb-4">
+            <Text style={styles.cardDescription}>
               Crée ton premier budget en 7 étapes guidées. Prends le contrôle de tes finances !
             </Text>
             <Button
               onPress={() => router.push('/(main)/budget/create')}
-              className="w-full"
               size="lg"
-              icon={<Text className="text-lg mr-2">➕</Text>}
+              icon={<Text style={styles.buttonIcon}>➕</Text>}
             >
               Commencer
             </Button>
@@ -107,8 +105,8 @@ export default function DashboardScreen() {
         {/* Mes Budgets */}
         {budgets.length > 0 && (
           <View>
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className="text-lg font-heading text-textPrimary">
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
                 Tes budgets
               </Text>
               <Button
@@ -121,31 +119,31 @@ export default function DashboardScreen() {
             </View>
             
             {budgets.slice(0, 3).map((budget: any) => (
-              <Card key={budget.id} className="mb-3">
+              <Card key={budget.id} style={styles.budgetCard}>
                 <CardHeader>
-                  <View className="flex-row justify-between items-center">
+                  <View style={styles.budgetCardHeader}>
                     <CardTitle>Budget #{budget.id.slice(0, 8)}</CardTitle>
-                    <Text className="text-textMuted text-xs">
+                    <Text style={styles.budgetDate}>
                       {new Date(budget.createdAt).toLocaleDateString('fr-CH')}
                     </Text>
                   </View>
                 </CardHeader>
                 <CardContent>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-textSecondary text-sm">Revenus</Text>
-                    <Text className="text-textPrimary font-mono">
+                  <View style={styles.budgetRow}>
+                    <Text style={styles.budgetLabel}>Revenus</Text>
+                    <Text style={styles.budgetValue}>
                       {formatCHF(budget.totalRevenus || 0)}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-textSecondary text-sm">Dépenses</Text>
-                    <Text className="text-textPrimary font-mono">
+                  <View style={styles.budgetRow}>
+                    <Text style={styles.budgetLabel}>Dépenses</Text>
+                    <Text style={styles.budgetValue}>
                       {formatCHF((budget.totalFixes || 0) + (budget.totalVariables || 0))}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between">
-                    <Text className="text-textSecondary text-sm">Épargne</Text>
-                    <Text className="text-secondary font-mono">
+                  <View style={styles.budgetRow}>
+                    <Text style={styles.budgetLabel}>Épargne</Text>
+                    <Text style={styles.budgetSavings}>
                       {formatCHF(budget.capaciteEpargne || 0)}
                     </Text>
                   </View>
@@ -153,7 +151,6 @@ export default function DashboardScreen() {
                     progress={budget.ratios?.epargneRevenus || 0}
                     color="secondary"
                     size="sm"
-                    className="mt-3"
                     showValue={false}
                   />
                 </CardContent>
@@ -165,11 +162,11 @@ export default function DashboardScreen() {
         {/* Badges Récents */}
         {progress?.badges && progress.badges.length > 0 && (
           <View>
-            <Text className="text-lg font-heading text-textPrimary mb-3">
+            <Text style={styles.sectionTitle}>
               🏆 Tes badges
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row space-x-3">
+              <View style={styles.badgesRow}>
                 {progress.badges.slice(0, 5).map((badge: any, index: number) => (
                   <Badge
                     key={index}
@@ -189,16 +186,109 @@ export default function DashboardScreen() {
             <CardTitle>💡 Conseil du jour</CardTitle>
           </CardHeader>
           <CardContent>
-            <Text className="text-textSecondary">
+            <Text style={styles.cardDescription}>
               La règle du 50/30/20 : 50% pour tes besoins, 30% pour tes envies, 20% pour ton épargne. 
               Un excellent point de départ pour équilibrer ton budget !
             </Text>
           </CardContent>
         </Card>
 
-        {/* Spacer pour le bas */}
-        <View className="h-20" />
+        {/* Spacer */}
+        <View style={styles.spacer} />
       </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+    gap: spacing.xl,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  welcomeText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  levelBadge: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  levelText: {
+    color: colors.primary,
+    fontSize: 14,
+  },
+  cardDescription: {
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  buttonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  budgetCard: {
+    marginBottom: spacing.lg,
+  },
+  budgetCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  budgetDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  budgetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  budgetLabel: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  budgetValue: {
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  budgetSavings: {
+    color: colors.secondary,
+    fontSize: 14,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  spacer: {
+    height: 80,
+  },
+});

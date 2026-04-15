@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { useUserStore } from '../../stores/userStore';
 import { authAPI } from '../../lib/api';
+import { colors, spacing, borderRadius } from '../../lib/theme';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -42,13 +43,11 @@ export default function SignupScreen() {
       const response = await authAPI.signup(email, password, firstName, lastName);
       const { token, user, progress } = response.data;
       
-      // Sauvegarder le token et les données dans le store
       useUserStore.getState().setToken(token);
       setUser(user);
       useUserStore.getState().setProgress(progress);
       setLoading(false);
       
-      // Rediriger vers l'accueil
       router.replace('/(main)/');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Une erreur est survenue');
@@ -60,110 +59,110 @@ export default function SignupScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      style={styles.container}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-1 px-6 py-8 justify-center">
+        <View style={styles.content}>
           {/* Titre */}
-          <View className="items-center mb-8">
-            <Text className="text-4xl font-heading text-primary text-center">
-              Telora
-            </Text>
-            <Text className="text-textSecondary text-center mt-2">
-              Crée ton compte gratuit
-            </Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>Telora</Text>
+            <Text style={styles.subtitle}>Crée ton compte gratuit</Text>
           </View>
 
           {/* Formulaire */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Inscription</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <View className="flex-row space-x-4">
-                <View className="flex-1">
+          <View style={styles.cardContainer}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Inscription</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <View style={styles.form}>
+                  <View style={styles.nameRow}>
+                    <View style={styles.nameField}>
+                      <Input
+                        value={firstName}
+                        onChange={setFirstName}
+                        placeholder="Prénom"
+                        label="Prénom"
+                      />
+                    </View>
+                    <View style={styles.nameField}>
+                      <Input
+                        value={lastName}
+                        onChange={setLastName}
+                        placeholder="Nom"
+                        label="Nom"
+                      />
+                    </View>
+                  </View>
+                  
                   <Input
-                    value={firstName}
-                    onChange={setFirstName}
-                    placeholder="Prénom"
-                    label="Prénom"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="ton@email.ch"
+                    label="Email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                   />
-                </View>
-                <View className="flex-1">
+                  
                   <Input
-                    value={lastName}
-                    onChange={setLastName}
-                    placeholder="Nom"
-                    label="Nom"
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="••••••••"
+                    label="Mot de passe"
+                    secureTextEntry
                   />
-                </View>
-              </View>
-              
-              <Input
-                value={email}
-                onChange={setEmail}
-                placeholder="ton@email.ch"
-                label="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              
-              <Input
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                label="Mot de passe"
-                secureTextEntry
-              />
-              
-              <Input
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                placeholder="••••••••"
-                label="Confirmer le mot de passe"
-                secureTextEntry
-              />
+                  
+                  <Input
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    placeholder="••••••••"
+                    label="Confirmer le mot de passe"
+                    secureTextEntry
+                  />
 
-              {error && (
-                <View className="bg-error bg-opacity-10 border border-error rounded-lg px-4 py-3">
-                  <Text className="text-error text-sm">{error}</Text>
-                </View>
-              )}
+                  {error && (
+                    <View style={styles.errorBox}>
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  )}
 
-              <Button
-                onPress={handleSignup}
-                loading={loading}
-                className="w-full mt-4"
-                size="lg"
-              >
-                Créer mon compte
-              </Button>
-            </CardContent>
-          </Card>
+                  <View style={styles.buttonContainer}>
+                    <Button
+                      onPress={handleSignup}
+                      loading={loading}
+                      size="lg"
+                    >
+                      Créer mon compte
+                    </Button>
+                  </View>
+                </View>
+              </CardContent>
+            </Card>
+          </View>
 
           {/* Lien vers connexion */}
-          <View className="items-center">
-            <Text className="text-textSecondary text-center">
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>
               Déjà un compte ?
             </Text>
             <Button
               onPress={() => router.back()}
               variant="ghost"
-              className="mt-2"
             >
               Se connecter
             </Button>
           </View>
 
           {/* Disclaimer */}
-          <View className="mt-8 px-4">
-            <Text className="text-textMuted text-xs text-center">
+          <View style={styles.disclaimer}>
+            <Text style={styles.disclaimerText}>
               En créant un compte, tu acceptes nos Conditions d'utilisation et notre Politique de confidentialité.
             </Text>
-            <Text className="text-textMuted text-xs text-center mt-2">
+            <Text style={[styles.disclaimerText, styles.disclaimerSubtext]}>
               Telora est un outil d'éducation financière, pas un conseiller en investissement.
             </Text>
           </View>
@@ -172,3 +171,82 @@ export default function SignupScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xxl,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  cardContainer: {
+    marginBottom: spacing.xl,
+  },
+  form: {
+    gap: spacing.lg,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  nameField: {
+    flex: 1,
+  },
+  buttonContainer: {
+    width: '100%',
+    marginTop: spacing.lg,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+  },
+  loginContainer: {
+    alignItems: 'center',
+  },
+  loginText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  disclaimer: {
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+  },
+  disclaimerText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  disclaimerSubtext: {
+    marginTop: spacing.sm,
+  },
+});

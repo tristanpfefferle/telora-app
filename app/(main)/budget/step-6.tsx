@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { BudgetSummary } from '../../../components/budget/BudgetSummary';
 import { useBudgetStore } from '../../../stores/budgetStore';
 import { formatCHF, formatPercent } from '../../../lib/api';
+import { colors, borderRadius, spacing } from '../../../lib/theme';
 
 /**
  * ÉTAPE 6 : ANALYSE & RECOMMANDATIONS
@@ -19,14 +20,12 @@ export default function BudgetStep6Screen() {
     recalculate, nextStep, previousStep 
   } = useBudgetStore();
 
-  // Calculer les ratios
   const ratioFixes = totalRevenus > 0 ? (totalFixes / totalRevenus) * 100 : 0;
   const ratioVariables = totalRevenus > 0 ? (totalVariables / totalRevenus) * 100 : 0;
   const ratioEpargne = totalRevenus > 0 ? (capaciteEpargne / totalRevenus) * 100 : 0;
 
   recalculate();
 
-  // Générer des recommandations basées sur les ratios
   const getRecommendations = () => {
     const recommendations = [];
 
@@ -95,17 +94,15 @@ export default function BudgetStep6Screen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background px-6 py-8">
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Header */}
-      <View className="mb-6">
-        <View className="flex-row items-center mb-4">
-          <Text className="text-primary font-heading text-3xl mr-3">6</Text>
-          <Text className="text-textPrimary font-heading text-2xl flex-1">
-            Analyse & Recommandations
-          </Text>
+      <View style={styles.header}>
+        <View style={styles.stepHeader}>
+          <Text style={styles.stepNumber}>6</Text>
+          <Text style={styles.stepTitle}>Analyse & Recommandations</Text>
         </View>
-        <View className="bg-surface rounded-lg px-4 py-3 border border-border">
-          <Text className="text-textSecondary text-sm">
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
             Voici ton analyse budgétaire complète avec des recommandations personnalisées.
           </Text>
         </View>
@@ -124,8 +121,8 @@ export default function BudgetStep6Screen() {
 
       {/* Recommandations */}
       {recommendations.length > 0 && (
-        <View className="mt-6">
-          <Text className="text-xl font-heading text-textPrimary mb-4">
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
             💡 Recommandations
           </Text>
           
@@ -133,16 +130,16 @@ export default function BudgetStep6Screen() {
             <Card
               key={index}
               variant={rec.priority === 'positive' ? 'success' : rec.priority === 'high' ? 'highlighted' : 'default'}
-              className="mb-3"
+              style={styles.cardSpacing}
             >
               <CardContent>
-                <View className="flex-row items-start mb-2">
-                  <Text className="text-2xl mr-3">{rec.icon}</Text>
-                  <View className="flex-1">
-                    <Text className="text-textPrimary font-heading text-base mb-1">
+                <View style={styles.recommendationRow}>
+                  <Text style={styles.recIcon}>{rec.icon}</Text>
+                  <View style={styles.recContent}>
+                    <Text style={styles.recTitle}>
                       {rec.title}
                     </Text>
-                    <Text className="text-textSecondary text-sm">
+                    <Text style={styles.recDescription}>
                       {rec.description}
                     </Text>
                   </View>
@@ -155,12 +152,12 @@ export default function BudgetStep6Screen() {
 
       {/* Objectif financier */}
       {objectifFinancier && (
-        <Card variant="highlighted" className="mt-6">
+        <Card variant="highlighted" style={styles.cardSpacing}>
           <CardHeader>
             <CardTitle>🎯 Ton objectif</CardTitle>
           </CardHeader>
           <CardContent>
-            <Text className="text-textPrimary text-base">
+            <Text style={styles.cardText}>
               {objectifFinancier}
             </Text>
           </CardContent>
@@ -169,11 +166,11 @@ export default function BudgetStep6Screen() {
 
       {/* Mindset */}
       {mindset && (
-        <Card className="mt-6">
+        <Card style={styles.cardSpacing}>
           <CardContent>
-            <Text className="text-textSecondary text-sm">
+            <Text style={styles.cardLabel}>
               💭 Ton mindset :{' '}
-              <Text className="text-textPrimary font-body">
+              <Text style={styles.cardValue}>
                 {mindset === 'contrainte' && 'L\'argent est une contrainte qui te stresse'}
                 {mindset === 'outil' && 'L\'argent est un outil pour atteindre tes objectifs'}
                 {mindset === 'jamais_reflechi' && 'Tu n\'as jamais vraiment réfléchi à l\'argent'}
@@ -184,12 +181,12 @@ export default function BudgetStep6Screen() {
       )}
 
       {/* Navigation */}
-      <View className="mt-8 mb-12 space-y-3">
+      <View style={styles.navigationContainer}>
         <Button
           onPress={handleContinue}
-          className="w-full"
+          style={styles.fullWidthButton}
           size="lg"
-          icon={<Text className="text-lg mr-2">➡️</Text>}
+          icon={<Text style={styles.buttonIcon}>➡️</Text>}
         >
           Voir le plan d'action
         </Button>
@@ -199,7 +196,7 @@ export default function BudgetStep6Screen() {
             router.back();
           }}
           variant="ghost"
-          className="w-full"
+          style={styles.fullWidthButton}
         >
           ← Retour
         </Button>
@@ -207,3 +204,104 @@ export default function BudgetStep6Screen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+  },
+  header: {
+    marginBottom: spacing.xxl,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  stepNumber: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: colors.primary,
+    marginRight: spacing.md,
+  },
+  stepTitle: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  infoBox: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  section: {
+    marginTop: spacing.xxl,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  cardSpacing: {
+    marginBottom: spacing.md,
+  },
+  recommendationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  recIcon: {
+    fontSize: 24,
+    marginRight: spacing.md,
+  },
+  recContent: {
+    flex: 1,
+  },
+  recTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  recDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  cardText: {
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  cardLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  cardValue: {
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  navigationContainer: {
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xxxl,
+    gap: spacing.lg,
+  },
+  fullWidthButton: {
+    width: '100%',
+  },
+  buttonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+});

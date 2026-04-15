@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { clsx } from 'clsx';
-import { GiftedChat, Bubble, Send, InputToolbar, Actions, Composer } from 'react-native-gifted-chat';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { GiftedChat, Bubble, Send, InputToolbar } from 'react-native-gifted-chat';
 import { MotiView } from 'moti';
+import { colors, borderRadius, spacing } from '../../lib/theme';
 
 interface Message {
   _id: string | number;
@@ -45,14 +45,14 @@ export function ChatInterface({
         {...props}
         wrapperStyle={{
           left: {
-            backgroundColor: '#15151E',
+            backgroundColor: colors.surface,
             borderTopLeftRadius: 4,
             borderTopRightRadius: 16,
             borderBottomLeftRadius: 16,
             borderBottomRightRadius: 16,
           },
           right: {
-            backgroundColor: '#FF6B35',
+            backgroundColor: colors.primary,
             borderTopLeftRadius: 16,
             borderTopRightRadius: 4,
             borderBottomLeftRadius: 16,
@@ -61,11 +61,11 @@ export function ChatInterface({
         }}
         textStyle={{
           left: {
-            color: '#FFFFFF',
+            color: colors.textPrimary,
             fontSize: 15,
           },
           right: {
-            color: '#FFFFFF',
+            color: colors.textPrimary,
             fontSize: 15,
           },
         }}
@@ -78,9 +78,9 @@ export function ChatInterface({
       <InputToolbar
         {...props}
         containerStyle={{
-          backgroundColor: '#15151E',
+          backgroundColor: colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#27272A',
+          borderTopColor: colors.border,
           paddingTop: 8,
           paddingBottom: 8,
           paddingHorizontal: 12,
@@ -99,15 +99,15 @@ export function ChatInterface({
           marginRight: 4,
         }}
       >
-        <View className="bg-primary rounded-full p-3">
-          <Text className="text-white text-lg">➤</Text>
+        <View style={styles.sendButton}>
+          <Text style={styles.sendIcon}>➤</Text>
         </View>
       </Send>
     );
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={styles.container}>
       <GiftedChat
         messages={messages}
         onSend={(messages) => onSend(messages)}
@@ -119,17 +119,17 @@ export function ChatInterface({
         renderInputToolbar={renderInputToolbar}
         renderSend={renderSend}
         placeholder={placeholder}
-        placeholderTextColor="#71717A"
+        placeholderTextColor={colors.textMuted}
         textInputStyle={{
-          color: '#FFFFFF',
+          color: colors.textPrimary,
           fontSize: 15,
         }}
         textInputProps={{
-          cursorColor: '#FF6B35',
+          cursorColor: colors.primary,
         }}
         isTyping={isTyping}
         renderTypingIndicator={() => (
-          <View className="px-4 py-2">
+          <View style={styles.typingContainer}>
             <MotiView
               from={{ opacity: 0.5 }}
               animate={{ opacity: 1 }}
@@ -138,16 +138,16 @@ export function ChatInterface({
                 duration: 500,
                 loop: true,
               }}
-              className="bg-surface rounded-lg px-4 py-3 self-start"
+              style={styles.typingBubble}
             >
-              <Text className="text-textSecondary text-sm">Telora écrit...</Text>
+              <Text style={styles.typingText}>Telora écrit...</Text>
             </MotiView>
           </View>
         )}
         alwaysShowSend
         scrollToBottom
         scrollToBottomStyle={{
-          backgroundColor: '#FF6B35',
+          backgroundColor: colors.primary,
           width: 40,
           height: 40,
           borderRadius: 20,
@@ -176,13 +176,13 @@ export function OptionButton({ label, onPress, disabled = false }: OptionButtonP
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled}
-        className={clsx(
-          'bg-surface border border-primary rounded-lg px-5 py-4 mb-3',
-          disabled && 'opacity-50'
-        )}
+        style={[
+          styles.optionButton,
+          disabled && styles.optionButtonDisabled,
+        ]}
         activeOpacity={0.7}
       >
-        <Text className="text-primary font-heading text-base text-center">
+        <Text style={styles.optionLabel}>
           {label}
         </Text>
       </TouchableOpacity>
@@ -198,7 +198,7 @@ interface OptionsListProps {
 
 export function OptionsList({ options, onSelect, disabled = false }: OptionsListProps) {
   return (
-    <View className="px-4 py-3">
+    <View style={styles.optionsList}>
       {options.map((option, index) => (
         <OptionButton
           key={index}
@@ -210,3 +210,56 @@ export function OptionsList({ options, onSelect, disabled = false }: OptionsList
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  sendButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    padding: 12,
+  },
+  sendIcon: {
+    color: colors.textPrimary,
+    fontSize: 18,
+  },
+  typingContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  typingBubble: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    alignSelf: 'flex-start',
+  },
+  typingText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  optionButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  optionButtonDisabled: {
+    opacity: 0.5,
+  },
+  optionLabel: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  optionsList: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+});

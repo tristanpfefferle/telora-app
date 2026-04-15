@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { OptionsList } from '../../../components/chat/ChatInterface';
 import { useBudgetStore } from '../../../stores/budgetStore';
 import { Confetti } from '../../../components/gamification/Gamification';
+import { colors, borderRadius, spacing } from '../../../lib/theme';
 
 /**
  * ÉTAPE 1 : MINDSET & PRIORITÉS
@@ -42,83 +43,86 @@ export default function BudgetStep1Screen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      style={styles.container}
     >
-      <ScrollView className="flex-1 px-6 py-8">
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Confetti visible={showConfetti} />
         
         {/* Header */}
-        <View className="mb-6">
-          <View className="flex-row items-center mb-4">
-            <Text className="text-primary font-heading text-3xl mr-3">1</Text>
-            <Text className="text-textPrimary font-heading text-2xl flex-1">
-              Mindset & Priorités
-            </Text>
+        <View style={styles.header}>
+          <View style={styles.stepHeader}>
+            <Text style={styles.stepNumber}>1</Text>
+            <Text style={styles.stepTitle}>Mindset & Priorités</Text>
           </View>
-          <View className="bg-surface rounded-lg px-4 py-3 border border-border">
-            <Text className="text-textSecondary text-sm">
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>
               Avant de parler chiffres, comprenons ta relation avec l'argent.
             </Text>
           </View>
         </View>
 
         {/* Question 1 : Mindset */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>💭 Comment vois-tu l'argent ?</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Text className="text-textSecondary mb-4">
-              Quelle affirmation te correspond le plus ?
-            </Text>
-            <OptionsList
-              options={mindsetOptions}
-              onSelect={handleMindsetSelect}
-            />
-          </CardContent>
-        </Card>
+        <View style={styles.cardContainer}>
+          <Card>
+            <CardHeader>
+              <CardTitle>💭 Comment vois-tu l'argent ?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Text style={styles.questionText}>
+                Quelle affirmation te correspond le plus ?
+              </Text>
+              <OptionsList
+                options={mindsetOptions}
+                onSelect={handleMindsetSelect}
+              />
+            </CardContent>
+          </Card>
+        </View>
 
         {/* Question 2 : Objectif principal */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>🎯 Quel est ton objectif principal ?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Text className="text-textSecondary">
-              Que veux-tu accomplir avec ce budget ? Sois spécifique !
-            </Text>
-            <Input
-              value={objectif}
-              onChange={setObjectif}
-              placeholder="Ex: Épargner CHF 5'000 pour un voyage, réduire mes dépenses de 20%..."
-              multiline
-            />
-            <Text className="text-textMuted text-xs">
-              💡 Astuce : Un objectif concret = plus de chances de réussite
-            </Text>
-          </CardContent>
-        </Card>
+        <View style={styles.cardContainer}>
+          <Card>
+            <CardHeader>
+              <CardTitle>🎯 Quel est ton objectif principal ?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Text style={styles.questionText}>
+                Que veux-tu accomplir avec ce budget ? Sois spécifique !
+              </Text>
+              <Input
+                value={objectif}
+                onChange={setObjectif}
+                placeholder="Ex: Épargner CHF 5'000 pour un voyage, réduire mes dépenses de 20%..."
+                multiline
+              />
+              <Text style={styles.hintText}>
+                💡 Astuce : Un objectif concret = plus de chances de réussite
+              </Text>
+            </CardContent>
+          </Card>
+        </View>
 
         {/* Info box */}
-        <Card variant="highlighted">
-          <CardContent>
-            <Text className="text-textPrimary font-heading mb-2">
-              📚 Le savais-tu ?
-            </Text>
-            <Text className="text-textSecondary text-sm">
-              Selon la formation Mendo, les personnes qui définissent un objectif financier précis 
-              ont 3x plus de chances de l'atteindre que celles qui n'en ont pas.
-            </Text>
-          </CardContent>
-        </Card>
+        <View style={styles.cardContainer}>
+          <Card variant="highlighted">
+            <CardContent>
+              <Text style={styles.infoTitle}>
+                📚 Le savais-tu ?
+              </Text>
+              <Text style={styles.infoDescription}>
+                Selon la formation Mendo, les personnes qui définissent un objectif financier précis 
+                ont 3x plus de chances de l'atteindre que celles qui n'en ont pas.
+              </Text>
+            </CardContent>
+          </Card>
+        </View>
 
         {/* Bouton Continuer */}
-        <View className="mt-8 mb-12">
+        <View style={styles.buttonContainer}>
           <Button
             onPress={handleContinue}
-            className="w-full"
             size="lg"
-            icon={<Text className="text-lg mr-2">➡️</Text>}
+            icon={<Text style={styles.buttonIcon}>➡️</Text>}
           >
             Continuer
           </Button>
@@ -127,3 +131,78 @@ export default function BudgetStep1Screen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+  },
+  header: {
+    marginBottom: spacing.xxl,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  stepNumber: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: colors.primary,
+    marginRight: spacing.md,
+  },
+  stepTitle: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  infoBox: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  cardContainer: {
+    marginBottom: spacing.xl,
+  },
+  questionText: {
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  hintText: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  infoTitle: {
+    color: colors.textPrimary,
+    fontWeight: '700',
+    fontSize: 16,
+    marginBottom: spacing.sm,
+  },
+  infoDescription: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  buttonContainer: {
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xxxl,
+  },
+  buttonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+});

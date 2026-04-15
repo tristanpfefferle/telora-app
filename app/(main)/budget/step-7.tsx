@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card';
@@ -8,6 +8,7 @@ import { Confetti } from '../../../components/gamification/Gamification';
 import { useBudgetStore } from '../../../stores/budgetStore';
 import { budgetAPI, formatCHF } from '../../../lib/api';
 import { useUserStore } from '../../../stores/userStore';
+import { colors, borderRadius, spacing } from '../../../lib/theme';
 
 /**
  * ÉTAPE 7 : PLAN D'ACTION
@@ -20,7 +21,7 @@ export default function BudgetStep7Screen() {
     totalRevenus, totalFixes, totalVariables, capaciteEpargne,
     ratioFixes, ratioVariables, ratioEpargne,
     objectifFinancier, revenus, depensesFixes, depensesVariables,
-    epargneObjectif,
+    epargneObjectif, epargneActuelle,
     reset,
   } = useBudgetStore();
   
@@ -28,11 +29,9 @@ export default function BudgetStep7Screen() {
   const [saved, setSaved] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Générer le plan d'action
   const generatePlanAction = () => {
     const actions = [];
 
-    // Action basée sur le ratio d'épargne
     if (ratioEpargne < 10) {
       actions.push({
         id: '1',
@@ -51,7 +50,6 @@ export default function BudgetStep7Screen() {
       });
     }
 
-    // Actions basées sur les dépenses fixes
     if (ratioFixes > 50) {
       actions.push({
         id: '2',
@@ -62,7 +60,6 @@ export default function BudgetStep7Screen() {
       });
     }
 
-    // Actions basées sur les dépenses variables
     if (ratioVariables > 30) {
       actions.push({
         id: '3',
@@ -73,7 +70,6 @@ export default function BudgetStep7Screen() {
       });
     }
 
-    // Action épargne automatique
     actions.push({
       id: '4',
       title: '🏦 Mettre en place un virement automatique',
@@ -82,7 +78,6 @@ export default function BudgetStep7Screen() {
       priority: 'high',
     });
 
-    // Action suivi
     actions.push({
       id: '5',
       title: '📊 Suivre ton budget chaque semaine',
@@ -100,12 +95,10 @@ export default function BudgetStep7Screen() {
     setSaving(true);
     
     try {
-      // Calculer les ratios
       const ratioFixes = totalRevenus > 0 ? (totalFixes / totalRevenus) * 100 : 0;
       const ratioVariables = totalRevenus > 0 ? (totalVariables / totalRevenus) * 100 : 0;
       const ratioEpargne = totalRevenus > 0 ? (capaciteEpargne / totalRevenus) * 100 : 0;
       
-      // Sauvegarder le budget via l'API
       const budgetData = {
         objectifFinancier: objectifFinancier || '',
         revenus,
@@ -125,7 +118,6 @@ export default function BudgetStep7Screen() {
       setSaved(true);
       setShowConfetti(true);
       
-      // Reset du store après 3 secondes
       setTimeout(() => {
         reset();
       }, 3000);
@@ -142,61 +134,59 @@ export default function BudgetStep7Screen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background px-6 py-8">
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <Confetti visible={showConfetti} />
       
       {/* Header */}
-      <View className="mb-6">
-        <View className="flex-row items-center mb-4">
-          <Text className="text-primary font-heading text-3xl mr-3">7</Text>
-          <Text className="text-textPrimary font-heading text-2xl flex-1">
-            Plan d'Action
-          </Text>
+      <View style={styles.header}>
+        <View style={styles.stepHeader}>
+          <Text style={styles.stepNumber}>7</Text>
+          <Text style={styles.stepTitle}>Plan d'Action</Text>
         </View>
-        <View className="bg-surface rounded-lg px-4 py-3 border border-border">
-          <Text className="text-textSecondary text-sm">
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
             Félicitations ! Voici ton plan personnalisé pour atteindre tes objectifs financiers.
           </Text>
         </View>
       </View>
 
       {/* Message de félicitations */}
-      <Card variant="success" className="mb-6">
-        <CardContent className="items-center">
-          <Text className="text-5xl mb-4">🎉</Text>
-          <Text className="text-2xl font-heading text-textPrimary text-center mb-2">
+      <Card variant="success" style={styles.cardSpacing}>
+        <CardContent style={styles.centerContent}>
+          <Text style={styles.celebrationEmoji}>🎉</Text>
+          <Text style={styles.celebrationTitle}>
             Budget complété !
           </Text>
-          <Text className="text-textSecondary text-center">
+          <Text style={styles.celebrationText}>
             Tu viens de faire le premier pas vers ta liberté financière.
           </Text>
         </CardContent>
       </Card>
 
       {/* Résumé rapide */}
-      <Card className="mb-6">
+      <Card style={styles.cardSpacing}>
         <CardHeader>
           <CardTitle>📊 En résumé</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary">Revenus</Text>
-            <Text className="text-textPrimary font-mono">{formatCHF(totalRevenus)}</Text>
+        <CardContent>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Revenus</Text>
+            <Text style={styles.summaryValue}>{formatCHF(totalRevenus)}</Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary">Dépenses totales</Text>
-            <Text className="text-textPrimary font-mono">{formatCHF(totalFixes + totalVariables)}</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Dépenses totales</Text>
+            <Text style={styles.summaryValue}>{formatCHF(totalFixes + totalVariables)}</Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary">Capacité d'épargne</Text>
-            <Text className="text-secondary font-mono">{formatCHF(capaciteEpargne)}</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Capacité d'épargne</Text>
+            <Text style={styles.summaryValueSuccess}>{formatCHF(capaciteEpargne)}</Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary">Taux d'épargne</Text>
-            <Text className={clsx(
-              'font-mono',
-              ratioEpargne >= 20 ? 'text-secondary' : ratioEpargne >= 10 ? 'text-warning' : 'text-error'
-            )}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Taux d'épargne</Text>
+            <Text style={[
+              styles.summaryValue,
+              { color: ratioEpargne >= 20 ? colors.secondary : ratioEpargne >= 10 ? colors.warning : colors.error }
+            ]}>
               {ratioEpargne.toFixed(1)}%
             </Text>
           </View>
@@ -204,25 +194,25 @@ export default function BudgetStep7Screen() {
       </Card>
 
       {/* Plan d'action */}
-      <View className="mb-6">
-        <Text className="text-xl font-heading text-textPrimary mb-4">
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
           📋 Ton plan d'action
         </Text>
         
         {planAction.map((action, index) => (
-          <Card key={action.id} className="mb-3">
+          <Card key={action.id} style={styles.cardSpacing}>
             <CardContent>
-              <View className="flex-row items-start">
-                <View className="bg-primary rounded-full w-8 h-8 items-center justify-center mr-3">
-                  <Text className="text-white font-heading text-sm">
+              <View style={styles.actionRow}>
+                <View style={styles.actionNumber}>
+                  <Text style={styles.actionNumberText}>
                     {index + 1}
                   </Text>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-textPrimary font-heading text-base mb-1">
+                <View style={styles.actionContent}>
+                  <Text style={styles.actionTitle}>
                     {action.title}
                   </Text>
-                  <Text className="text-textSecondary text-sm">
+                  <Text style={styles.actionDescription}>
                     {action.description}
                   </Text>
                 </View>
@@ -234,14 +224,14 @@ export default function BudgetStep7Screen() {
 
       {/* Progression vers l'objectif */}
       {epargneObjectif > 0 && (
-        <Card className="mb-6">
+        <Card style={styles.cardSpacing}>
           <CardHeader>
             <CardTitle>🎯 Progression vers ton objectif</CardTitle>
           </CardHeader>
           <CardContent>
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-textSecondary text-sm">Actuel</Text>
-              <Text className="text-textPrimary font-mono text-sm">
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>Actuel</Text>
+              <Text style={styles.progressValue}>
                 {formatCHF(epargneActuelle)} / {formatCHF(epargneObjectif)}
               </Text>
             </View>
@@ -251,7 +241,7 @@ export default function BudgetStep7Screen() {
               size="md"
               showValue={false}
             />
-            <Text className="text-textMuted text-xs mt-2 text-center">
+            <Text style={styles.progressEstimate}>
               À ce rythme, tu atteindras ton objectif dans environ{' '}
               {Math.ceil((epargneObjectif - epargneActuelle) / (capaciteEpargne || 1))} mois
             </Text>
@@ -260,23 +250,23 @@ export default function BudgetStep7Screen() {
       )}
 
       {/* Boutons d'action */}
-      <View className="mt-8 mb-12 space-y-3">
+      <View style={styles.navigationContainer}>
         {!saved ? (
           <Button
             onPress={handleSaveBudget}
             loading={saving}
-            className="w-full"
+            style={styles.fullWidthButton}
             size="lg"
-            icon={<Text className="text-lg mr-2">💾</Text>}
+            icon={<Text style={styles.buttonIcon}>💾</Text>}
           >
             Sauvegarder mon budget
           </Button>
         ) : (
           <Card variant="success">
-            <CardContent className="items-center">
-              <Text className="text-3xl mb-2">✅</Text>
-              <Text className="text-textPrimary font-heading">Budget sauvegardé !</Text>
-              <Text className="text-textSecondary text-sm mt-1">
+            <CardContent style={styles.centerContent}>
+              <Text style={styles.successEmoji}>✅</Text>
+              <Text style={styles.successTitle}>Budget sauvegardé !</Text>
+              <Text style={styles.successText}>
                 Tu peux y accéder depuis ton dashboard
               </Text>
             </CardContent>
@@ -286,9 +276,9 @@ export default function BudgetStep7Screen() {
         <Button
           onPress={handleFinish}
           variant={saved ? 'primary' : 'outline'}
-          className="w-full"
+          style={styles.fullWidthButton}
           size="lg"
-          icon={<Text className="text-lg mr-2">🏠</Text>}
+          icon={<Text style={styles.buttonIcon}>🏠</Text>}
         >
           Retour au dashboard
         </Button>
@@ -296,3 +286,172 @@ export default function BudgetStep7Screen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+  },
+  header: {
+    marginBottom: spacing.xxl,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  stepNumber: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: colors.primary,
+    marginRight: spacing.md,
+  },
+  stepTitle: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  infoBox: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  cardSpacing: {
+    marginBottom: spacing.lg,
+  },
+  centerContent: {
+    alignItems: 'center',
+  },
+  celebrationEmoji: {
+    fontSize: 48,
+    marginBottom: spacing.lg,
+  },
+  celebrationTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  celebrationText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  summaryValueSuccess: {
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  section: {
+    marginVertical: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  actionNumber: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  actionNumberText: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  actionContent: {
+    flex: 1,
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  actionDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  progressValue: {
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  progressEstimate: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  navigationContainer: {
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xxxl,
+    gap: spacing.lg,
+  },
+  fullWidthButton: {
+    width: '100%',
+  },
+  buttonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  successEmoji: {
+    fontSize: 36,
+    marginBottom: spacing.sm,
+  },
+  successTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+});

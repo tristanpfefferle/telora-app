@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { clsx } from 'clsx';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { formatCHF } from '../../lib/api';
+import { colors, borderRadius, spacing } from '../../lib/theme';
 
 interface BudgetSummaryProps {
   totalRevenus: number;
@@ -13,8 +13,29 @@ interface BudgetSummaryProps {
   ratioFixes: number;
   ratioVariables: number;
   ratioEpargne: number;
-  className?: string;
 }
+
+const getRatioColor = (ratio: number, type: 'fixes' | 'variables' | 'epargne') => {
+  if (type === 'fixes' || type === 'variables') {
+    if (ratio > 70) return colors.error;
+    if (ratio > 50) return colors.warning;
+    return colors.secondary;
+  }
+  if (ratio >= 20) return colors.secondary;
+  if (ratio >= 10) return colors.warning;
+  return colors.error;
+};
+
+const getRatioStatus = (ratio: number, type: 'fixes' | 'variables' | 'epargne') => {
+  if (type === 'fixes' || type === 'variables') {
+    if (ratio > 70) return 'Trop élevé';
+    if (ratio > 50) return 'À surveiller';
+    return 'Bon';
+  }
+  if (ratio >= 20) return 'Excellent';
+  if (ratio >= 10) return 'Bien';
+  return 'À améliorer';
+};
 
 export function BudgetSummary({
   totalRevenus,
@@ -24,43 +45,19 @@ export function BudgetSummary({
   ratioFixes,
   ratioVariables,
   ratioEpargne,
-  className,
 }: BudgetSummaryProps) {
-  const getRatioColor = (ratio: number, type: 'fixes' | 'variables' | 'epargne') => {
-    if (type === 'fixes' || type === 'variables') {
-      if (ratio > 70) return 'text-error';
-      if (ratio > 50) return 'text-warning';
-      return 'text-secondary';
-    }
-    // epargne
-    if (ratio >= 20) return 'text-secondary';
-    if (ratio >= 10) return 'text-warning';
-    return 'text-error';
-  };
-
-  const getRatioStatus = (ratio: number, type: 'fixes' | 'variables' | 'epargne') => {
-    if (type === 'fixes' || type === 'variables') {
-      if (ratio > 70) return 'Trop élevé';
-      if (ratio > 50) return 'À surveiller';
-      return 'Bon';
-    }
-    if (ratio >= 20) return 'Excellent';
-    if (ratio >= 10) return 'Bien';
-    return 'À améliorer';
-  };
-
   return (
-    <View className={clsx('space-y-4', className)}>
+    <View style={styles.container}>
       {/* Revenus */}
       <Card variant="highlighted">
         <CardHeader>
           <CardTitle>💰 Revenus totaux</CardTitle>
         </CardHeader>
         <CardContent>
-          <Text className="text-3xl font-heading text-primary">
+          <Text style={styles.revenusAmount}>
             {formatCHF(totalRevenus)}
           </Text>
-          <Text className="text-textSecondary text-sm mt-1">par mois</Text>
+          <Text style={styles.revenusLabel}>par mois</Text>
         </CardContent>
       </Card>
 
@@ -70,14 +67,14 @@ export function BudgetSummary({
           <CardTitle>🏠 Dépenses fixes</CardTitle>
         </CardHeader>
         <CardContent>
-          <Text className="text-2xl font-heading text-textPrimary">
+          <Text style={styles.depensesAmount}>
             {formatCHF(totalFixes)}
           </Text>
-          <View className="flex-row justify-between items-center mt-2">
-            <Text className={clsx('font-mono text-sm', getRatioColor(ratioFixes, 'fixes'))}>
+          <View style={styles.ratioRow}>
+            <Text style={[styles.ratioText, { color: getRatioColor(ratioFixes, 'fixes') }]}>
               {ratioFixes.toFixed(1)}% des revenus
             </Text>
-            <Text className={clsx('text-xs', getRatioColor(ratioFixes, 'fixes'))}>
+            <Text style={[styles.ratioStatus, { color: getRatioColor(ratioFixes, 'fixes') }]}>
               {getRatioStatus(ratioFixes, 'fixes')}
             </Text>
           </View>
@@ -90,14 +87,14 @@ export function BudgetSummary({
           <CardTitle>🛒 Dépenses variables</CardTitle>
         </CardHeader>
         <CardContent>
-          <Text className="text-2xl font-heading text-textPrimary">
+          <Text style={styles.depensesAmount}>
             {formatCHF(totalVariables)}
           </Text>
-          <View className="flex-row justify-between items-center mt-2">
-            <Text className={clsx('font-mono text-sm', getRatioColor(ratioVariables, 'variables'))}>
+          <View style={styles.ratioRow}>
+            <Text style={[styles.ratioText, { color: getRatioColor(ratioVariables, 'variables') }]}>
               {ratioVariables.toFixed(1)}% des revenus
             </Text>
-            <Text className={clsx('text-xs', getRatioColor(ratioVariables, 'variables'))}>
+            <Text style={[styles.ratioStatus, { color: getRatioColor(ratioVariables, 'variables') }]}>
               {getRatioStatus(ratioVariables, 'variables')}
             </Text>
           </View>
@@ -110,17 +107,17 @@ export function BudgetSummary({
           <CardTitle>💵 Capacité d'épargne</CardTitle>
         </CardHeader>
         <CardContent>
-          <Text className={clsx(
-            'text-2xl font-heading',
-            capaciteEpargne >= 0 ? 'text-secondary' : 'text-error'
-          )}>
+          <Text style={[
+            styles.epargneAmount,
+            { color: capaciteEpargne >= 0 ? colors.secondary : colors.error }
+          ]}>
             {formatCHF(capaciteEpargne)}
           </Text>
-          <View className="flex-row justify-between items-center mt-2">
-            <Text className={clsx('font-mono text-sm', getRatioColor(ratioEpargne, 'epargne'))}>
+          <View style={styles.ratioRow}>
+            <Text style={[styles.ratioText, { color: getRatioColor(ratioEpargne, 'epargne') }]}>
               {ratioEpargne.toFixed(1)}% des revenus
             </Text>
-            <Text className={clsx('text-xs', getRatioColor(ratioEpargne, 'epargne'))}>
+            <Text style={[styles.ratioStatus, { color: getRatioColor(ratioEpargne, 'epargne') }]}>
               {getRatioStatus(ratioEpargne, 'epargne')}
             </Text>
           </View>
@@ -132,21 +129,71 @@ export function BudgetSummary({
         <CardHeader>
           <CardTitle>📊 Ratios recommandés</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary text-sm">Dépenses fixes</Text>
-            <Text className="text-textPrimary font-mono text-sm">≤ 50%</Text>
+        <CardContent>
+          <View style={styles.ratioItem}>
+            <Text style={styles.ratioLabel}>Dépenses fixes</Text>
+            <Text style={styles.ratioTarget}>≤ 50%</Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary text-sm">Dépenses variables</Text>
-            <Text className="text-textPrimary font-mono text-sm">≤ 30%</Text>
+          <View style={styles.ratioItem}>
+            <Text style={styles.ratioLabel}>Dépenses variables</Text>
+            <Text style={styles.ratioTarget}>≤ 30%</Text>
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-textSecondary text-sm">Épargne</Text>
-            <Text className="text-textPrimary font-mono text-sm">≥ 20%</Text>
+          <View style={styles.ratioItem}>
+            <Text style={styles.ratioLabel}>Épargne</Text>
+            <Text style={styles.ratioTarget}>≥ 20%</Text>
           </View>
         </CardContent>
       </Card>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    gap: spacing.lg,
+  },
+  revenusAmount: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  revenusLabel: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  depensesAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  ratioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  ratioText: {
+    fontSize: 14,
+  },
+  ratioStatus: {
+    fontSize: 12,
+  },
+  epargneAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  ratioItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  ratioLabel: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  ratioTarget: {
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+});

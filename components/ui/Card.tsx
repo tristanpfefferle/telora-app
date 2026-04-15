@@ -1,74 +1,50 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import { clsx } from 'clsx';
+import { View, Text, StyleSheet } from 'react-native';
+import { colors, borderRadius } from '../../lib/theme';
 
 interface CardProps {
   children: React.ReactNode;
-  className?: string;
   variant?: 'default' | 'highlighted' | 'success';
 }
 
-export function Card({ children, className, variant = 'default' }: CardProps) {
-  const variantStyles = {
-    default: 'bg-surface border-border',
-    highlighted: 'bg-surface border-primary border-2',
-    success: 'bg-surface border-secondary border-2',
-  };
+export function Card({ children, variant = 'default' }: CardProps) {
+  const borderColor = {
+    default: colors.border,
+    highlighted: colors.primary,
+    success: colors.secondary,
+  }[variant];
+
+  const borderWidth = variant === 'default' ? 1 : 2;
 
   return (
-    <View
-      className={clsx(
-        'rounded-xl p-5 border',
-        variantStyles[variant],
-        'shadow-md',
-        className
-      )}
-    >
+    <View style={[styles.card, { borderColor, borderWidth }]}>
       {children}
     </View>
   );
 }
 
-interface CardHeaderProps {
-  children: React.ReactNode;
-  className?: string;
+export function CardHeader({ children }: { children: React.ReactNode }) {
+  return <View style={styles.header}>{children}</View>;
 }
 
-export function CardHeader({ children, className }: CardHeaderProps) {
-  return (
-    <View className={clsx('mb-3', className)}>
-      {children}
-    </View>
-  );
+export function CardTitle({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.title}>{children}</Text>;
 }
 
-interface CardTitleProps {
-  children: React.ReactNode;
-  className?: string;
+export function CardContent({ children }: { children: React.ReactNode }) {
+  return <View>{children}</View>;
 }
 
-export function CardTitle({ children, className }: CardTitleProps) {
-  return (
-    <Text
-      className={clsx(
-        'text-textPrimary font-heading text-lg',
-        className
-      )}
-    >
-      {children}
-    </Text>
-  );
-}
-
-interface CardContentProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-export function CardContent({ children, className }: CardContentProps) {
-  return (
-    <View className={clsx('', className)}>
-      {children}
-    </View>
-  );
-}
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: 20,
+  },
+  header: { marginBottom: 12 },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+});

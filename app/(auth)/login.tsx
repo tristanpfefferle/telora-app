@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { useUserStore } from '../../stores/userStore';
 import { authAPI } from '../../lib/api';
+import { colors, spacing, borderRadius } from '../../lib/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -29,13 +30,11 @@ export default function LoginScreen() {
       const response = await authAPI.login(email, password);
       const { token, user, progress } = response.data;
       
-      // Sauvegarder le token et les données dans le store
       useUserStore.getState().setToken(token);
       setUser(user);
       useUserStore.getState().setProgress(progress);
       setLoading(false);
       
-      // Rediriger vers l'accueil
       router.replace('/(main)/');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Une erreur est survenue');
@@ -47,75 +46,75 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      style={styles.container}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-1 px-6 py-12 justify-center">
+        <View style={styles.content}>
           {/* Logo / Titre */}
-          <View className="items-center mb-10">
-            <Text className="text-5xl mb-4">💰</Text>
-            <Text className="text-4xl font-heading text-primary text-center">
-              Telora
-            </Text>
-            <Text className="text-textSecondary text-center mt-2">
-              Ton éducation financière
-            </Text>
+          <View style={styles.header}>
+            <Text style={styles.logoEmoji}>💰</Text>
+            <Text style={styles.title}>Telora</Text>
+            <Text style={styles.subtitle}>Ton éducation financière</Text>
           </View>
 
           {/* Formulaire */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Connexion</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                value={email}
-                onChange={setEmail}
-                placeholder="ton@email.ch"
-                label="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={error && !email ? 'Email requis' : undefined}
-              />
-              
-              <Input
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                label="Mot de passe"
-                secureTextEntry
-                error={error && !password ? 'Mot de passe requis' : undefined}
-              />
+          <View style={styles.cardContainer}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Connexion</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <View style={styles.form}>
+                  <Input
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="ton@email.ch"
+                    label="Email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={error && !email ? 'Email requis' : undefined}
+                  />
+                  
+                  <Input
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="••••••••"
+                    label="Mot de passe"
+                    secureTextEntry
+                    error={error && !password ? 'Mot de passe requis' : undefined}
+                  />
 
-              {error && (
-                <View className="bg-error bg-opacity-10 border border-error rounded-lg px-4 py-3">
-                  <Text className="text-error text-sm">{error}</Text>
+                  {error && (
+                    <View style={styles.errorBox}>
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.buttonContainer}>
+                    <Button
+                      onPress={handleLogin}
+                      loading={loading}
+                      size="lg"
+                    >
+                      Se connecter
+                    </Button>
+                  </View>
                 </View>
-              )}
-
-              <Button
-                onPress={handleLogin}
-                loading={loading}
-                className="w-full mt-4"
-                size="lg"
-              >
-                Se connecter
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </View>
 
           {/* Lien vers inscription */}
-          <View className="items-center">
-            <Text className="text-textSecondary text-center">
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>
               Pas encore de compte ?
             </Text>
             <Button
               onPress={() => router.push('/(auth)/signup')}
               variant="ghost"
-              className="mt-2"
             >
               Créer un compte
             </Button>
@@ -125,3 +124,67 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxxl,
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.xxxl + spacing.xl,
+  },
+  logoEmoji: {
+    fontSize: 48,
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  cardContainer: {
+    marginBottom: spacing.xl,
+  },
+  form: {
+    gap: spacing.lg,
+  },
+  buttonContainer: {
+    width: '100%',
+    marginTop: spacing.lg,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+  },
+  signupContainer: {
+    alignItems: 'center',
+  },
+  signupText: {
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+});
