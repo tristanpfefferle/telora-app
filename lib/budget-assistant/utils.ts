@@ -220,7 +220,7 @@ export function getContextualAdvice(budgetData: BudgetData): Array<{
     advices.push({
       type: 'tip',
       title: 'Potentiel d\'épargne',
-      message: `Tu pourrais épargner jusqu'à ${formatCHF(capaciteEpargne)} CHF/mois (${capaciteEpargne / (budgetData.totalRevenus || 1) * 100.toFixed(1)}%). La règle du 50/30/20 suggère 20%.`,
+      message: `Tu pourrais épargner jusqu'à ${formatCHF(capaciteEpargne)} CHF/mois (${((capaciteEpargne / (budgetData.totalRevenus || 1)) * 100).toFixed(1)}%). La règle du 50/30/20 suggère 20%.`,
       icon: '💡',
     });
   }
