@@ -1,0 +1,14 @@
+{
+  "name": "telora-backend",
+  "ownerId": "tea-d37q15vfte5s73bg5arg",
+  "type": "web_service",
+  "env": "python",
+  "region": "frankfurt",
+  "plan": "starter",
+  "branch": "master",
+  "rootDir": "backend",
+  "buildCommand": "pip install -r requirements.txt",
+  "startCommand": "uvicorn main:app --host 0.0.0.0 --port $PORT",
+  "autoDeploy": "yes",
+  "repo": "git@github.com:tristanpfefferle/telora-app.git"
+}
