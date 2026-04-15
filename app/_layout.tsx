@@ -1,7 +1,11 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '../hooks/useAuth';
 
 export default function RootLayout() {
+  // Active la protection des routes
+  useAuth();
+
   return (
     <>
       <StatusBar style="light" />

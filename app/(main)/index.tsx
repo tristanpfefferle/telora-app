@@ -93,7 +93,7 @@ export default function DashboardScreen() {
               Crée ton premier budget en 7 étapes guidées. Prends le contrôle de tes finances !
             </Text>
             <Button
-              onPress={() => router.push('/(main)/budget/create')}
+              onPress={() => router.push('/(main)/budget/step-1')}
               size="lg"
               icon={<Text style={styles.buttonIcon}>➕</Text>}
             >

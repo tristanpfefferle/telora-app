@@ -51,7 +51,7 @@ interface UserState {
 
 export const useUserStore = create<UserState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       progress: null,
       token: null,
@@ -69,7 +69,7 @@ export const useUserStore = create<UserState>()(
         set({ progress }),
       
       setToken: (token) =>
-        set({ token }),
+        set({ token, isAuthenticated: !!token }),
       
       setLoading: (loading) =>
         set({ isLoading: loading }),
