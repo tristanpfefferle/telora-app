@@ -1,5 +1,41 @@
 /**
  * NativeWind Global CSS
  * https://www.nativewind.dev/quick-starts/expo
+ * 
+ * Variables CSS pour le Design System Telora - Dark Mode
  */
 import 'nativewind/expo';
+
+@theme {
+  /* Telora Design System - Dark Mode First */
+  --background: #0A0A0F;      /* Noir bleuté profond */
+  --surface: #15151E;         /* Gris foncé pour les cartes */
+  --surface-light: #1E1E2D;   /* Surface plus claire (hover) */
+  
+  /* Couleurs principales */
+  --primary: #FF6B35;         /* Orange Telora (action, énergie) */
+  --secondary: #00D9A7;       /* Vert succès (validation, positif) */
+  --accent: #5E6AD2;          /* Violet (gamification, XP) */
+  
+  /* États */
+  --error: #EF4444;           /* Rouge erreur */
+  --warning: #F59E0B;         /* Orange warning */
+  --success: #10B981;         /* Vert succès */
+  
+  /* Textes */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  
+  /* Bordures */
+  --border: #27272A;
+  --border-light: #3F3F46;
+  
+  /* Transparences */
+  --overlay: rgba(0, 0, 0, 0.6);
+  
+  /* Fonts */
+  --font-heading: Inter-Bold, sans-serif;
+  --font-body: Inter-Regular, sans-serif;
+  --font-mono: JetBrainsMono-Regular, monospace;
+}
