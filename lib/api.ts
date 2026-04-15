@@ -5,9 +5,8 @@
 import axios from 'axios';
 import { useUserStore } from '../stores/userStore';
 
-// URL de l'API - HTTPS obligatoire pour Android
-// Cloudflare Tunnel vers le backend Telora
-const API_URL = 'https://mixed-grants-trivia-spaces.trycloudflare.com';
+// URL de l'API - Backend Render Telora
+const API_URL = 'https://telora-backend.onrender.com';
 
 console.log('[API] Using URL:', API_URL);
 
