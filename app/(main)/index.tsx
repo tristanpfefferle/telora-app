@@ -90,14 +90,14 @@ export default function DashboardScreen() {
           </CardHeader>
           <CardContent>
             <Text style={styles.cardDescription}>
-              Crée ton premier budget en 7 étapes guidées. Prends le contrôle de tes finances !
+              Crée ton budget personnalisé avec ton assistant personnel !
             </Text>
             <Button
-              onPress={() => router.push('/(main)/budget/step-1')}
+              onPress={() => router.push('/assistants')}
               size="lg"
-              icon={<Text style={styles.buttonIcon}>➕</Text>}
+              icon={<Text style={styles.buttonIcon}>💬</Text>}
             >
-              Commencer
+              Parler à Budget Coach
             </Button>
           </CardContent>
         </Card>
