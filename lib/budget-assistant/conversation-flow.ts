@@ -556,33 +556,90 @@ export class ConversationFlowManager {
    */
   private generateRecap(messages: BotMessage[]): void {
     messages.push({ text: prompts.RECAP_MESSAGES.congratulations.text });
+    
+    // Carte de résumé enrichie
     messages.push({
       text: prompts.RECAP_MESSAGES.intro.text,
       showCard: true,
       cardType: 'budget_summary',
       cardData: {
-        revenus: this.budgetData.totalRevenus,
-        depensesFixes: this.budgetData.totalFixes,
-        depensesVariables: this.budgetData.totalVariables,
-        epargne: this.budgetData.capaciteEpargne,
-        capaciteEpargne: this.budgetData.capaciteEpargne,
-        ratioEpargne: this.budgetData.ratioEpargne,
+        totalRevenus: this.budgetData.totalRevenus || 0,
+        totalFixes: this.budgetData.totalFixes || 0,
+        totalVariables: this.budgetData.totalVariables || 0,
+        capaciteEpargne: this.budgetData.capaciteEpargne || 0,
+        ratioFixes: this.budgetData.ratioFixes || 0,
+        ratioVariables: this.budgetData.ratioVariables || 0,
+        ratioEpargne: this.budgetData.ratioEpargne || 0,
       },
       delay: 600,
     });
-    messages.push({
-      ...prompts.RECAP_MESSAGES.saved,
-      delay: 1200,
-    });
-
-    // Vérifier s'il y a des conseils
+    
+    // Conseils contextuels avec cartes enrichies
     const advices = getContextualAdvice(this.budgetData as BudgetData);
     if (advices.length > 0) {
-      messages.push({
-        ...prompts.RECAP_MESSAGES.advice_available(advices.length),
-        delay: 1800,
+      advices.forEach((advice, index) => {
+        const cardType = advice.type === 'warning' ? 'warning' : advice.type === 'success' ? 'success' : 'tip';
+        messages.push({
+          text: '',
+          showCard: true,
+          cardType,
+          cardData: {
+            title: advice.title,
+            message: advice.message,
+          },
+          delay: 1200 + (index * 400),
+        });
       });
     }
+    
+    // Badge de réussite
+    const ratioEpargne = this.budgetData.ratioEpargne || 0;
+    if (ratioEpargne >= 20) {
+      messages.push({
+        text: '',
+        showCard: true,
+        cardType: 'achievement',
+        cardData: {
+          title: 'Épargnant Expert',
+          description: `Tu épargnes ${ratioEpargne.toFixed(0)}% de tes revenus, c'est excellent !`,
+          badge: '🏆',
+        },
+        delay: 2000,
+      });
+    } else if (ratioEpargne >= 10) {
+      messages.push({
+        text: '',
+        showCard: true,
+        cardType: 'achievement',
+        cardData: {
+          title: 'Bon Départ',
+          description: `Tu épargnes ${ratioEpargne.toFixed(0)}% de tes revenus, continue comme ça !`,
+          badge: '👍',
+        },
+        delay: 2000,
+      });
+    }
+    
+    // Timeline d'objectif si épargne définie
+    if (this.budgetData.epargneObjectif && this.budgetData.epargneObjectif > 0) {
+      const monthlySavings = this.budgetData.capaciteEpargne || 0;
+      messages.push({
+        text: '',
+        showCard: true,
+        cardType: 'timeline',
+        cardData: {
+          currentAmount: this.budgetData.epargneActuelle || 0,
+          goalAmount: this.budgetData.epargneObjectif,
+          monthlySavings,
+        },
+        delay: 2600,
+      });
+    }
+    
+    messages.push({
+      ...prompts.RECAP_MESSAGES.saved,
+      delay: 3200,
+    });
   }
 
   /**

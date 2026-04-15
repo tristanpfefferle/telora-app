@@ -17,6 +17,9 @@ import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import { QuickReplies } from '../../components/chat/QuickReplies';
 import { MessageCard } from '../../components/chat/MessageCard';
 import { ProgressIndicator } from '../../components/chat/ProgressIndicator';
+import { BudgetSummaryCard } from '../../components/chat/BudgetSummaryCard';
+import { TipCard, AchievementBadge, ComparisonCard, TimelineCard } from '../../components/chat/TipCard';
+import { Celebration, SparkleEffect } from '../../components/chat/EmojiAnimations';
 
 interface CustomMessage {
   _id: number | string;
@@ -275,13 +278,77 @@ export default function ChatScreen() {
         }}
         renderMessageImage={() => {
           if (currentMessage?.showCard && currentMessage.cardType) {
-            return (
-              <MessageCard
-                type={currentMessage.cardType}
-                title={currentMessage.cardType === 'budget_summary' ? '📊 Ton Budget' : '💡 Conseil'}
-                data={currentMessage.cardData}
-              />
-            );
+            switch (currentMessage.cardType) {
+              case 'budget_summary':
+                return (
+                  <BudgetSummaryCard
+                    totalRevenus={currentMessage.cardData?.totalRevenus || 0}
+                    totalFixes={currentMessage.cardData?.totalFixes || 0}
+                    totalVariables={currentMessage.cardData?.totalVariables || 0}
+                    capaciteEpargne={currentMessage.cardData?.capaciteEpargne || 0}
+                    ratioFixes={currentMessage.cardData?.ratioFixes || 0}
+                    ratioVariables={currentMessage.cardData?.ratioVariables || 0}
+                    ratioEpargne={currentMessage.cardData?.ratioEpargne || 0}
+                  />
+                );
+              case 'tip':
+                return (
+                  <TipCard
+                    type="tip"
+                    title={currentMessage.cardData?.title || 'Conseil'}
+                    message={currentMessage.cardData?.message || ''}
+                  />
+                );
+              case 'warning':
+                return (
+                  <TipCard
+                    type="warning"
+                    title={currentMessage.cardData?.title || 'Attention'}
+                    message={currentMessage.cardData?.message || ''}
+                  />
+                );
+              case 'success':
+                return (
+                  <TipCard
+                    type="success"
+                    title={currentMessage.cardData?.title || 'Bravo !'}
+                    message={currentMessage.cardData?.message || ''}
+                  />
+                );
+              case 'achievement':
+                return (
+                  <AchievementBadge
+                    title={currentMessage.cardData?.title || 'Badge débloqué'}
+                    description={currentMessage.cardData?.description || ''}
+                    badge={currentMessage.cardData?.badge || '🏆'}
+                  />
+                );
+              case 'comparison':
+                return (
+                  <ComparisonCard
+                    userValue={currentMessage.cardData?.userValue || 0}
+                    averageValue={currentMessage.cardData?.averageValue || 0}
+                    label={currentMessage.cardData?.label || ''}
+                    unit={currentMessage.cardData?.unit || 'CHF'}
+                  />
+                );
+              case 'timeline':
+                return (
+                  <TimelineCard
+                    currentAmount={currentMessage.cardData?.currentAmount || 0}
+                    goalAmount={currentMessage.cardData?.goalAmount || 0}
+                    monthlySavings={currentMessage.cardData?.monthlySavings || 0}
+                  />
+                );
+              default:
+                return (
+                  <MessageCard
+                    type={currentMessage.cardType}
+                    title={currentMessage.cardType === 'budget_summary' ? '📊 Ton Budget' : '💡 Conseil'}
+                    data={currentMessage.cardData}
+                  />
+                );
+            }
           }
           return null;
         }}
