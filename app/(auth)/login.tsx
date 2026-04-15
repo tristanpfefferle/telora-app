@@ -37,7 +37,30 @@ export default function LoginScreen() {
       
       router.replace('/(main)/');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Une erreur est survenue');
+      console.error('LOGIN ERROR:', {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        data: err.response?.data,
+        config: {
+          url: err.config?.url,
+          baseURL: err.config?.baseURL,
+        }
+      });
+      
+      // Message d'erreur plus précis
+      let errorMsg = 'Une erreur est survenue';
+      if (err.code === 'ERR_NETWORK') {
+        errorMsg = 'Impossible de contacter le serveur. Vérifie ta connexion.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMsg = 'La connexion a expiré. Réessaie.';
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Email ou mot de passe incorrect';
+      } else if (err.response?.data?.detail) {
+        errorMsg = err.response.data.detail;
+      }
+      
+      setError(errorMsg);
     } finally {
       setLoadingLocal(false);
     }
