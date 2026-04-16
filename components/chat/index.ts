@@ -10,4 +10,5 @@ export { TypingIndicator } from './TypingIndicator';
 export { QuickReplyBar } from './QuickReplies';
 export { MessageCard } from './MessageCard';
 export { ProgressIndicator } from './ProgressIndicator';
+export { NumericChfInput } from './NumericChfInput';
 export { AssistantCard } from '../assistants/AssistantCard';
