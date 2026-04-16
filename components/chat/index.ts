@@ -7,7 +7,7 @@ export { BudgetSummaryCard } from './BudgetSummaryCard';
 export { TipCard, AchievementBadge, ComparisonCard, TimelineCard } from './TipCard';
 export { EmojiRain, Celebration, PulseEmoji, BounceEmojis, SparkleEffect, LoadingDots } from './EmojiAnimations';
 export { TypingIndicator } from './TypingIndicator';
-export { QuickReplyBar, QuickReplies } from './QuickReplies';
+export { QuickReplyBar } from './QuickReplies';
 export { MessageCard } from './MessageCard';
 export { ProgressIndicator } from './ProgressIndicator';
 export { AssistantCard } from '../assistants/AssistantCard';

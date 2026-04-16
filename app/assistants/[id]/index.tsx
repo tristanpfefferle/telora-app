@@ -1,67 +1,121 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GiftedChat, Bubble, Send, InputToolbar, IMessage } from 'react-native-gifted-chat';
 import { MotiView } from 'moti';
-import { colors, spacing, borderRadius } from '../../../lib/theme';
+import { colors, spacing, borderRadius, fontSize } from '../../../lib/theme';
 import { useBudgetStore } from '../../../stores/budgetStore';
 import { budgetAPI } from '../../../lib/api';
-import {
-  conversationManager,
-  formatCHF,
-  extractAmount,
-  getSuggestions,
-  getContextualAdvice,
-} from '../../../lib/budget-assistant';
-import { TypingIndicator } from '../../../components/chat/TypingIndicator';
-import { QuickReplyBar } from '../../../components/chat/QuickReplies';
-import { MessageCard } from '../../../components/chat/MessageCard';
-import { ProgressIndicator } from '../../../components/chat/ProgressIndicator';
+import { conversationManager, formatCHF } from '../../../lib/budget-assistant';
 import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
-import { TipCard, AchievementBadge, ComparisonCard, TimelineCard } from '../../../components/chat/TipCard';
-import { Celebration, SparkleEffect } from '../../../components/chat/EmojiAnimations';
+import { TipCard, AchievementBadge, TimelineCard } from '../../../components/chat/TipCard';
 
-interface QuickReply {
+interface Step {
+  id: string;
+  message: string;
+  emoji: string;
+  options: Option[];
+  card?: 'budget_summary' | 'tip' | 'success' | 'achievement' | 'timeline';
+  cardData?: any;
+}
+
+interface Option {
   id: string;
   label: string;
+  icon: string;
   value?: any;
-  icon?: string;
+  nextStep?: string;
+  isNumeric?: boolean;
+  placeholder?: string;
 }
 
-interface CustomMessage {
-  _id: number | string;
-  text: string;
-  createdAt: Date;
-  user: { _id: number | string; name: string; avatar?: string };
-  step?: string;
-  showCard?: boolean;
-  cardType?: 'budget_summary' | 'tip' | 'warning' | 'success';
-  cardData?: any;
-  quickReplies?: QuickReply[];
-  showSuggestions?: boolean;
-  suggestionContext?: 'revenus' | 'depenses_fixes' | 'depenses_variables' | 'epargne';
-}
-
-const BOT_USER = {
-  _id: 0,
-  name: 'Budget Coach',
-  avatar: 'https://ui-avatars.com/api/?name=Budget+Coach&background=7C3AED&color=fff',
-};
-
-const USER_USER = {
-  _id: 1,
-  name: 'Toi',
-};
-
-const STEP_NUMBERS: Record<string, number> = {
-  'welcome': 0,
-  'revenus': 1,
-  'depenses_fixes': 2,
-  'depenses_variables': 3,
-  'epargne': 4,
-  'objectifs': 5,
-  'recap': 6,
-  'done': 7,
+const STEPS: Record<string, Step> = {
+  welcome: {
+    id: 'welcome',
+    message: "Salut ! Je suis ton Budget Coach 👋\n\nJe vais t'aider à créer ton budget personnalisé en toute simplicité.",
+    emoji: '💰',
+    options: [
+      { id: 'start', label: "C'est parti !", icon: '🚀', nextStep: 'revenus' },
+      { id: 'later', label: 'Plus tard', icon: '⏰', nextStep: 'done' },
+    ],
+  },
+  revenus: {
+    id: 'revenus',
+    message: "Parlons revenus ! 💸\n\nQuel est ton revenu mensuel net ?",
+    emoji: '💵',
+    options: [
+      { id: 'r1', label: '< 2000 CHF', icon: '📊', value: 1500, nextStep: 'depenses_fixes' },
+      { id: 'r2', label: '2000 - 3500 CHF', icon: '📈', value: 2750, nextStep: 'depenses_fixes' },
+      { id: 'r3', label: '3500 - 5000 CHF', icon: '📈', value: 4250, nextStep: 'depenses_fixes' },
+      { id: 'r4', label: '5000 - 7000 CHF', icon: '🚀', value: 6000, nextStep: 'depenses_fixes' },
+      { id: 'r5', label: '> 7000 CHF', icon: '💎', value: 8000, nextStep: 'depenses_fixes' },
+    ],
+  },
+  depenses_fixes: {
+    id: 'depenses_fixes',
+    message: "Et tes dépenses fixes ? 🏠\n\n(Loyer, assurances, transports, abonnements...)",
+    emoji: '🏠',
+    options: [
+      { id: 'df1', label: '< 1000 CHF', icon: '🏡', value: 700, nextStep: 'depenses_variables' },
+      { id: 'df2', label: '1000 - 2000 CHF', icon: '🏢', value: 1500, nextStep: 'depenses_variables' },
+      { id: 'df3', label: '2000 - 3000 CHF', icon: '🏙️', value: 2500, nextStep: 'depenses_variables' },
+      { id: 'df4', label: '> 3000 CHF', icon: '🏰', value: 3500, nextStep: 'depenses_variables' },
+    ],
+  },
+  depenses_variables: {
+    id: 'depenses_variables',
+    message: "Maintenant, les dépenses variables ! 🛒\n\n(Nourriture, loisirs, shopping...)",
+    emoji: '🛍️',
+    options: [
+      { id: 'dv1', label: '< 500 CHF', icon: '🥗', value: 300, nextStep: 'epargne' },
+      { id: 'dv2', label: '500 - 1000 CHF', icon: '🍽️', value: 750, nextStep: 'epargne' },
+      { id: 'dv3', label: '1000 - 1500 CHF', icon: '🍷', value: 1250, nextStep: 'epargne' },
+      { id: 'dv4', label: '> 1500 CHF', icon: '🥂', value: 1800, nextStep: 'epargne' },
+    ],
+  },
+  epargne: {
+    id: 'epargne',
+    message: "Super ! 💪\n\nCombien épargnes-tu actuellement par mois ?",
+    emoji: '🐷',
+    options: [
+      { id: 'e1', label: 'Rien 😅', icon: '😅', value: 0, nextStep: 'conseil_epargne' },
+      { id: 'e2', label: '100 - 300 CHF', icon: '💰', value: 200, nextStep: 'recap' },
+      { id: 'e3', label: '300 - 500 CHF', icon: '💵', value: 400, nextStep: 'recap' },
+      { id: 'e4', label: '500+ CHF', icon: '🚀', value: 600, nextStep: 'recap' },
+    ],
+  },
+  conseil_epargne: {
+    id: 'conseil_epargne',
+    message: "Pas de souci ! Voici un conseil pour commencer : \n\nLa règle du 50/30/20 :\n• 50% besoins essentiels\n• 30% plaisirs\n• 20% épargne",
+    emoji: '💡',
+    card: 'tip',
+    cardData: {
+      type: 'tip',
+      title: '💡 Conseil Pro',
+      message: 'Commence petit : même 50 CHF/mois = 600 CHF/an !',
+    },
+    options: [
+      { id: 'ce1', label: 'Je veux épargner 10%', icon: '🎯', value: '10pct', nextStep: 'recap' },
+      { id: 'ce2', label: 'Je veux épargner 20%', icon: '🏆', value: '20pct', nextStep: 'recap' },
+    ],
+  },
+  recap: {
+    id: 'recap',
+    message: "🎉 Voilà ton résumé !",
+    emoji: '📊',
+    card: 'budget_summary',
+    options: [
+      { id: 'finish', label: 'Voir le dashboard', icon: '📱', nextStep: 'dashboard' },
+      { id: 'restart', label: 'Recommencer', icon: '🔄', nextStep: 'welcome' },
+    ],
+  },
+  done: {
+    id: 'done',
+    message: "Pas de problème ! Reviens quand tu veux 😊",
+    emoji: '👋',
+    options: [
+      { id: 'back', label: 'Retour accueil', icon: '🏠', nextStep: 'dashboard' },
+    ],
+  },
 };
 
 export default function ChatScreen() {
@@ -69,418 +123,224 @@ export default function ChatScreen() {
   const router = useRouter();
   const { id: assistantId } = params as { id: string };
   
-  const [messages, setMessages] = useState<CustomMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [currentStep, setCurrentStep] = useState('welcome');
-  const [showQuickReplies, setShowQuickReplies] = useState(false);
-  const [currentQuickReplies, setCurrentQuickReplies] = useState<QuickReply[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<QuickReply[]>([]);
+  const [currentStepId, setCurrentStepId] = useState('welcome');
+  const [history, setHistory] = useState<{step: string; message: string; emoji: string; timestamp: number}[]>([]);
+  const [isAnimating, setIsAnimating] = useState(false);
   
   const budgetStore = useBudgetStore();
 
   useEffect(() => {
-    startConversation();
+    // Initialize welcome step
+    const welcome = STEPS.welcome;
+    setHistory([{
+      step: welcome.id,
+      message: welcome.message,
+      emoji: welcome.emoji,
+      timestamp: Date.now(),
+    }]);
   }, []);
 
-  const startConversation = () => {
-    const welcomeMessage: CustomMessage = {
-      _id: 1,
-      text: "Salut ! Je suis ton Budget Coach 👋\n\nJe vais t'aider à créer ton budget personnalisé en toute simplicité.\n\nPrêt à commencer ?",
-      createdAt: new Date(),
-      user: BOT_USER,
-      step: 'welcome',
-      quickReplies: [
-        { id: 'yes', label: 'Oui, prêt !', value: 'oui', icon: '✅' },
-        { id: 'later', label: 'Plus tard', value: 'plus_tard', icon: '⏰' },
-      ],
-    };
-    setMessages([welcomeMessage]);
-    setShowQuickReplies(true);
-    setCurrentQuickReplies(welcomeMessage.quickReplies || []);
-  };
+  const handleOptionSelect = (option: Option, step: Step) => {
+    if (isAnimating) return;
+    setIsAnimating(true);
 
-  const sendBotMessages = useCallback((messages: CustomMessage[], delayBetween = 800) => {
-    setIsTyping(true);
-    
-    messages.forEach((msg, index) => {
+    // Add user choice to history
+    const userChoice = {
+      step: 'user',
+      message: option.label,
+      emoji: option.icon,
+      timestamp: Date.now(),
+    };
+
+    setHistory(prev => [...prev, userChoice]);
+
+    // Process data
+    if (step.id === 'revenus' && typeof option.value === 'number') {
+      budgetStore.setRevenus([{ source: 'Revenu principal', montant: option.value }]);
+      budgetStore.recalculate();
+    } else if (step.id === 'depenses_fixes' && typeof option.value === 'number') {
+      budgetStore.setDepensesFixes([{ categorie: 'Dépenses fixes', montant: option.value }]);
+      budgetStore.recalculate();
+    } else if (step.id === 'depenses_variables' && typeof option.value === 'number') {
+      budgetStore.setDepensesVariables([{ categorie: 'Dépenses variables', montant: option.value }]);
+      budgetStore.recalculate();
+    } else if (step.id === 'epargne' && typeof option.value === 'number') {
+      budgetStore.setEpargneActuelle(option.value);
+    } else if (step.id === 'conseil_epargne') {
+      // Calculate based on percentage
+      const percentage = option.value === '10pct' ? 0.1 : 0.2;
+      const epargne = (budgetStore.revenus[0]?.montant || 0) * percentage;
+      budgetStore.setEpargneActuelle(epargne);
+    }
+
+    // Navigate to next step
+    if (option.nextStep === 'dashboard') {
       setTimeout(() => {
-        setMessages(previous => {
-          const newMessages = [...previous, { ...msg, _id: Date.now() + index, createdAt: new Date() }];
-          return newMessages.slice(-50); // Keep last 50 messages
-        });
-
-        // Update UI state based on message content
-        if (msg.quickReplies) {
-          setShowQuickReplies(true);
-          setCurrentQuickReplies(msg.quickReplies);
-        } else if (index === messages.length - 1) {
-          setShowQuickReplies(false);
-        }
-
-        if (msg.showSuggestions && msg.suggestionContext) {
-          const suggs = getSuggestions(msg.suggestionContext, budgetStore);
-          setSuggestions(suggs.map((s, i) => ({
-            id: `sugg_${i}`,
-            label: s.label,
-            value: s.value,
-            icon: s.icon,
-          })));
-          setShowSuggestions(true);
-        } else if (index === messages.length - 1) {
-          setShowSuggestions(false);
-        }
-
-        if (index === messages.length - 1) {
-          setIsTyping(false);
-        }
-      }, index * delayBetween);
-    });
-  }, [budgetStore]);
-
-  const onSend = useCallback((newMessages: IMessage[] = []) => {
-    const userMessage = newMessages[0] as CustomMessage;
-    setMessages(previous => [...previous, { ...userMessage, createdAt: new Date() }].slice(-50));
-    setShowQuickReplies(false);
-    setShowSuggestions(false);
-    
-    // Process with conversation manager
-    const result = conversationManager.processUserResponse(
-      userMessage.text,
-      currentStep,
-      budgetStore
-    );
-
-    if (result.nextStep === 'dashboard') {
-      sendBotMessages([{
-        _id: Date.now(),
-        text: "Je te redirige vers le dashboard... 📊",
-        createdAt: new Date(),
-        user: BOT_USER,
-      }]);
-      setTimeout(() => router.push('/(main)'), 1500);
+        router.push('/(main)');
+      }, 500);
       return;
     }
 
-    if (result.nextStep && result.nextStep !== currentStep) {
-      setCurrentStep(result.nextStep);
-    }
-
-    // Send bot responses
-    if (result.messages.length > 0) {
-      sendBotMessages(result.messages as CustomMessage[]);
-    }
-
-    // Save budget if complete
-    if (result.isComplete && result.data.totalRevenus) {
-      saveBudget(result.data);
-    }
-  }, [currentStep, budgetStore, sendBotMessages, router]);
-
-  const handleQuickReplySelect = (reply: { id: string; label: string; value?: any; icon?: string }) => {
-    const replyMessage: CustomMessage = {
-      _id: Date.now(),
-      text: reply.label,
-      createdAt: new Date(),
-      user: USER_USER,
-    };
-    setMessages(previous => [...previous, replyMessage].slice(-50));
-    setShowQuickReplies(false);
-    
-    // Process with conversation manager
-    const result = conversationManager.processUserResponse(
-      reply.value,
-      currentStep,
-      budgetStore
-    );
-
-    if (result.nextStep === 'dashboard') {
-      sendBotMessages([{
-        _id: Date.now(),
-        text: "Je te redirige vers le dashboard... 📊",
-        createdAt: new Date(),
-        user: BOT_USER,
-      }]);
-      setTimeout(() => router.push('/(main)'), 1500);
-      return;
-    }
-
-    if (result.nextStep && result.nextStep !== currentStep) {
-      setCurrentStep(result.nextStep);
-    }
-
-    if (result.messages.length > 0) {
-      sendBotMessages(result.messages as CustomMessage[]);
-    }
-
-    if (result.isComplete && result.data.totalRevenus) {
-      saveBudget(result.data);
+    if (option.nextStep && option.nextStep !== 'welcome') {
+      setTimeout(() => {
+        const nextStep = STEPS[option.nextStep!];
+        setHistory(prev => [...prev, {
+          step: nextStep.id,
+          message: nextStep.message,
+          emoji: nextStep.emoji,
+          timestamp: Date.now(),
+        }]);
+        setCurrentStepId(option.nextStep!);
+        setIsAnimating(false);
+      }, 400);
+    } else if (option.nextStep === 'welcome') {
+      // Reset and restart
+      setTimeout(() => {
+        setHistory([{
+          step: 'welcome',
+          message: STEPS.welcome.message,
+          emoji: STEPS.welcome.emoji,
+          timestamp: Date.now(),
+        }]);
+        setCurrentStepId('welcome');
+        setIsAnimating(false);
+      }, 400);
+    } else {
+      setIsAnimating(false);
     }
   };
 
-  const handleSuggestionSelect = (suggestion: QuickReply) => {
-    handleQuickReplySelect(suggestion);
-  };
+  const currentStep = STEPS[currentStepId];
 
-  const saveBudget = async (data: any) => {
-    try {
-      const budgetData = {
-        objectifFinancier: data.objectifNom || 'Création via Budget Coach',
-        revenus: budgetStore.revenus,
-        depensesFixes: budgetStore.depensesFixes,
-        depensesVariables: budgetStore.depensesVariables,
-        epargneActuelle: data.epargneActuelle || 0,
-        epargneObjectif: data.epargneObjectif || data.epargneActuelle || 0,
-      };
-      
-      await budgetAPI.create(budgetData);
-      console.log('Budget sauvegardé avec succès !');
-    } catch (error) {
-      console.error('Erreur sauvegarde budget:', error);
-      sendBotMessages([{
-        _id: Date.now(),
-        text: "Oups, un problème technique est survenu. Ton budget est sauvegardé en local ! 🙏",
-        createdAt: new Date(),
-        user: BOT_USER,
-      }]);
+  const renderCard = () => {
+    if (!currentStep.card || !currentStep.cardData) return null;
+
+    switch (currentStep.card) {
+      case 'budget_summary':
+        return (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+          >
+            <BudgetSummaryCard
+              totalRevenus={budgetStore.totalRevenus}
+              totalFixes={budgetStore.totalFixes}
+              totalVariables={budgetStore.totalVariables}
+              capaciteEpargne={budgetStore.capaciteEpargne}
+              ratioFixes={budgetStore.ratioFixes}
+              ratioVariables={budgetStore.ratioVariables}
+              ratioEpargne={budgetStore.ratioEpargne}
+            />
+          </MotiView>
+        );
+      case 'tip':
+        return (
+          <MotiView
+            from={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 12 }}
+          >
+            <TipCard
+              type={currentStep.cardData.type}
+              title={currentStep.cardData.title}
+              message={currentStep.cardData.message}
+            />
+          </MotiView>
+        );
+      default:
+        return null;
     }
   };
-
-  const renderBubble = (props: any) => {
-    const { currentMessage } = props;
-
-    return (
-      <Bubble
-        {...props}
-        wrapperStyle={{
-          left: {
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 4,
-            borderTopRightRadius: 16,
-            borderBottomLeftRadius: 16,
-            borderBottomRightRadius: 16,
-          },
-          right: {
-            backgroundColor: colors.primary,
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 4,
-            borderBottomLeftRadius: 16,
-            borderBottomRightRadius: 16,
-          },
-        }}
-        textStyle={{
-          left: {
-            color: colors.textPrimary,
-            fontSize: 15,
-          },
-          right: {
-            color: colors.textPrimary,
-            fontSize: 15,
-          },
-        }}
-        renderMessageImage={() => {
-          if (currentMessage?.showCard && currentMessage.cardType) {
-            switch (currentMessage.cardType) {
-              case 'budget_summary':
-                return (
-                  <BudgetSummaryCard
-                    totalRevenus={currentMessage.cardData?.totalRevenus || 0}
-                    totalFixes={currentMessage.cardData?.totalFixes || 0}
-                    totalVariables={currentMessage.cardData?.totalVariables || 0}
-                    capaciteEpargne={currentMessage.cardData?.capaciteEpargne || 0}
-                    ratioFixes={currentMessage.cardData?.ratioFixes || 0}
-                    ratioVariables={currentMessage.cardData?.ratioVariables || 0}
-                    ratioEpargne={currentMessage.cardData?.ratioEpargne || 0}
-                  />
-                );
-              case 'tip':
-                return (
-                  <TipCard
-                    type="tip"
-                    title={currentMessage.cardData?.title || 'Conseil'}
-                    message={currentMessage.cardData?.message || ''}
-                  />
-                );
-              case 'warning':
-                return (
-                  <TipCard
-                    type="warning"
-                    title={currentMessage.cardData?.title || 'Attention'}
-                    message={currentMessage.cardData?.message || ''}
-                  />
-                );
-              case 'success':
-                return (
-                  <TipCard
-                    type="success"
-                    title={currentMessage.cardData?.title || 'Bravo !'}
-                    message={currentMessage.cardData?.message || ''}
-                  />
-                );
-              case 'achievement':
-                return (
-                  <AchievementBadge
-                    title={currentMessage.cardData?.title || 'Badge débloqué'}
-                    description={currentMessage.cardData?.description || ''}
-                    badge={currentMessage.cardData?.badge || '🏆'}
-                  />
-                );
-              case 'comparison':
-                return (
-                  <ComparisonCard
-                    userValue={currentMessage.cardData?.userValue || 0}
-                    averageValue={currentMessage.cardData?.averageValue || 0}
-                    label={currentMessage.cardData?.label || ''}
-                    unit={currentMessage.cardData?.unit || 'CHF'}
-                  />
-                );
-              case 'timeline':
-                return (
-                  <TimelineCard
-                    currentAmount={currentMessage.cardData?.currentAmount || 0}
-                    goalAmount={currentMessage.cardData?.goalAmount || 0}
-                    monthlySavings={currentMessage.cardData?.monthlySavings || 0}
-                  />
-                );
-              default:
-                return (
-                  <MessageCard
-                    type={currentMessage.cardType}
-                    title={currentMessage.cardType === 'budget_summary' ? '📊 Ton Budget' : '💡 Conseil'}
-                    data={currentMessage.cardData}
-                  />
-                );
-            }
-          }
-          return null;
-        }}
-      />
-    );
-  };
-
-  const renderSend = (props: any) => {
-    return (
-      <Send
-        {...props}
-        containerStyle={{
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginRight: 4,
-        }}
-      >
-        <View style={styles.sendButton}>
-          <Text style={styles.sendIcon}>➤</Text>
-        </View>
-      </Send>
-    );
-  };
-
-  const renderInputToolbar = (props: any) => {
-    if (currentStep === 'done' || currentStep === null) {
-      return null;
-    }
-    
-    return (
-      <InputToolbar
-        {...props}
-        containerStyle={{
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingTop: 8,
-          paddingBottom: 8,
-          paddingHorizontal: 12,
-        }}
-      />
-    );
-  };
-
-  const renderFooter = () => {
-    if (showQuickReplies && currentQuickReplies.length > 0) {
-      return (
-        <QuickReplyBar
-          replies={currentQuickReplies}
-          onSelect={handleQuickReplySelect}
-          visible={true}
-        />
-      );
-    }
-    
-    if (showSuggestions && suggestions.length > 0) {
-      return (
-        <QuickReplyBar
-          replies={suggestions}
-          onSelect={handleSuggestionSelect}
-          visible={true}
-        />
-      );
-    }
-    
-    return null;
-  };
-
-  const currentStepNumber = STEP_NUMBERS[currentStep] || 0;
-  const showProgress = currentStep !== 'welcome' && currentStep !== 'done' && currentStep !== null;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-      keyboardVerticalOffset={90}
-    >
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-          <Text style={styles.avatarEmoji}>💰</Text>
+          <Text style={styles.avatarEmoji}>{currentStep.emoji}</Text>
         </View>
         <View style={styles.infoContainer}>
           <Text style={styles.assistantName}>Budget Coach</Text>
-          <Text style={styles.status}>{isTyping ? 'En train d\'écrire...' : 'En ligne'}</Text>
+          <Text style={styles.status}>En ligne</Text>
         </View>
       </View>
 
-      {/* Progress Indicator */}
-      {showProgress && (
-        <ProgressIndicator
-          current={currentStepNumber}
-          total={6}
-          visible={true}
-        />
-      )}
+      {/* Chat Messages */}
+      <ScrollView
+        style={styles.messagesContainer}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {}}
+      >
+        {history.map((item, index) => (
+          <MotiView
+            key={`${item.step}-${item.timestamp}`}
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{
+              type: 'timing',
+              duration: 300,
+              delay: index * 100,
+            }}
+            style={styles.messageWrapper}
+          >
+            <View style={[
+              styles.messageBubble,
+              item.step === 'user' ? styles.userBubble : styles.botBubble,
+            ]}>
+              <Text style={styles.messageEmoji}>{item.emoji}</Text>
+              <Text style={styles.messageText}>{item.message}</Text>
+            </View>
+          </MotiView>
+        ))}
 
-      {/* Chat */}
-      <GiftedChat
-        // @ts-ignore - CustomMessage compatible with IMessage
-        messages={messages}
-        // @ts-ignore - CustomMessage compatible with IMessage
-        onSend={onSend}
-        user={USER_USER}
-        renderBubble={renderBubble}
-        renderInputToolbar={renderInputToolbar}
-        renderSend={renderSend}
-        renderFooter={renderFooter}
-        renderQuickReplies={() => null}
-        placeholder="Écris ton message..."
-        placeholderTextColor={colors.textMuted}
-        textInputStyle={{
-          color: colors.textPrimary,
-          fontSize: 15,
-        }}
-        textInputProps={{
-          cursorColor: colors.primary,
-        }}
-        isTyping={isTyping}
-        renderTypingIndicator={() => <TypingIndicator visible={isTyping} />}
-        alwaysShowSend
-        scrollToBottom
-        scrollToBottomStyle={{
-          backgroundColor: colors.primary,
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-        }}
-      />
-    </KeyboardAvoidingView>
+        {/* Card */}
+        {renderCard()}
+
+        {/* Options Buttons */}
+        {currentStep && currentStep.options && (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400, delay: 200 }}
+            style={styles.optionsContainer}
+          >
+            {currentStep.options.map((option, index) => (
+              <MotiView
+                key={option.id}
+                from={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  type: 'spring',
+                  damping: 15,
+                  delay: index * 80,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => handleOptionSelect(option, currentStep)}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.optionButton,
+                    index === 0 && styles.optionButtonPrimary,
+                  ]}
+                >
+                  <Text style={styles.optionIcon}>{option.icon}</Text>
+                  <Text style={[
+                    styles.optionLabel,
+                    index === 0 && styles.optionLabelPrimary,
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              </MotiView>
+            ))}
+          </MotiView>
+        )}
+
+        <View style={styles.spacer} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -499,37 +359,100 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   avatarContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.md,
   },
   avatarEmoji: {
     fontSize: 24,
   },
   infoContainer: {
-    flex: 1,
+    marginLeft: spacing.md,
   },
   assistantName: {
-    fontSize: 16,
-    fontWeight: '700',
     color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
   },
   status: {
-    fontSize: 13,
-    color: colors.textSecondary,
+    color: colors.textMuted,
+    fontSize: fontSize.sm,
     marginTop: 2,
   },
-  sendButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.full,
-    padding: 10,
+  messagesContainer: {
+    flex: 1,
   },
-  sendIcon: {
+  messagesContent: {
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  messageWrapper: {
+    marginBottom: spacing.sm,
+  },
+  messageBubble: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing.md,
+    borderRadius: borderRadius.xl,
+    maxWidth: '85%',
+    gap: spacing.sm,
+  },
+  botBubble: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 4,
+  },
+  userBubble: {
+    backgroundColor: colors.primary,
+    alignSelf: 'flex-end',
+    borderTopRightRadius: 4,
+    marginLeft: 'auto',
+  },
+  messageEmoji: {
+    fontSize: 20,
+    marginTop: 2,
+  },
+  messageText: {
     color: colors.textPrimary,
-    fontSize: 16,
+    fontSize: fontSize.md,
+    lineHeight: 22,
+    flex: 1,
+  },
+  optionsContainer: {
+    marginTop: spacing.lg,
+    gap: spacing.md,
+    paddingHorizontal: spacing.sm,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
+  optionButtonPrimary: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  optionIcon: {
+    fontSize: 22,
+  },
+  optionLabel: {
+    color: colors.textPrimary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    flex: 1,
+  },
+  optionLabelPrimary: {
+    color: colors.textPrimary,
+  },
+  spacer: {
+    height: spacing.xxl,
   },
 });
