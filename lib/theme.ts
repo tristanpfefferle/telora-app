@@ -35,6 +35,16 @@ export const borderRadius = {
   full: 9999,
 };
 
+export const fontSize = {
+  xs: 10,
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+};
+
 export const typography = StyleSheet.create({
   h1: { fontSize: 36, fontWeight: '700', color: colors.textPrimary },
   h2: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
