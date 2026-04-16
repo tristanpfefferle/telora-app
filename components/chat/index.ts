@@ -11,4 +11,5 @@ export { QuickReplyBar } from './QuickReplies';
 export { MessageCard } from './MessageCard';
 export { ProgressIndicator } from './ProgressIndicator';
 export { NumericChfInput } from './NumericChfInput';
+export { MultiSelectButtons } from './MultiSelectButtons';
 export { AssistantCard } from '../assistants/AssistantCard';
