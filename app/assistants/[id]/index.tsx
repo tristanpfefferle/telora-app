@@ -18,14 +18,23 @@ import { TipCard, AchievementBadge } from '../../../components/chat/TipCard';
 import { NumericChfInput } from '../../../components/chat/NumericChfInput';
 import { MultiSelectButtons } from '../../../components/chat/MultiSelectButtons';
 import { TypingIndicator } from '../../../components/chat/TypingIndicator';
-import { ProgressIndicator } from '../../../components/chat/ProgressIndicator';
-import type { ChatMessage, QuickReplyOption, InputMode } from '../../../lib/budget-assistant-v2/types';
+import { ProgressIndicatorV2 } from '../../../components/chat/ProgressIndicator';
+import type { PhaseProgressInfo } from '../../../components/chat/ProgressIndicator';
+import type { ChatMessage, QuickReplyOption, InputMode, PhaseId } from '../../../lib/budget-assistant-v2/types';
+import { PHASE_STEPS } from '../../../lib/budget-assistant-v2/conversation-flow';
 
 // ============================================================================
-// Total steps pour le ProgressIndicator
+// Noms et icônes des 6 phases
 // ============================================================================
 
-const TOTAL_FLOW_STEPS = 30;
+const PHASE_META: Record<PhaseId, { name: string; icon: string }> = {
+  1: { name: 'Accueil', icon: '👋' },
+  2: { name: 'Revenus', icon: '💰' },
+  3: { name: 'Dépenses fixes', icon: '🏠' },
+  4: { name: 'Envies', icon: '🎉' },
+  5: { name: 'Épargne', icon: '💎' },
+  6: { name: 'Récapitulatif', icon: '🎯' },
+};
 
 // ============================================================================
 // Screen
@@ -309,10 +318,28 @@ export default function ChatScreen() {
   };
 
   // ============================================================================
-  // Header
+  // Construction du tableau phases pour ProgressIndicatorV2
   // ============================================================================
 
-  const currentStepNumber = Math.round(globalProgress * TOTAL_FLOW_STEPS);
+  const phases: PhaseProgressInfo[] = ([1, 2, 3, 4, 5, 6] as PhaseId[]).map((id) => {
+    const stepsTotal = PHASE_STEPS[id].length;
+    const progress = phaseProgress[id];
+    const stepsCompleted = Math.round(progress * stepsTotal);
+    const isActive = id === currentPhase;
+    const isComplete = progress >= 1;
+    const meta = PHASE_META[id];
+
+    return {
+      id,
+      name: meta.name,
+      icon: meta.icon,
+      progress,
+      stepsCompleted,
+      stepsTotal,
+      isActive,
+      isComplete,
+    };
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -324,7 +351,7 @@ export default function ChatScreen() {
         <View style={styles.infoContainer}>
           <Text style={styles.assistantName}>Théo — Budget Coach</Text>
           <Text style={styles.status}>
-            {isComplete ? 'Terminé' : `${currentPhaseName} — Étape ${currentStepNumber}/${TOTAL_FLOW_STEPS}`}
+            {isComplete ? 'Terminé' : currentPhaseName}
           </Text>
         </View>
         {isComplete && (
@@ -334,12 +361,13 @@ export default function ChatScreen() {
         )}
       </View>
 
-      {/* Progress bar */}
+      {/* Progress bar V2 — 6 phases + intra-phase */}
       {!isComplete && (
-        <ProgressIndicator
-          current={currentStepNumber}
-          total={TOTAL_FLOW_STEPS}
-          label={currentPhaseName}
+        <ProgressIndicatorV2
+          phases={phases}
+          currentPhase={currentPhase}
+          currentPhaseName={currentPhaseName}
+          globalProgress={globalProgress}
           visible
         />
       )}
