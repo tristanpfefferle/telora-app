@@ -1039,6 +1039,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     name: 'Diagnostic personnalisé',
     inputMode: 'info_only',
     messages: [],
+    showRecapCard: 'diagnostic',
     nextStep: 'recap_plan_action',
   },
 

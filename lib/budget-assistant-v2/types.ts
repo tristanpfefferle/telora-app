@@ -366,7 +366,7 @@ export interface ConversationStep {
   nextStep?: ConversationStepId;
 
   // Afficher une carte récap après cette étape ?
-  showRecapCard?: 'revenus' | 'depenses_fixes' | 'variables' | 'finale';
+  showRecapCard?: 'revenus' | 'depenses_fixes' | 'variables' | 'finale' | 'diagnostic';
 
   // Pour le progress indicator : pourcentage d'avancement dans la phase
   phaseProgress?: number;
@@ -411,7 +411,7 @@ export interface ChatMessage {
   multiSelectConfig?: MultiSelectConfig;
 
   // Carte intégrée
-  cardType?: 'budget_summary' | 'revenus_recap' | 'fixes_recap' | 'variables_recap' | 'tip' | 'achievement' | 'plan_action';
+  cardType?: 'budget_summary' | 'revenus_recap' | 'fixes_recap' | 'variables_recap' | 'diagnostic' | 'tip' | 'achievement' | 'plan_action';
   cardData?: Record<string, any>;
 
   // Les quick replies sont-ils encore interactifs ?

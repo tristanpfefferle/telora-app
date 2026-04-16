@@ -14,6 +14,10 @@ import { MotiView } from 'moti';
 import { colors, spacing, borderRadius, fontSize } from '../../../lib/theme';
 import { useFlowEngine } from '../../../hooks/useFlowEngine';
 import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
+import { RevenusRecapCard } from '../../../components/chat/RevenusRecapCard';
+import { FixesRecapCard } from '../../../components/chat/FixesRecapCard';
+import { VariablesRecapCard } from '../../../components/chat/VariablesRecapCard';
+import { DiagnosticCard } from '../../../components/chat/DiagnosticCard';
 import { TipCard, AchievementBadge } from '../../../components/chat/TipCard';
 import { NumericChfInput } from '../../../components/chat/NumericChfInput';
 import { MultiSelectButtons } from '../../../components/chat/MultiSelectButtons';
@@ -108,10 +112,58 @@ export default function ChatScreen() {
     if (!msg.cardType) return null;
 
     switch (msg.cardType) {
-      case 'budget_summary':
       case 'revenus_recap':
+        return (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.cardContainer}
+          >
+            <RevenusRecapCard
+              total={msg.cardData?.total || '0 CHF'}
+              salaire={msg.cardData?.salaire || '0 CHF'}
+              treizieme={msg.cardData?.treizieme || null}
+              autres={msg.cardData?.autres || []}
+            />
+          </MotiView>
+        );
+
       case 'fixes_recap':
+        return (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.cardContainer}
+          >
+            <FixesRecapCard
+              total={msg.cardData?.total || '0 CHF'}
+              ratio={msg.cardData?.ratio || '0 %'}
+              feedback={msg.cardData?.feedback || ''}
+              postes={msg.cardData?.postes || []}
+            />
+          </MotiView>
+        );
+
       case 'variables_recap':
+        return (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.cardContainer}
+          >
+            <VariablesRecapCard
+              total={msg.cardData?.total || '0 CHF'}
+              ratio={msg.cardData?.ratio || '0 %'}
+              feedback={msg.cardData?.feedback || ''}
+              postes={msg.cardData?.postes || []}
+            />
+          </MotiView>
+        );
+
+      case 'budget_summary':
         return (
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
@@ -127,6 +179,25 @@ export default function ChatScreen() {
               ratioFixes={budgetData.ratioFixes}
               ratioVariables={budgetData.ratioVariables}
               ratioEpargne={budgetData.ratioEpargne}
+            />
+          </MotiView>
+        );
+
+      case 'diagnostic':
+        return (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.cardContainer}
+          >
+            <DiagnosticCard
+              diagnosticCase={msg.cardData?.diagnosticCase || 'equilibre'}
+              message={msg.cardData?.message || ''}
+              ratioFixes={msg.cardData?.ratioFixes || '0 %'}
+              ratioVariables={msg.cardData?.ratioVariables || '0 %'}
+              ratioEpargne={msg.cardData?.ratioEpargne || '0 %'}
+              capaciteEpargne={msg.cardData?.capaciteEpargne || '0 CHF'}
             />
           </MotiView>
         );

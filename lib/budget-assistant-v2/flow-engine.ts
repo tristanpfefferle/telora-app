@@ -1044,6 +1044,7 @@ export class FlowEngine {
       case 'depenses_fixes': return 'fixes_recap';
       case 'variables': return 'variables_recap';
       case 'finale': return 'budget_summary';
+      case 'diagnostic': return 'diagnostic';
       default: return undefined;
     }
   }
@@ -1058,18 +1059,59 @@ export class FlowEngine {
           treizieme: data.revenus.salaire.treizieme ? formatCHF(Math.round(data.revenus.salaire.treiziemeMontant / 12)) : null,
           autres: data.revenus.autres.map(a => ({ source: SOURCE_LABELS[a.source] ?? a.source, montant: formatCHF(a.montant) })),
         };
-      case 'depenses_fixes':
+      case 'depenses_fixes': {
+        const postes: Array<{ label: string; montant: string }> = [];
+        // Logement
+        if (data.logement.loyer > 0) postes.push({ label: 'Loyer / Hypothèque', montant: formatCHF(data.logement.loyer) });
+        if (data.logement.charges > 0 && data.logement.charges !== -1) postes.push({ label: 'Charges', montant: formatCHF(data.logement.charges) });
+        if (data.logement.electricite > 0) postes.push({ label: 'Électricité', montant: formatCHF(data.logement.electricite) });
+        if (data.logement.chauffage > 0 && data.logement.chauffage !== -1) postes.push({ label: 'Chauffage', montant: formatCHF(data.logement.chauffage) });
+        if (data.logement.internet > 0) postes.push({ label: 'Internet', montant: formatCHF(data.logement.internet) });
+        if (data.logement.serafe > 0) postes.push({ label: 'SERAFE', montant: formatCHF(data.logement.serafe) });
+        // Assurances
+        if (data.assurances.lamal > 0) postes.push({ label: 'LAMal', montant: formatCHF(data.assurances.lamal) });
+        if (data.assurances.complementaire > 0) postes.push({ label: 'Compl. santé', montant: formatCHF(data.assurances.complementaire) });
+        if (data.assurances.menageRc > 0) postes.push({ label: 'Ménage RC', montant: formatCHF(data.assurances.menageRc) });
+        if (data.assurances.vehicule > 0) postes.push({ label: 'Ass. véhicule', montant: formatCHF(data.assurances.vehicule) });
+        // Transport
+        if (data.transport.leasing > 0) postes.push({ label: 'Leasing', montant: formatCHF(data.transport.leasing) });
+        if (data.transport.essence > 0) postes.push({ label: 'Essence', montant: formatCHF(data.transport.essence) });
+        if (data.transport.entretien > 0) postes.push({ label: 'Entretien auto', montant: formatCHF(data.transport.entretien) });
+        if (data.transport.parking > 0) postes.push({ label: 'Parking', montant: formatCHF(data.transport.parking) });
+        if (data.transport.transportsPublics > 0) postes.push({ label: 'TP (AG/CFF)', montant: formatCHF(data.transport.transportsPublics) });
+        // Télécom
+        if (data.telecom.mobile > 0) postes.push({ label: 'Mobile', montant: formatCHF(data.telecom.mobile) });
+        // Impôts
+        if (data.impots.acomptes > 0) postes.push({ label: 'Impôts', montant: formatCHF(data.impots.acomptes) });
+        // Engagements
+        if (data.engagements.credits > 0) postes.push({ label: 'Crédits', montant: formatCHF(data.engagements.credits) });
+        if (data.engagements.pension > 0) postes.push({ label: 'Pension aliment.', montant: formatCHF(data.engagements.pension) });
+        for (const abo of data.engagements.abonnements) {
+          if (abo.montant > 0) postes.push({ label: ABO_LABELS[abo.nom] ?? abo.nom, montant: formatCHF(abo.montant) });
+        }
         return {
           total: formatCHF(data.totalFixes),
           ratio: formatPercent(data.totalFixes, data.totalRevenus),
           feedback: this.getRatioFeedback().fixes,
+          postes,
         };
-      case 'variables':
+      }
+      case 'variables': {
+        const postes: Array<{ label: string; montant: string }> = [];
+        if (data.variables.alimentaire > 0) postes.push({ label: 'Alimentaire', montant: formatCHF(data.variables.alimentaire) });
+        if (data.variables.restaurants > 0) postes.push({ label: 'Restaurants', montant: formatCHF(data.variables.restaurants) });
+        if (data.variables.sorties > 0) postes.push({ label: 'Sorties / Loisirs', montant: formatCHF(data.variables.sorties) });
+        if (data.variables.vetements > 0) postes.push({ label: 'Vêtements', montant: formatCHF(data.variables.vetements) });
+        if (data.variables.voyages > 0) postes.push({ label: 'Voyages', montant: formatCHF(data.variables.voyages) });
+        if (data.variables.cadeaux > 0) postes.push({ label: 'Cadeaux', montant: formatCHF(data.variables.cadeaux) });
+        if (data.variables.autres > 0) postes.push({ label: 'Autres envies', montant: formatCHF(data.variables.autres) });
         return {
           total: formatCHF(data.totalVariables),
           ratio: formatPercent(data.totalVariables, data.totalRevenus),
           feedback: this.getRatioFeedback().variables,
+          postes,
         };
+      }
       case 'finale':
         return {
           revenus: formatCHF(data.totalRevenus),
@@ -1081,6 +1123,17 @@ export class FlowEngine {
           epargneRatio: `${data.ratioEpargne} %`,
           capaciteEpargne: formatCHF(data.capaciteEpargne),
         };
+      case 'diagnostic': {
+        const diag = this.getDiagnostic();
+        return {
+          diagnosticCase: diag.case,
+          message: diag.message,
+          ratioFixes: `${data.ratioFixes} %`,
+          ratioVariables: `${data.ratioVariables} %`,
+          ratioEpargne: `${data.ratioEpargne} %`,
+          capaciteEpargne: formatCHF(data.capaciteEpargne),
+        };
+      }
       default:
         return {};
     }
