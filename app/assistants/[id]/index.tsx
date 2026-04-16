@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius, fontSize } from '../../../lib/theme';
 import { useBudgetStore } from '../../../stores/budgetStore';
 import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
 import { TipCard, AchievementBadge } from '../../../components/chat/TipCard';
+import { NumericChfInput } from '../../../components/chat/NumericChfInput';
+import { MultiSelectButtons } from '../../../components/chat/MultiSelectButtons';
+import type {
+  InputMode,
+  QuickReplyOption,
+  NumericChfConfig,
+  NumericChfWithSuggestionsConfig,
+  MultiSelectConfig,
+} from '../../../lib/budget-assistant-v2/types';
 import { REVENUS_MESSAGES, DEPENSES_FIXES_MESSAGES, DEPENSES_VARIABLES_MESSAGES, EPARGNE_MESSAGES, OBJECTIFS_MESSAGES, RECAP_MESSAGES, WELCOME_MESSAGES, END_MESSAGES, ERROR_MESSAGES, CONTEXTUAL_TIPS } from '../../../lib/budget-assistant/prompts';
 import { formatCHF, extractAmount, validateAmount } from '../../../lib/budget-assistant/utils';
+
+// ============================================================================
+// Types — V2 contextual input system (plus de TextInput libre)
+// ============================================================================
 
 interface Message {
   id: string;
@@ -15,19 +28,16 @@ interface Message {
   text: string;
   emoji?: string;
   timestamp: number;
-  quickReplies?: QuickReply[];
-  showInput?: boolean;
-  inputType?: 'amount';
-  inputPlaceholder?: string;
+
+  // V2 input contextuel (remplace showInput + TextInput brut)
+  inputMode?: InputMode;
+  quickReplies?: QuickReplyOption[];
+  numericConfig?: NumericChfConfig | NumericChfWithSuggestionsConfig;
+  multiSelectConfig?: MultiSelectConfig;
+
+  // Carte intégrée
   card?: 'budget_summary' | 'tip' | 'achievement';
   cardData?: any;
-}
-
-interface QuickReply {
-  id: string;
-  label: string;
-  value?: any;
-  icon?: string;
 }
 
 interface ConversationState {
@@ -44,14 +54,13 @@ export default function ChatScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { id: assistantId } = params as { id: string };
-  
+
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentInput, setCurrentInput] = useState('');
-  const [activeInputMessageId, setActiveInputMessageId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
-  
+  // Track which message currently has an active contextual input
+  const [activeInputMessageId, setActiveInputMessageId] = useState<string | null>(null);
+
   const budgetStore = useBudgetStore();
   const [convState, setConvState] = useState<ConversationState>({
     step: 'welcome',
@@ -84,12 +93,22 @@ export default function ChatScreen() {
       text: WELCOME_MESSAGES.greeting.text,
       emoji: '💰',
       timestamp: Date.now(),
-      quickReplies: WELCOME_MESSAGES.greeting.quickReplies,
+      quickReplies: WELCOME_MESSAGES.greeting.quickReplies as QuickReplyOption[],
+      inputMode: 'quick_replies',
     };
     setMessages([welcomeMsg]);
   };
 
-  const addBotMessage = (text: string, emoji?: string, quickReplies?: QuickReply[], showInput?: boolean, inputType?: 'amount', inputPlaceholder?: string, card?: Message['card'], cardData?: any) => {
+  const addBotMessage = (
+    text: string,
+    emoji?: string,
+    quickReplies?: QuickReplyOption[],
+    inputMode?: InputMode,
+    numericConfig?: NumericChfConfig | NumericChfWithSuggestionsConfig,
+    multiSelectConfig?: MultiSelectConfig,
+    card?: Message['card'],
+    cardData?: any,
+  ) => {
     const newMessage: Message = {
       id: Date.now().toString(),
       type: 'bot',
@@ -97,9 +116,9 @@ export default function ChatScreen() {
       emoji,
       timestamp: Date.now(),
       quickReplies,
-      showInput,
-      inputType,
-      inputPlaceholder,
+      inputMode,
+      numericConfig,
+      multiSelectConfig,
       card,
       cardData,
     };
@@ -118,14 +137,18 @@ export default function ChatScreen() {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const handleQuickReply = (reply: QuickReply, messageId: string) => {
+  // ============================================================================
+  // Quick Reply handler — navigation V1 (sera remplacé par V2 flow en étape 9)
+  // ============================================================================
+
+  const handleQuickReply = (reply: QuickReplyOption, messageId: string) => {
     addUserMessage(reply.label, reply.icon);
-    
+
     if (reply.value === 'oui' || reply.value === 'got_it') {
       setTimeout(() => handleRevenusStep(), 500);
     } else if (reply.value === 'plus_tard') {
       setTimeout(() => {
-        addBotMessage(WELCOME_MESSAGES.not_ready.text, '⏰', WELCOME_MESSAGES.not_ready.quickReplies);
+        addBotMessage(WELCOME_MESSAGES.not_ready.text, '⏰', WELCOME_MESSAGES.not_ready.quickReplies as QuickReplyOption[], 'quick_replies');
       }, 500);
     } else if (reply.value === 'help') {
       handleHelpRequest();
@@ -139,18 +162,18 @@ export default function ChatScreen() {
         addBotMessage(END_MESSAGES.thanks.text, '😊');
       }, 500);
     } else if (reply.value === 'fonds_urgence' || reply.value === 'achat' || reply.value === 'voyage' || reply.value === 'autre') {
-      handleObjectifSelected(reply.value, reply.label);
+      handleObjectifSelected(String(reply.value), reply.label);
     } else if (reply.value === 'zero') {
       handleEpargneSubmit(0);
     } else if (typeof reply.value === 'number') {
-      handleAmountSubmit(reply.value.toString(), messageId);
+      handleAmountSubmit(reply.value as number);
     }
   };
 
   const handleHelpRequest = () => {
     let helpText = '';
     let emoji = '💡';
-    
+
     switch (convState.step) {
       case 'revenus':
         helpText = REVENUS_MESSAGES.help.text;
@@ -168,37 +191,117 @@ export default function ChatScreen() {
         helpText = "Je suis là pour t'aider ! Utilise les boutons ou donne-moi un montant en CHF.";
         emoji = '❓';
     }
-    
-    addBotMessage(helpText, emoji, [{ id: 'got_it', label: "J'ai compris", value: 'got_it', icon: '👍' }]);
+
+    addBotMessage(helpText, emoji, [{ id: 'got_it', label: "J'ai compris", value: 'got_it', icon: '👍' }], 'quick_replies');
   };
+
+  // ============================================================================
+  // Step handlers — V1 avec NumericChfInput (plus de TextInput brut)
+  // ============================================================================
 
   const handleRevenusStep = () => {
     setConvState(prev => ({ ...prev, step: 'revenus' }));
     setIsTyping(true);
-    
+
     setTimeout(() => {
       setIsTyping(false);
       const msgId = addBotMessage(
         REVENUS_MESSAGES.prompt.text,
         '💵',
-        REVENUS_MESSAGES.prompt.quickReplies,
-        true,
-        'amount',
-        'Ex: 5000'
+        REVENUS_MESSAGES.prompt.quickReplies as QuickReplyOption[],
+        'numeric_chf',
+        { placeholder: "Ex: 5'000", min: 0, max: 100000, skipButtonLabel: "Je n'ai pas de revenus", skipValue: 0 },
       );
       setActiveInputMessageId(msgId);
     }, 800);
   };
 
-  const handleAmountSubmit = (value: string, messageId: string) => {
-    const amount = extractAmount(value);
-    
+  const handleDepensesFixesStep = () => {
+    setConvState(prev => ({ ...prev, step: 'depenses_fixes' }));
+    setIsTyping(true);
+
+    setTimeout(() => {
+      setIsTyping(false);
+      const msgId = addBotMessage(
+        DEPENSES_FIXES_MESSAGES.prompt.text,
+        '🏠',
+        DEPENSES_FIXES_MESSAGES.prompt.quickReplies as QuickReplyOption[],
+        'numeric_chf',
+        { placeholder: "Ex: 2'500", min: 0, max: 50000, skipButtonLabel: 'Pas concerné', skipValue: 0 },
+      );
+      setActiveInputMessageId(msgId);
+    }, 800);
+  };
+
+  const handleDepensesVariablesStep = () => {
+    setConvState(prev => ({ ...prev, step: 'depenses_variables' }));
+    setIsTyping(true);
+
+    setTimeout(() => {
+      setIsTyping(false);
+      const msgId = addBotMessage(
+        DEPENSES_VARIABLES_MESSAGES.prompt.text,
+        '🛍️',
+        DEPENSES_VARIABLES_MESSAGES.prompt.quickReplies as QuickReplyOption[],
+        'numeric_chf',
+        { placeholder: "Ex: 800", min: 0, max: 30000, skipButtonLabel: 'Pas concerné', skipValue: 0 },
+      );
+      setActiveInputMessageId(msgId);
+    }, 800);
+  };
+
+  const handleEpargneStep = () => {
+    setConvState(prev => ({ ...prev, step: 'epargne' }));
+    const capaciteEpargne = (convState.revenus || 0) - (convState.depensesFixes || 0) - (convState.depensesVariables || 0);
+    const ratio = convState.revenus ? (capaciteEpargne / convState.revenus) * 100 : 0;
+
+    setIsTyping(true);
+
+    setTimeout(() => {
+      setIsTyping(false);
+
+      let prompt = EPARGNE_MESSAGES.prompt(capaciteEpargne);
+
+      if (ratio > 15) {
+        prompt = EPARGNE_MESSAGES.with_potential(capaciteEpargne, ratio);
+      }
+
+      const msgId = addBotMessage(
+        prompt.text,
+        '💎',
+        prompt.quickReplies as QuickReplyOption[],
+        'numeric_chf',
+        { placeholder: "Ex: 500", min: 0, max: 20000, skipButtonLabel: '0 CHF', skipValue: 0 },
+      );
+      setActiveInputMessageId(msgId);
+    }, 800);
+  };
+
+  const handleObjectifsStep = () => {
+    setConvState(prev => ({ ...prev, step: 'objectifs' }));
+    setIsTyping(true);
+
+    setTimeout(() => {
+      setIsTyping(false);
+      addBotMessage(
+        OBJECTIFS_MESSAGES.prompt.text,
+        '🎯',
+        OBJECTIFS_MESSAGES.prompt.quickReplies as QuickReplyOption[],
+        'quick_replies',
+      );
+    }, 800);
+  };
+
+  // ============================================================================
+  // Amount submit — accepte un nombre directement (depuis NumericChfInput)
+  // ============================================================================
+
+  const handleAmountSubmit = (amount: number) => {
     if (!amount || amount <= 0) {
       addBotMessage(ERROR_MESSAGES.unclear.text, '🤔');
       return;
     }
 
-    setCurrentInput('');
     setActiveInputMessageId(null);
 
     switch (convState.step) {
@@ -255,69 +358,61 @@ export default function ChatScreen() {
     budgetStore.recalculate();
   };
 
-  const handleDepensesFixesStep = () => {
-    setConvState(prev => ({ ...prev, step: 'depenses_fixes' }));
-    setIsTyping(true);
-    
-    setTimeout(() => {
-      setIsTyping(false);
-      const msgId = addBotMessage(
-        DEPENSES_FIXES_MESSAGES.prompt.text,
-        '🏠',
-        DEPENSES_FIXES_MESSAGES.prompt.quickReplies,
-        true,
-        'amount',
-        'Ex: 2500'
-      );
-      setActiveInputMessageId(msgId);
-    }, 800);
+  // ============================================================================
+  // NumericChfInput handlers
+  // ============================================================================
+
+  const handleNumericSubmit = (amount: number) => {
+    handleAmountSubmit(amount);
   };
 
-  const handleDepensesVariablesStep = () => {
-    setConvState(prev => ({ ...prev, step: 'depenses_variables' }));
-    setIsTyping(true);
-    
-    setTimeout(() => {
-      setIsTyping(false);
-      const msgId = addBotMessage(
-        DEPENSES_VARIABLES_MESSAGES.prompt.text,
-        '🛍️',
-        DEPENSES_VARIABLES_MESSAGES.prompt.quickReplies,
-        true,
-        'amount',
-        'Ex: 800'
-      );
-      setActiveInputMessageId(msgId);
-    }, 800);
+  const handleNumericSkip = () => {
+    setActiveInputMessageId(null);
+
+    switch (convState.step) {
+      case 'revenus':
+        setConvState(prev => ({ ...prev, revenus: 0 }));
+        budgetStore.setRevenus([]);
+        addUserMessage("Pas de revenus", '💵');
+        setTimeout(() => handleDepensesFixesStep(), 600);
+        break;
+
+      case 'depenses_fixes':
+        setConvState(prev => ({ ...prev, depensesFixes: 0 }));
+        budgetStore.setDepensesFixes([]);
+        addUserMessage("Pas de dépenses fixes", '🏠');
+        setTimeout(() => handleDepensesVariablesStep(), 600);
+        break;
+
+      case 'depenses_variables':
+        setConvState(prev => ({ ...prev, depensesVariables: 0 }));
+        budgetStore.setDepensesVariables([]);
+        addUserMessage("Pas de dépenses variables", '🛒');
+        setTimeout(() => handleEpargneStep(), 600);
+        break;
+
+      case 'epargne':
+        handleEpargneSubmit(0);
+        return; // handleEpargneSubmit appelle déjà recalculate
+
+      default:
+        return;
+    }
+
+    budgetStore.recalculate();
   };
 
-  const handleEpargneStep = () => {
-    setConvState(prev => ({ ...prev, step: 'epargne' }));
-    const capaciteEpargne = (convState.revenus || 0) - (convState.depensesFixes || 0) - (convState.depensesVariables || 0);
-    const ratio = convState.revenus ? (capaciteEpargne / convState.revenus) * 100 : 0;
-    
-    setIsTyping(true);
-    
-    setTimeout(() => {
-      setIsTyping(false);
-      
-      let prompt = EPARGNE_MESSAGES.prompt(capaciteEpargne);
-      
-      if (ratio > 15) {
-        prompt = EPARGNE_MESSAGES.with_potential(capaciteEpargne, ratio);
-      }
-      
-      const msgId = addBotMessage(
-        prompt.text,
-        '💎',
-        prompt.quickReplies,
-        true,
-        'amount',
-        'Ex: 500'
-      );
-      setActiveInputMessageId(msgId);
-    }, 800);
+  // ============================================================================
+  // MultiSelect handler — placeholder pour V2 (étape 9+)
+  // ============================================================================
+
+  const handleMultiSelectSubmit = (_selectedIds: string[]) => {
+    // TODO: V2 multi-select handler (étape 9+)
   };
+
+  // ============================================================================
+  // Épargne & Objectifs — handlers V1
+  // ============================================================================
 
   const handleEpargneSubmit = (amount: number) => {
     setConvState(prev => ({ ...prev, epargne: amount }));
@@ -327,60 +422,51 @@ export default function ChatScreen() {
     budgetStore.recalculate();
   };
 
-  const handleObjectifsStep = () => {
-    setConvState(prev => ({ ...prev, step: 'objectifs' }));
-    setIsTyping(true);
-    
-    setTimeout(() => {
-      setIsTyping(false);
-      addBotMessage(
-        OBJECTIFS_MESSAGES.prompt.text,
-        '🎯',
-        OBJECTIFS_MESSAGES.prompt.quickReplies
-      );
-    }, 800);
-  };
-
   const handleObjectifSelected = (value: string, label: string) => {
     setConvState(prev => ({ ...prev, objectifNom: value }));
     addUserMessage(label, '🎯');
-    
+
     setTimeout(() => {
       addBotMessage(
         OBJECTIFS_MESSAGES.success(label).text + "\n\nOn passe au récapitulatif ?",
         '✨',
-        [
-          { id: 'yes', label: 'Oui !', value: 'oui', icon: '✅' },
-        ]
+        [{ id: 'yes', label: 'Oui !', value: 'oui', icon: '✅' }],
+        'quick_replies',
       );
     }, 600);
   };
 
+  // NOTE: handleRecapStep n'est jamais appelé dans V1 — sera intégré en étape 9
   const handleRecapStep = () => {
     setConvState(prev => ({ ...prev, step: 'recap' }));
-    
+
     addBotMessage(RECAP_MESSAGES.congratulations.text, '🎉');
-    
+
     setTimeout(() => {
       addBotMessage(
         RECAP_MESSAGES.intro.text,
         '📊',
         undefined,
-        false,
+        'info_only',
         undefined,
         undefined,
-        'budget_summary'
+        'budget_summary',
       );
     }, 800);
-    
+
     setTimeout(() => {
       addBotMessage(
         RECAP_MESSAGES.saved.text,
         '🚀',
-        RECAP_MESSAGES.saved.quickReplies
+        RECAP_MESSAGES.saved.quickReplies as QuickReplyOption[],
+        'quick_replies',
       );
     }, 1600);
   };
+
+  // ============================================================================
+  // Cards
+  // ============================================================================
 
   const renderCard = (card: Message['card'], cardData?: any) => {
     if (!card) return null;
@@ -440,9 +526,49 @@ export default function ChatScreen() {
     }
   };
 
+  // ============================================================================
+  // Contextual Input rendering — V2 (plus de TextInput brut)
+  // ============================================================================
+
+  const renderContextualInput = (message: Message) => {
+    const isActive = activeInputMessageId === message.id;
+
+    switch (message.inputMode) {
+      case 'numeric_chf':
+        return (
+          <NumericChfInput
+            config={message.numericConfig || { placeholder: "Ex: 1'000" }}
+            onSubmit={handleNumericSubmit}
+            onSkip={handleNumericSkip}
+            visible={isActive}
+            disabled={!isActive}
+          />
+        );
+
+      case 'multi_select':
+        return (
+          <MultiSelectButtons
+            config={message.multiSelectConfig || { options: [] }}
+            onSubmit={handleMultiSelectSubmit}
+            visible={isActive}
+            disabled={!isActive}
+          />
+        );
+
+      case 'quick_replies':
+      case 'info_only':
+      default:
+        return null;
+    }
+  };
+
+  // ============================================================================
+  // Message rendering
+  // ============================================================================
+
   const renderMessage = (message: Message, index: number) => {
     const isBot = message.type === 'bot';
-    
+
     return (
       <MotiView
         key={message.id}
@@ -460,7 +586,7 @@ export default function ChatScreen() {
         </View>
 
         {/* Quick Replies */}
-        {message.quickReplies && (
+        {message.quickReplies && message.quickReplies.length > 0 && (
           <View style={styles.quickRepliesContainer}>
             {message.quickReplies.map((reply, idx) => (
               <MotiView
@@ -477,7 +603,7 @@ export default function ChatScreen() {
                     idx === 0 && styles.quickReplyButtonPrimary,
                   ]}
                 >
-                  <Text style={styles.quickReplyIcon}>{reply.icon}</Text>
+                  {reply.icon && <Text style={styles.quickReplyIcon}>{reply.icon}</Text>}
                   <Text style={[
                     styles.quickReplyLabel,
                     idx === 0 && styles.quickReplyLabelPrimary,
@@ -490,40 +616,18 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* Input Field */}
-        {message.showInput && activeInputMessageId === message.id && (
-          <MotiView
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300 }}
-            style={styles.inputContainer}
-          >
-            <TextInput
-              ref={inputRef}
-              value={currentInput}
-              onChangeText={setCurrentInput}
-              onSubmitEditing={() => handleAmountSubmit(currentInput, message.id)}
-              placeholder={message.inputPlaceholder}
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numeric"
-              style={styles.amountInput}
-              autoFocus
-              returnKeyType="send"
-            />
-            <TouchableOpacity
-              onPress={() => handleAmountSubmit(currentInput, message.id)}
-              style={styles.sendButton}
-            >
-              <Text style={styles.sendButtonText}>➤</Text>
-            </TouchableOpacity>
-          </MotiView>
-        )}
+        {/* Contextual Input V2 — remplace le TextInput brut */}
+        {message.inputMode && renderContextualInput(message)}
 
         {/* Card */}
         {message.card && renderCard(message.card, message.cardData)}
       </MotiView>
     );
   };
+
+  // ============================================================================
+  // Screen layout
+  // ============================================================================
 
   return (
     <SafeAreaView style={styles.container}>
@@ -551,7 +655,7 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
         >
           {messages.map((message, index) => renderMessage(message, index))}
-          
+
           {/* Typing Indicator */}
           {isTyping && (
             <MotiView
@@ -566,13 +670,17 @@ export default function ChatScreen() {
               </View>
             </MotiView>
           )}
-          
+
           <View style={styles.spacer} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+// ============================================================================
+// Styles — V2 (sans inputContainer, amountInput, sendButton, sendButtonText)
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -686,38 +794,8 @@ const styles = StyleSheet.create({
   quickReplyLabelPrimary: {
     color: colors.textPrimary,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    marginLeft: spacing.md,
-    marginRight: spacing.md,
-    gap: spacing.sm,
-  },
-  amountInput: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonText: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  // SUPPRIMÉ : inputContainer, amountInput, sendButton, sendButtonText
+  // → remplacés par NumericChfInput / MultiSelectButtons
   cardContainer: {
     marginTop: spacing.md,
     marginLeft: spacing.md,
