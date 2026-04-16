@@ -1048,6 +1048,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     phase: 6,
     name: 'Plan d\'action',
     inputMode: 'multi_select',
+    showRecapCard: 'plan_action',
     multiSelectConfig: {
       options: [
         { id: 'reduire_depenses_fixes', label: BUTTON_LABELS.reduireDepensesFixes, icon: '📉' },
@@ -1069,6 +1070,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     phase: 6,
     name: 'Conseils actions',
     inputMode: 'info_only',
+    showRecapCard: 'conseils_action',
     messages: [],
     nextStep: 'recap_fin',
   },
@@ -1078,6 +1080,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     phase: 6,
     name: 'Fin',
     inputMode: 'quick_replies',
+    showRecapCard: 'celebration',
     quickReplies: [
       qr('save', BUTTON_LABELS.sauvegarderBudget, 'save', '💾'),
       qr('restart', BUTTON_LABELS.recommencer, 'restart', '🔄'),

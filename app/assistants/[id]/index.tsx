@@ -23,6 +23,9 @@ import { NumericChfInput } from '../../../components/chat/NumericChfInput';
 import { MultiSelectButtons } from '../../../components/chat/MultiSelectButtons';
 import { TypingIndicator } from '../../../components/chat/TypingIndicator';
 import { ProgressIndicatorV2 } from '../../../components/chat/ProgressIndicator';
+import { PlanActionCard } from '../../../components/chat/PlanActionCard';
+import { ConseilsActionCard } from '../../../components/chat/ConseilsActionCard';
+import { CelebrationCard } from '../../../components/chat/CelebrationCard';
 import type { PhaseProgressInfo } from '../../../components/chat/ProgressIndicator';
 import type { ChatMessage, QuickReplyOption, InputMode, PhaseId } from '../../../lib/budget-assistant-v2/types';
 import { PHASE_STEPS } from '../../../lib/budget-assistant-v2/conversation-flow';
@@ -242,10 +245,42 @@ export default function ChatScreen() {
             transition={{ type: 'timing', duration: 400 }}
             style={styles.cardContainer}
           >
-            <TipCard
-              type="tip"
-              title={msg.cardData?.title || 'Plan d\'action'}
-              message={msg.cardData?.message || ''}
+            <PlanActionCard
+              actions={msg.cardData?.actions || []}
+              diagnosticCase={msg.cardData?.diagnosticCase || 'equilibre'}
+            />
+          </MotiView>
+        );
+
+      case 'conseils_action':
+        return (
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400 }}
+            style={styles.cardContainer}
+          >
+            <ConseilsActionCard
+              diagnosticCase={msg.cardData?.diagnosticCase || 'equilibre'}
+              capaciteEpargne={msg.cardData?.capaciteEpargne || '0 CHF'}
+              conseils={msg.cardData?.conseils || []}
+            />
+          </MotiView>
+        );
+
+      case 'celebration':
+        return (
+          <MotiView
+            from={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 12 }}
+            style={styles.cardContainer}
+          >
+            <CelebrationCard
+              totalRevenus={msg.cardData?.totalRevenus || '0 CHF'}
+              capaciteEpargne={msg.cardData?.capaciteEpargne || '0 CHF'}
+              onSave={() => {/* TODO: implement save */}}
+              onRestart={() => {/* TODO: implement restart */}}
             />
           </MotiView>
         );

@@ -1045,6 +1045,9 @@ export class FlowEngine {
       case 'variables': return 'variables_recap';
       case 'finale': return 'budget_summary';
       case 'diagnostic': return 'diagnostic';
+      case 'plan_action': return 'plan_action';
+      case 'conseils_action': return 'conseils_action';
+      case 'celebration': return 'celebration';
       default: return undefined;
     }
   }
@@ -1134,6 +1137,76 @@ export class FlowEngine {
           capaciteEpargne: formatCHF(data.capaciteEpargne),
         };
       }
+      case 'plan_action': {
+        const diag = this.getDiagnostic();
+        const ACTION_LABELS: Record<string, string> = {
+          reduire_depenses_fixes: 'Réduire les dépenses fixes',
+          mieux_suivre_envies: 'Mieux suivre mes envies',
+          automatiser_epargne: 'Automatiser l\'épargne',
+          definir_objectif_epargne: 'Définir un objectif d\'épargne',
+          refaire_budget_1_mois: 'Refaire le budget dans 1 mois',
+        };
+        const allActions = diag.planActionsDisponibles.map(a => ({
+          id: a.id,
+          label: ACTION_LABELS[a.id] ?? a.id,
+          icon: '',
+          selected: data.planAction?.some(pa => pa.id === a.id && pa.selected) ?? false,
+          conseilPersonnalise: a.conseilPersonnalise,
+        }));
+        return {
+          actions: allActions,
+          diagnosticCase: diag.case,
+        };
+      }
+      case 'conseils_action': {
+        const diag = this.getDiagnostic();
+        const selectedIds = (data.planAction ?? [])
+          .filter(pa => pa.selected)
+          .map(pa => pa.id);
+        const conseils: Array<{ icon: string; title: string; description: string; accentColor: string }> = [];
+        for (const id of selectedIds) {
+          const conseil = PLAN_ACTION_CONSEILS[id as keyof typeof PLAN_ACTION_CONSEILS];
+          if (conseil) {
+            const titreMap: Record<string, string> = {
+              reduire_depenses_fixes: 'Réduire les fixes',
+              mieux_suivre_envies: 'Suivre les envies',
+              automatiser_epargne: 'Automatiser l\'épargne',
+              definir_objectif_epargne: 'Objectif épargne',
+              refaire_budget_1_mois: 'Refaire dans 1 mois',
+            };
+            const iconMap: Record<string, string> = {
+              reduire_depenses_fixes: '📉',
+              mieux_suivre_envies: '👀',
+              automatiser_epargne: '🔄',
+              definir_objectif_epargne: '🎯',
+              refaire_budget_1_mois: '📅',
+            };
+            const accentMap: Record<string, string> = {
+              reduire_depenses_fixes: '#F59E0B',
+              mieux_suivre_envies: '#8B5CF6',
+              automatiser_epargne: '#10B981',
+              definir_objectif_epargne: '#3B82F6',
+              refaire_budget_1_mois: '#EC4899',
+            };
+            conseils.push({
+              icon: iconMap[id] ?? '📌',
+              title: titreMap[id] ?? id,
+              description: conseil,
+              accentColor: accentMap[id] ?? '#10B981',
+            });
+          }
+        }
+        return {
+          diagnosticCase: diag.case,
+          capaciteEpargne: formatCHF(data.capaciteEpargne),
+          conseils,
+        };
+      }
+      case 'celebration':
+        return {
+          totalRevenus: formatCHF(data.totalRevenus),
+          capaciteEpargne: formatCHF(data.capaciteEpargne),
+        };
       default:
         return {};
     }
