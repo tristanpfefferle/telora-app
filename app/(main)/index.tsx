@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { ProgressBar } from '../../components/gamification/ProgressBar';
 import { XPDisplay, StreakDisplay, Badge } from '../../components/gamification/Gamification';
 import { useUserStore } from '../../stores/userStore';
-import { progressAPI, budgetAPI, formatCHF } from '../../lib/api';
+import { progressAPI, budgetAPI, formatCHF, type Budget } from '../../lib/api';
 import { colors, borderRadius, spacing } from '../../lib/theme';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { user, progress, setProgress } = useUserStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [budgets, setBudgets] = useState([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
 
   const loadData = async () => {
     try {

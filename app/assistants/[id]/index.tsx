@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { GiftedChat, Bubble, Send, InputToolbar } from 'react-native-gifted-chat';
+import { GiftedChat, Bubble, Send, InputToolbar, IMessage } from 'react-native-gifted-chat';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius } from '../../../lib/theme';
 import { useBudgetStore } from '../../../stores/budgetStore';
@@ -21,6 +21,13 @@ import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
 import { TipCard, AchievementBadge, ComparisonCard, TimelineCard } from '../../../components/chat/TipCard';
 import { Celebration, SparkleEffect } from '../../../components/chat/EmojiAnimations';
 
+interface QuickReply {
+  id: string;
+  label: string;
+  value?: any;
+  icon?: string;
+}
+
 interface CustomMessage {
   _id: number | string;
   text: string;
@@ -30,7 +37,7 @@ interface CustomMessage {
   showCard?: boolean;
   cardType?: 'budget_summary' | 'tip' | 'warning' | 'success';
   cardData?: any;
-  quickReplies?: Array<{ id: string; label: string; value: any; icon?: string }>;
+  quickReplies?: QuickReply[];
   showSuggestions?: boolean;
   suggestionContext?: 'revenus' | 'depenses_fixes' | 'depenses_variables' | 'epargne';
 }
@@ -66,9 +73,9 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const [currentStep, setCurrentStep] = useState('welcome');
   const [showQuickReplies, setShowQuickReplies] = useState(false);
-  const [currentQuickReplies, setCurrentQuickReplies] = useState<Array<{ id: string; label: string; value: any; icon?: string }>>([]);
+  const [currentQuickReplies, setCurrentQuickReplies] = useState<QuickReply[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<Array<{ id: string; label: string; value: number; icon?: string }>>([]);
+  const [suggestions, setSuggestions] = useState<QuickReply[]>([]);
   
   const budgetStore = useBudgetStore();
 
@@ -131,7 +138,7 @@ export default function ChatScreen() {
     });
   }, [budgetStore]);
 
-  const onSend = useCallback((newMessages: Message[] = []) => {
+  const onSend = useCallback((newMessages: IMessage[] = []) => {
     const userMessage = newMessages[0] as CustomMessage;
     setMessages(previous => [...previous, { ...userMessage, createdAt: new Date() }].slice(-50));
     setShowQuickReplies(false);
@@ -170,7 +177,7 @@ export default function ChatScreen() {
     }
   }, [currentStep, budgetStore, sendBotMessages, router]);
 
-  const handleQuickReplySelect = (reply: { id: string; label: string; value: any; icon?: string }) => {
+  const handleQuickReplySelect = (reply: { id: string; label: string; value?: any; icon?: string }) => {
     const replyMessage: CustomMessage = {
       _id: Date.now(),
       text: reply.label,
@@ -211,13 +218,8 @@ export default function ChatScreen() {
     }
   };
 
-  const handleSuggestionSelect = (suggestion: { id: string; label: string; value: number; icon?: string }) => {
-    handleQuickReplySelect({
-      id: suggestion.id,
-      label: suggestion.label,
-      value: suggestion.value,
-      icon: suggestion.icon,
-    });
+  const handleSuggestionSelect = (suggestion: QuickReply) => {
+    handleQuickReplySelect(suggestion);
   };
 
   const saveBudget = async (data: any) => {
@@ -448,8 +450,10 @@ export default function ChatScreen() {
 
       {/* Chat */}
       <GiftedChat
+        // @ts-ignore - CustomMessage compatible with IMessage
         messages={messages}
-        onSend={(messages) => onSend(messages)}
+        // @ts-ignore - CustomMessage compatible with IMessage
+        onSend={onSend}
         user={USER_USER}
         renderBubble={renderBubble}
         renderInputToolbar={renderInputToolbar}

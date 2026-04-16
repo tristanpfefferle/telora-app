@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -35,7 +35,7 @@ export default function LoginScreen() {
       useUserStore.getState().setProgress(progress);
       setLoading(false);
       
-      router.replace('/(main)/');
+      router.replace('/(main)');
     } catch (err: any) {
       console.error('LOGIN ERROR:', {
         message: err.message,

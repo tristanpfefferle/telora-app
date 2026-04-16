@@ -48,7 +48,7 @@ export default function SignupScreen() {
       useUserStore.getState().setProgress(progress);
       setLoading(false);
       
-      router.replace('/(main)/');
+      router.replace('/(main)');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Une erreur est survenue');
     } finally {

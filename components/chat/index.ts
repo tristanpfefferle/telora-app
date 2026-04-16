@@ -10,4 +10,4 @@ export { TypingIndicator } from './TypingIndicator';
 export { QuickReplies } from './QuickReplies';
 export { MessageCard } from './MessageCard';
 export { ProgressIndicator } from './ProgressIndicator';
-export { AssistantCard } from './AssistantCard';
+export { AssistantCard } from '../assistants/AssistantCard';

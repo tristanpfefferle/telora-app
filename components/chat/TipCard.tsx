@@ -131,7 +131,7 @@ export function ComparisonCard({ userValue, averageValue, label, unit, delay = 0
         damping: 15,
         delay 
       }}
-      style={[styles.comparisonContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.comparisonContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
     >
       <Text style={styles.comparisonTitle}>📊 Comparaison Suisse</Text>
       
@@ -147,7 +147,7 @@ export function ComparisonCard({ userValue, averageValue, label, unit, delay = 0
         
         <View style={styles.comparisonItem}>
           <Text style={styles.comparisonLabel}>Moyenne</Text>
-          <Text style={[styles.comparisonValue, { color: colors.text }]}>
+          <Text style={[styles.comparisonValue, { color: colors.textSecondary }]}>
             {averageValue.toLocaleString('fr-CH')} {unit}
           </Text>
         </View>
@@ -190,7 +190,7 @@ export function TimelineCard({ currentAmount, goalAmount, monthlySavings, delay 
         damping: 15,
         delay 
       }}
-      style={[styles.timelineContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.timelineContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
     >
       <View style={styles.timelineHeader}>
         <Text style={styles.timelineIcon}>🎯</Text>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   comparisonTitle: {
     fontSize: fontSize.sm,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
     marginBottom: spacing.md,
   },
   comparisonRow: {
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   timelineTitle: {
     fontSize: fontSize.md,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   timelineGoal: {
     flexDirection: 'row',
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   timelineCurrentAmount: {
     fontSize: fontSize.md,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   timelineEstimate: {
     flexDirection: 'row',
@@ -441,6 +441,6 @@ const styles = StyleSheet.create({
   },
   timelineEstimateBold: {
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
   },
 });

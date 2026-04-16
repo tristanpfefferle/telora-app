@@ -12,6 +12,7 @@ export interface BudgetData {
   ratioFixes: number;
   ratioVariables: number;
   ratioEpargne: number;
+  objectifNom?: string;
 }
 
 export interface ConversationStep {
@@ -37,7 +38,7 @@ export interface BotMessage {
   delay?: number;
   step?: string;
   showCard?: boolean;
-  cardType?: 'budget_summary' | 'tip' | 'warning' | 'success';
+  cardType?: 'budget_summary' | 'tip' | 'warning' | 'success' | 'achievement' | 'timeline';
   cardData?: any;
   quickReplies?: Array<{
     id: string;

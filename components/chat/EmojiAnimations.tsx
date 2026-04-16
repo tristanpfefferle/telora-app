@@ -90,7 +90,6 @@ export function PulseEmoji({ emoji, size = 40, continuous = false }: PulseEmojiP
         damping: 10,
         stiffness: 200,
         loop: continuous,
-        repeatDelay: 500,
       }}
       style={[styles.pulseContainer, { width: size, height: size }]}
     >
@@ -117,7 +116,6 @@ export function BounceEmojis({ emojis }: BounceEmojisProps) {
             stiffness: 300,
             delay: index * 100,
             loop: true,
-            repeatDelay: 800,
           }}
           style={styles.bounceEmoji}
         >
@@ -194,7 +192,6 @@ export function LoadingDots({ text = 'Chargement' }: LoadingDotsProps) {
               duration: 600,
               delay: i * 200,
               loop: true,
-              repeatDelay: 400,
             }}
             style={[styles.dot, { backgroundColor: '#7C3AED' }]}
           />

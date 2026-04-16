@@ -119,6 +119,7 @@ export function ChatInterface({
         renderInputToolbar={renderInputToolbar}
         renderSend={renderSend}
         placeholder={placeholder}
+        // @ts-ignore - placeholderTextColor is supported at runtime but missing from v2.x types
         placeholderTextColor={colors.textMuted}
         textInputStyle={{
           color: colors.textPrimary,

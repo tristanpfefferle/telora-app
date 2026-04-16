@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { theme } from '../../lib/theme';
+import { colors, borderRadius } from '../../lib/theme';
 
 export default function NetworkTestScreen() {
   const [results, setResults] = useState<string[]>([]);
@@ -81,12 +81,12 @@ export default function NetworkTestScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background, padding: 20 }}>
-      <Text style={{ color: theme.colors.text, fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background, padding: 20 }}>
+      <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>
         🧪 Test Réseau
       </Text>
       
-      <Text style={{ color: theme.colors.textMuted, marginBottom: 20 }}>
+      <Text style={{ color: colors.textMuted, marginBottom: 20 }}>
         Ce test vérifie si l'app peut contacter le backend Telora.
       </Text>
       
@@ -94,9 +94,9 @@ export default function NetworkTestScreen() {
         onPress={runTests}
         disabled={loading}
         style={{
-          backgroundColor: loading ? theme.colors.textMuted : theme.colors.orange,
+          backgroundColor: loading ? colors.textMuted : colors.accent,
           padding: 16,
-          borderRadius: theme.borderRadius.lg,
+          borderRadius: borderRadius.lg,
           alignItems: 'center',
           marginBottom: 20,
         }}
@@ -111,7 +111,7 @@ export default function NetworkTestScreen() {
       </TouchableOpacity>
       
       {results.length > 0 && (
-        <View style={{ backgroundColor: '#1a1a2e', padding: 16, borderRadius: theme.borderRadius.md }}>
+        <View style={{ backgroundColor: '#1a1a2e', padding: 16, borderRadius: borderRadius.md }}>
           <Text style={{ color: '#00ff00', fontFamily: 'monospace', fontSize: 12 }}>
             {results.join('\n')}
           </Text>

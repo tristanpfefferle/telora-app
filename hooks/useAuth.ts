@@ -27,7 +27,7 @@ export function useAuth() {
 
     if (isAuthenticated && inAuthGroup) {
       // Utilisateur connecté essaie d'accéder à login/signup
-      router.replace('/(main)/');
+      router.replace('/(main)');
     }
   }, [isAuthenticated, isLoading, segments, router]);
 

@@ -62,7 +62,7 @@ export function MessageCard({ type, title, data, message, icon }: MessageCardPro
     );
 
     const getBarWidth = (amount: number) => 
-      maxAmount > 0 ? `${(amount / maxAmount) * 100}%` : '0%';
+      maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
 
     return (
       <View style={styles.budgetData}>
@@ -73,7 +73,7 @@ export function MessageCard({ type, title, data, message, icon }: MessageCardPro
             <Text style={styles.budgetAmount}>{formatCHF(data.revenus)} CHF</Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: getBarWidth(data.revenus), backgroundColor: '#10B981' }]} />
+            <View style={[styles.progressFill, { width: `${getBarWidth(data.revenus)}%`, backgroundColor: '#10B981' }]} />
           </View>
         </View>
 
@@ -84,7 +84,7 @@ export function MessageCard({ type, title, data, message, icon }: MessageCardPro
             <Text style={styles.budgetAmount}>{formatCHF(data.depensesFixes)} CHF</Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: getBarWidth(data.depensesFixes), backgroundColor: '#F59E0B' }]} />
+            <View style={[styles.progressFill, { width: `${getBarWidth(data.depensesFixes)}%`, backgroundColor: '#F59E0B' }]} />
           </View>
         </View>
 
@@ -95,7 +95,7 @@ export function MessageCard({ type, title, data, message, icon }: MessageCardPro
             <Text style={styles.budgetAmount}>{formatCHF(data.depensesVariables)} CHF</Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: getBarWidth(data.depensesVariables), backgroundColor: '#EF4444' }]} />
+            <View style={[styles.progressFill, { width: `${getBarWidth(data.depensesVariables)}%`, backgroundColor: '#EF4444' }]} />
           </View>
         </View>
 

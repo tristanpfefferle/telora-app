@@ -141,7 +141,7 @@ export function BudgetSummaryCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     marginVertical: spacing.xs,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   section: {
     marginBottom: spacing.md,
@@ -207,12 +207,12 @@ const styles = StyleSheet.create({
   progressLabel: {
     flex: 1,
     fontSize: fontSize.sm,
-    color: colors.text,
+    color: colors.textPrimary,
   },
   progressAmount: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textPrimary,
   },
   progressTrack: {
     height: 8,
