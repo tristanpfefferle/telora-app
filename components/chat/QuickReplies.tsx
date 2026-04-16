@@ -16,7 +16,7 @@ interface QuickRepliesProps {
   visible?: boolean;
 }
 
-export function QuickReplies({ replies, onSelect, visible = true }: QuickRepliesProps) {
+export function QuickReplyBar({ replies, onSelect, visible = true }: QuickRepliesProps) {
   if (!visible || replies.length === 0) {
     return null;
   }

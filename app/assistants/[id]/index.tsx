@@ -14,7 +14,7 @@ import {
   getContextualAdvice,
 } from '../../../lib/budget-assistant';
 import { TypingIndicator } from '../../../components/chat/TypingIndicator';
-import { QuickReplies } from '../../../components/chat/QuickReplies';
+import { QuickReplyBar } from '../../../components/chat/QuickReplies';
 import { MessageCard } from '../../../components/chat/MessageCard';
 import { ProgressIndicator } from '../../../components/chat/ProgressIndicator';
 import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
@@ -398,7 +398,7 @@ export default function ChatScreen() {
   const renderFooter = () => {
     if (showQuickReplies && currentQuickReplies.length > 0) {
       return (
-        <QuickReplies
+        <QuickReplyBar
           replies={currentQuickReplies}
           onSelect={handleQuickReplySelect}
           visible={true}
@@ -408,7 +408,7 @@ export default function ChatScreen() {
     
     if (showSuggestions && suggestions.length > 0) {
       return (
-        <QuickReplies
+        <QuickReplyBar
           replies={suggestions}
           onSelect={handleSuggestionSelect}
           visible={true}
@@ -459,6 +459,7 @@ export default function ChatScreen() {
         renderInputToolbar={renderInputToolbar}
         renderSend={renderSend}
         renderFooter={renderFooter}
+        renderQuickReplies={() => null}
         placeholder="Écris ton message..."
         placeholderTextColor={colors.textMuted}
         textInputStyle={{
