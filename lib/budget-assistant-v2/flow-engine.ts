@@ -1115,17 +1115,20 @@ export class FlowEngine {
           postes,
         };
       }
-      case 'finale':
+      case 'finale': {
+        const diag = this.getDiagnostic();
         return {
-          revenus: formatCHF(data.totalRevenus),
-          fixes: formatCHF(data.totalFixes),
-          fixesRatio: `${data.ratioFixes} %`,
-          variables: formatCHF(data.totalVariables),
-          variablesRatio: `${data.ratioVariables} %`,
-          epargne: formatCHF(data.epargne.montantActuel),
-          epargneRatio: `${data.ratioEpargne} %`,
+          totalRevenus: formatCHF(data.totalRevenus),
+          totalFixes: formatCHF(data.totalFixes),
+          totalVariables: formatCHF(data.totalVariables),
           capaciteEpargne: formatCHF(data.capaciteEpargne),
+          ratioFixes: `${data.ratioFixes} %`,
+          ratioVariables: `${data.ratioVariables} %`,
+          ratioEpargne: `${data.ratioEpargne} %`,
+          diagnosticCase: diag.case,
+          diagnosticMessage: diag.message,
         };
+      }
       case 'diagnostic': {
         const diag = this.getDiagnostic();
         return {

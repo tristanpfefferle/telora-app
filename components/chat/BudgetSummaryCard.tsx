@@ -1,48 +1,108 @@
 /**
- * Carte de résumé de budget pour le chat
- * Affiche un récap visuel avec barres de progression
+ * Carte récapitulative finale du budget (phase 6 — récap global)
+ * Affiche la répartition revenus / fixes / variables / épargne
+ * avec barres de progression, diagnostic personnalisé et conseil contextuel
+ *
+ * Étape 11 — Récaps intermédiaires + diagnostic personnalisé
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius, fontSize } from '../../lib/theme';
+import type { DiagnosticCase } from '../../lib/budget-assistant-v2/types';
 
 interface BudgetSummaryCardProps {
-  totalRevenus: number;
-  totalFixes: number;
-  totalVariables: number;
-  capaciteEpargne: number;
-  ratioFixes: number;
-  ratioVariables: number;
-  ratioEpargne: number;
+  totalRevenus: string;      // Ex: "5'200 CHF"
+  totalFixes: string;        // Ex: "3'100 CHF"
+  totalVariables: string;    // Ex: "1'040 CHF"
+  capaciteEpargne: string;   // Ex: "1'060 CHF"
+  ratioFixes: string;        // Ex: "60 %"
+  ratioVariables: string;    // Ex: "20 %"
+  ratioEpargne: string;      // Ex: "20 %"
+  diagnosticCase: DiagnosticCase;
+  diagnosticMessage: string;
 }
 
-interface ProgressBarProps {
-  label: string;
-  amount: number;
-  percentage: number;
-  color: string;
+// Config visuelle par cas de diagnostic (partagé avec DiagnosticCard)
+const DIAGNOSTIC_CONFIG: Record<DiagnosticCase, {
   icon: string;
+  title: string;
+  accentColor: string;
+  bgAccent: string;
+}> = {
+  equilibre: {
+    icon: '🎯',
+    title: 'Budget équilibré',
+    accentColor: '#10B981',
+    bgAccent: '#D1FAE520',
+  },
+  besoins_elevés: {
+    icon: '🏠',
+    title: 'Besoins élevés',
+    accentColor: '#F59E0B',
+    bgAccent: '#FEF3C720',
+  },
+  envies_elevees: {
+    icon: '🎉',
+    title: 'Envies importantes',
+    accentColor: '#F59E0B',
+    bgAccent: '#FEF3C720',
+  },
+  epargne_faible: {
+    icon: '💎',
+    title: 'Épargne insuffisante',
+    accentColor: '#8B5CF6',
+    bgAccent: '#F3E8FF20',
+  },
+  capacite_negative: {
+    icon: '⚠️',
+    title: 'Dépenses > Revenus',
+    accentColor: '#EF4444',
+    bgAccent: '#FEE2E220',
+  },
+};
+
+interface ProgressRowProps {
+  icon: string;
+  label: string;
+  amount: string;
+  ratio: string;
+  targetPercent: number;
+  color: string;
 }
 
-function ProgressBar({ label, amount, percentage, color, icon }: ProgressBarProps) {
+function ProgressRow({ icon, label, amount, ratio, targetPercent, color }: ProgressRowProps) {
+  const ratioNum = parseInt(ratio, 10) || 0;
+  const isOverTarget = ratioNum > targetPercent + 5;
+  const isOnTarget = Math.abs(ratioNum - targetPercent) <= 5;
+
   return (
-    <View style={styles.progressRow}>
-      <View style={styles.progressLabelRow}>
-        <Text style={styles.progressIcon}>{icon}</Text>
-        <Text style={styles.progressLabel}>{label}</Text>
-        <Text style={styles.progressAmount}>{amount.toLocaleString('fr-CH')} CHF</Text>
+    <View style={progressStyles.container}>
+      <View style={progressStyles.labelRow}>
+        <Text style={progressStyles.icon}>{icon}</Text>
+        <Text style={progressStyles.label}>{label}</Text>
+        <Text style={progressStyles.amount}>{amount}</Text>
       </View>
-      <View style={[styles.progressTrack, { backgroundColor: color + '30' }]}>
-        <MotiView
-          from={{ width: '0%' }}
-          animate={{ width: `${Math.min(percentage, 100)}%` }}
-          transition={{ type: 'timing', duration: 800 }}
-          style={[styles.progressFill, { backgroundColor: color }]}
-        />
+      <View style={progressStyles.trackContainer}>
+        <View style={progressStyles.track}>
+          <MotiView
+            from={{ width: '0%' }}
+            animate={{ width: `${Math.min(ratioNum, 100)}%` }}
+            transition={{ type: 'timing', duration: 800 }}
+            style={[progressStyles.fill, { backgroundColor: color }]}
+          />
+        </View>
+        {/* Marqueur cible */}
+        <View style={[progressStyles.targetMarker, { left: `${targetPercent}%` }]} />
+        <Text style={progressStyles.targetLabel}>{targetPercent}%</Text>
       </View>
-      <Text style={[styles.progressPercentage, { color }]}>{percentage.toFixed(0)}%</Text>
+      <Text style={[
+        progressStyles.percentage,
+        { color: isOverTarget ? '#EF4444' : isOnTarget ? '#10B981' : color }
+      ]}>
+        {ratio}
+      </Text>
     </View>
   );
 }
@@ -55,10 +115,10 @@ export function BudgetSummaryCard({
   ratioFixes,
   ratioVariables,
   ratioEpargne,
+  diagnosticCase,
+  diagnosticMessage,
 }: BudgetSummaryCardProps) {
-  const healthColor = ratioEpargne >= 20 ? '#10B981' : ratioEpargne >= 10 ? '#F59E0B' : '#EF4444';
-  const healthLabel = ratioEpargne >= 20 ? 'Excellent' : ratioEpargne >= 10 ? 'Bon' : 'À améliorer';
-  const healthIcon = ratioEpargne >= 20 ? '🏆' : ratioEpargne >= 10 ? '👍' : '⚠️';
+  const config = DIAGNOSTIC_CONFIG[diagnosticCase];
 
   return (
     <MotiView
@@ -67,113 +127,110 @@ export function BudgetSummaryCard({
       transition={{ type: 'spring', damping: 15 }}
       style={styles.container}
     >
-      <View style={styles.header}>
-        <Text style={styles.headerIcon}>📊</Text>
-        <Text style={styles.headerTitle}>TON BUDGET</Text>
+      {/* Header avec diagnostic */}
+      <View style={[styles.header, { backgroundColor: config.bgAccent }]}>
+        <Text style={styles.headerIcon}>{config.icon}</Text>
+        <View style={styles.headerTextContainer}>
+          <Text style={[styles.headerTitle, { color: config.accentColor }]}>
+            {config.title}
+          </Text>
+          <Text style={styles.headerSubtitle}>TON BUDGET</Text>
+        </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>REVENUS</Text>
+      {/* Revenus */}
+      <View style={styles.revenusSection}>
+        <Text style={styles.sectionLabel}>REVENUS MENSUELS</Text>
         <View style={styles.revenusRow}>
           <Text style={styles.revenusIcon}>💰</Text>
-          <Text style={styles.revenusAmount}>{totalRevenus.toLocaleString('fr-CH')} CHF</Text>
+          <Text style={styles.revenusAmount}>{totalRevenus}</Text>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>RÉPARTITION</Text>
-        
-        <ProgressBar
+      {/* Répartition avec barres + cibles 50/30/20 */}
+      <View style={styles.repartitionSection}>
+        <Text style={styles.sectionLabel}>RÉPARTITION</Text>
+
+        <ProgressRow
+          icon="🏠"
           label="Dépenses fixes"
           amount={totalFixes}
-          percentage={ratioFixes}
+          ratio={ratioFixes}
+          targetPercent={50}
           color="#EF4444"
-          icon="🏠"
         />
-        
-        <ProgressBar
+
+        <ProgressRow
+          icon="🛒"
           label="Dépenses variables"
           amount={totalVariables}
-          percentage={ratioVariables}
+          ratio={ratioVariables}
+          targetPercent={30}
           color="#F59E0B"
-          icon="🛒"
         />
-        
-        <ProgressBar
+
+        <ProgressRow
+          icon="🎯"
           label="Épargne"
           amount={capaciteEpargne}
-          percentage={ratioEpargne}
+          ratio={ratioEpargne}
+          targetPercent={20}
           color="#10B981"
-          icon="🎯"
         />
       </View>
 
-      <View style={[styles.healthCard, { backgroundColor: healthColor + '15' }]}>
-        <Text style={styles.healthIcon}>{healthIcon}</Text>
-        <View style={styles.healthContent}>
-          <Text style={[styles.healthLabel, { color: healthColor }]}>
-            Santé du budget : {healthLabel}
-          </Text>
-          <Text style={styles.healthText}>
-            Tu épargnes {capaciteEpargne.toLocaleString('fr-CH')} CHF/mois
-            {ratioEpargne >= 20 && ' - Excellent travail ! 🎉'}
-            {ratioEpargne >= 10 && ratioEpargne < 20 && ' - Bonne base, continue ! 💪'}
-            {ratioEpargne < 10 && ' - Peux faire mieux, on y croit ! 🚀'}
-          </Text>
-        </View>
+      {/* Message de diagnostic personnalisé */}
+      <View style={[styles.diagnosticContainer, { borderLeftColor: config.accentColor }]}>
+        <Text style={styles.diagnosticText}>{diagnosticMessage}</Text>
       </View>
-
-      {ratioFixes > 60 && (
-        <View style={[styles.tipCard, { backgroundColor: '#FEF3C7' }]}>
-          <Text style={styles.tipIcon}>💡</Text>
-          <View style={styles.tipContent}>
-            <Text style={styles.tipTitle}>Conseil Budget Coach</Text>
-            <Text style={styles.tipText}>
-              Tes dépenses fixes dépassent 60% de tes revenus. 
-              Pense à renégocier ton loyer, changer d'assurance LAMal ou optimiser tes abonnements.
-            </Text>
-          </View>
-        </View>
-      )}
     </MotiView>
   );
 }
+
+// ─── Styles principaux ───
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    padding: 0,
     marginVertical: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    padding: spacing.md,
   },
   headerIcon: {
-    fontSize: fontSize.xl,
-    marginRight: spacing.sm,
+    fontSize: 28,
+    marginRight: spacing.md,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: fontSize.lg,
     fontWeight: '700',
-    color: colors.textPrimary,
   },
-  section: {
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: fontSize.sm,
+  headerSubtitle: {
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
     fontWeight: '600',
-    color: colors.textSecondary,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  revenusSection: {
+    padding: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.textMuted,
     marginBottom: spacing.sm,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   revenusRow: {
@@ -192,90 +249,85 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  progressRow: {
-    marginBottom: spacing.sm,
+  repartitionSection: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
   },
-  progressLabelRow: {
+  diagnosticContainer: {
+    margin: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderLeftWidth: 3,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+  },
+  diagnosticText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+});
+
+// ─── Styles ProgressRow ───
+
+const progressStyles = StyleSheet.create({
+  container: {
+    marginBottom: spacing.md,
+  },
+  labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xs,
   },
-  progressIcon: {
+  icon: {
     fontSize: fontSize.sm,
     marginRight: spacing.xs,
   },
-  progressLabel: {
+  label: {
     flex: 1,
     fontSize: fontSize.sm,
     color: colors.textPrimary,
   },
-  progressAmount: {
+  amount: {
     fontSize: fontSize.sm,
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  progressTrack: {
+  trackContainer: {
+    position: 'relative',
+    paddingRight: 40,
+  },
+  track: {
     height: 8,
+    backgroundColor: colors.background,
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: spacing.xs,
   },
-  progressFill: {
+  fill: {
     height: '100%',
     borderRadius: 4,
   },
-  progressPercentage: {
+  targetMarker: {
+    position: 'absolute',
+    top: 0,
+    width: 2,
+    height: 8,
+    backgroundColor: colors.textMuted + '80',
+    borderRadius: 1,
+  },
+  targetLabel: {
+    position: 'absolute',
+    right: 0,
+    top: -2,
+    fontSize: 9,
+    color: colors.textMuted,
+    width: 36,
+    textAlign: 'right',
+  },
+  percentage: {
     fontSize: fontSize.xs,
     fontWeight: '600',
     textAlign: 'right',
-  },
-  healthCard: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.sm,
-  },
-  healthIcon: {
-    fontSize: fontSize.xl,
-    marginRight: spacing.sm,
-  },
-  healthContent: {
-    flex: 1,
-  },
-  healthLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-  },
-  healthText: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-  },
-  tipIcon: {
-    fontSize: fontSize.lg,
-    marginRight: spacing.sm,
-  },
-  tipContent: {
-    flex: 1,
-  },
-  tipTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: spacing.xs,
-  },
-  tipText: {
-    fontSize: fontSize.xs,
-    color: '#78350F',
-    lineHeight: 18,
+    marginTop: spacing.xs,
   },
 });

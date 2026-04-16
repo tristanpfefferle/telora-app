@@ -175,13 +175,15 @@ export default function ChatScreen() {
             style={styles.cardContainer}
           >
             <BudgetSummaryCard
-              totalRevenus={budgetData.totalRevenus}
-              totalFixes={budgetData.totalFixes}
-              totalVariables={budgetData.totalVariables}
-              capaciteEpargne={budgetData.capaciteEpargne}
-              ratioFixes={budgetData.ratioFixes}
-              ratioVariables={budgetData.ratioVariables}
-              ratioEpargne={budgetData.ratioEpargne}
+              totalRevenus={msg.cardData?.totalRevenus || "0 CHF"}
+              totalFixes={msg.cardData?.totalFixes || "0 CHF"}
+              totalVariables={msg.cardData?.totalVariables || "0 CHF"}
+              capaciteEpargne={msg.cardData?.capaciteEpargne || "0 CHF"}
+              ratioFixes={msg.cardData?.ratioFixes || "0 %"}
+              ratioVariables={msg.cardData?.ratioVariables || "0 %"}
+              ratioEpargne={msg.cardData?.ratioEpargne || "0 %"}
+              diagnosticCase={msg.cardData?.diagnosticCase || 'equilibre'}
+              diagnosticMessage={msg.cardData?.diagnosticMessage || ''}
             />
           </MotiView>
         );
