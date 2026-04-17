@@ -477,9 +477,8 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-          <Text style={styles.backButtonLabel}>Retour</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={styles.backButtonIcon}>‹</Text>
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
@@ -487,26 +486,30 @@ export default function ChatScreen() {
             <Text style={styles.avatarEmoji}>💰</Text>
           </View>
           <View style={styles.infoContainer}>
-            <Text style={styles.assistantName}>Théo — Budget Coach</Text>
+            <Text style={styles.assistantName}>Budget Coach</Text>
             <Text style={styles.status}>
               {isComplete ? 'Terminé' : currentPhaseName}
             </Text>
           </View>
         </View>
 
-        <View style={styles.headerActions}>
+        <View style={styles.headerRight}>
           {saveState === 'saving' && (
             <ActivityIndicator size="small" color={colors.primary} />
           )}
           {saveState === 'saved' && (
-            <Text style={styles.savedBadge}>✓</Text>
+            <View style={styles.savedBadge}>
+              <Text style={styles.savedBadgeText}>✓</Text>
+            </View>
           )}
           {saveState === 'error' && (
-            <Text style={styles.errorBadge}>✗</Text>
+            <View style={styles.errorBadge}>
+              <Text style={styles.errorBadgeText}>✗</Text>
+            </View>
           )}
           
           {isComplete && (
-            <TouchableOpacity onPress={handleRestart} style={styles.restartButton}>
+            <TouchableOpacity onPress={handleRestart} style={styles.restartButton} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}>
               <Text style={styles.restartButtonText}>↻</Text>
             </TouchableOpacity>
           )}
@@ -570,76 +573,86 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background,
   },
   backButton: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surfaceLight,
+    backgroundColor: colors.surface + '80',
   },
-  backButtonText: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  backButtonLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+  backButtonIcon: {
+    fontSize: 28,
+    fontWeight: '300',
     color: colors.textSecondary,
+    marginTop: -2,
+    marginLeft: 2,
   },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
+    marginLeft: -36, // compenser le bouton retour pour centrer véritablement
   },
   avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarEmoji: {
-    fontSize: 24,
+    fontSize: 18,
   },
   infoContainer: {
-    flex: 1,
-    marginLeft: spacing.md,
+    marginLeft: spacing.sm,
   },
   assistantName: {
     color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
   status: {
     color: colors.textMuted,
-    fontSize: fontSize.sm,
-    marginTop: 2,
+    fontSize: fontSize.xs,
+    marginTop: 1,
   },
-  headerActions: {
+  headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    minWidth: 36, // même largeur que le back button pour équilibrer
   },
   savedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.success + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  savedBadgeText: {
     color: colors.success,
-    fontSize: fontSize.md,
+    fontSize: 12,
     fontWeight: '700',
   },
   errorBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.error + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorBadgeText: {
     color: colors.error,
-    fontSize: fontSize.md,
+    fontSize: 12,
     fontWeight: '700',
   },
   restartButton: {

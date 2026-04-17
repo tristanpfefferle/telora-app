@@ -847,7 +847,7 @@ export class FlowEngine {
 
     // Total revenus
     const treiziemeParMois = data.revenus.salaire.treizieme
-      ? data.revenus.salaire.treiziemeMontant / 12
+      ? Math.round(data.revenus.salaire.treiziemeMontant / 12)
       : 0;
     data.revenus.total = data.revenus.salaire.salaireNet + treiziemeParMois + data.revenus.autres.reduce((s, a) => s + a.montant, 0);
     data.totalRevenus = data.revenus.total;
@@ -1068,13 +1068,19 @@ export class FlowEngine {
   private getCardData(recapType: string): Record<string, any> {
     const data = this.state.data;
     switch (recapType) {
-      case 'revenus':
+      case 'revenus': {
+        // Utiliser la même valeur arrondie pour le 13e que dans le total
+        const treiziemeMensuel = data.revenus.salaire.treizieme
+          ? Math.round(data.revenus.salaire.treiziemeMontant / 12)
+          : 0;
+        const totalRevenus = data.revenus.salaire.salaireNet + treiziemeMensuel + data.revenus.autres.reduce((s, a) => s + a.montant, 0);
         return {
-          total: formatCHF(data.revenus.total),
+          total: formatCHF(totalRevenus),
           salaire: formatCHF(data.revenus.salaire.salaireNet),
-          treizieme: data.revenus.salaire.treizieme ? formatCHF(Math.round(data.revenus.salaire.treiziemeMontant / 12)) : null,
+          treizieme: data.revenus.salaire.treizieme ? formatCHF(treiziemeMensuel) : null,
           autres: data.revenus.autres.map(a => ({ source: SOURCE_LABELS[a.source] ?? a.source, montant: formatCHF(a.montant) })),
         };
+      }
       case 'depenses_fixes': {
         const postes: Array<{ label: string; montant: string }> = [];
         // Logement
