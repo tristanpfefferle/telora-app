@@ -4,6 +4,7 @@
 
 import axios from 'axios';
 import { useUserStore } from '../stores/userStore';
+import type { BackendBudgetPayload } from './budget-assistant-v2/types';
 
 // URL de l'API - Backend Render Telora
 const API_URL = 'https://telora-backend.onrender.com';
@@ -60,13 +61,22 @@ export interface Budget {
   userId: string;
   createdAt: string;
   updatedAt: string;
-  objectifFinancier: string;
+  objectifFinancier?: string;
+  mindset?: string;
   revenus: Revenu[];
   depensesFixes: DepenseFixe[];
   depensesVariables: DepenseVariable[];
+  epargneActuelle: number;
   epargneObjectif: number;
+  totalRevenus: number;
+  totalFixes: number;
+  totalVariables: number;
+  capaciteEpargne: number;
+  ratioFixes: number;
+  ratioVariables: number;
+  ratioEpargne: number;
   planAction: PlanAction[];
-  ratios: Ratios;
+  dataV2?: Record<string, unknown>;
 }
 
 export interface Revenu {
@@ -135,10 +145,10 @@ export const budgetAPI = {
   get: (id: string) =>
     api.get<Budget>(`/api/budget/${id}`),
   
-  create: (data: Partial<Budget>) =>
+  create: (data: BackendBudgetPayload) =>
     api.post<Budget>('/api/budget/', data),
   
-  update: (id: string, data: Partial<Budget>) =>
+  update: (id: string, data: Partial<BackendBudgetPayload>) =>
     api.put<Budget>(`/api/budget/${id}`, data),
   
   delete: (id: string) =>

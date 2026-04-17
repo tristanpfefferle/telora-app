@@ -13,6 +13,7 @@ interface CelebrationCardProps {
   capaciteEpargne: string;
   onSave: () => void;
   onRestart: () => void;
+  saveState?: 'idle' | 'saving' | 'saved' | 'error';
 }
 
 // Mini système de confettis avec Animated
@@ -80,7 +81,7 @@ function ConfettiParticle({ delay }: { delay: number }) {
   );
 }
 
-export function CelebrationCard({ totalRevenus, capaciteEpargne, onSave, onRestart }: CelebrationCardProps) {
+export function CelebrationCard({ totalRevenus, capaciteEpargne, onSave, onRestart, saveState = 'idle' }: CelebrationCardProps) {
   // 20 confettis
   const confettiDelays = Array.from({ length: 20 }, (_, i) => i * 80);
 
@@ -134,11 +135,18 @@ export function CelebrationCard({ totalRevenus, capaciteEpargne, onSave, onResta
           style={({ pressed }) => [
             styles.saveButton,
             pressed && styles.saveButtonPressed,
+            saveState === 'saved' && styles.saveButtonSaved,
+            saveState === 'error' && styles.saveButtonError,
           ]}
           onPress={onSave}
+          disabled={saveState === 'saving' || saveState === 'saved'}
         >
-          <Text style={styles.saveButtonIcon}>💾</Text>
-          <Text style={styles.saveButtonText}>Sauvegarder</Text>
+          <Text style={styles.saveButtonIcon}>
+            {saveState === 'saving' ? '⏳' : saveState === 'saved' ? '✅' : saveState === 'error' ? '❌' : '💾'}
+          </Text>
+          <Text style={styles.saveButtonText}>
+            {saveState === 'saving' ? 'Sauvegarde...' : saveState === 'saved' ? 'Sauvegardé !' : saveState === 'error' ? 'Réessayer' : 'Sauvegarder'}
+          </Text>
         </Pressable>
 
         <Pressable
@@ -239,6 +247,12 @@ const styles = StyleSheet.create({
   saveButtonPressed: {
     backgroundColor: '#059669',
     transform: [{ scale: 0.97 }],
+  },
+  saveButtonSaved: {
+    backgroundColor: '#059669',
+  },
+  saveButtonError: {
+    backgroundColor: '#EF4444',
   },
   saveButtonIcon: {
     fontSize: fontSize.md,

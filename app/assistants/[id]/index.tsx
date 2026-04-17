@@ -7,7 +7,7 @@
  * Étape 9 du plan Théo V2.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
@@ -29,6 +29,8 @@ import { CelebrationCard } from '../../../components/chat/CelebrationCard';
 import type { PhaseProgressInfo } from '../../../components/chat/ProgressIndicator';
 import type { ChatMessage, QuickReplyOption, InputMode, PhaseId } from '../../../lib/budget-assistant-v2/types';
 import { PHASE_STEPS } from '../../../lib/budget-assistant-v2/conversation-flow';
+import { budgetAPI } from '../../../lib/api';
+import { useBudgetStore } from '../../../stores/budgetStore';
 
 // ============================================================================
 // Noms et icônes des 6 phases
@@ -74,6 +76,30 @@ export default function ChatScreen() {
     skip,
     restart,
   } = useFlowEngine();
+
+  const budgetStore = useBudgetStore();
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  // Handler — Sauvegarder le budget sur le backend
+  const handleSave = useCallback(async () => {
+    if (saveState === 'saving' || saveState === 'saved') return;
+    setSaveState('saving');
+    try {
+      const payload = budgetStore.getBackendPayload();
+      await budgetAPI.create(payload);
+      setSaveState('saved');
+    } catch (err) {
+      console.error('[ChatScreen] Erreur sauvegarde budget:', err);
+      setSaveState('error');
+    }
+  }, [saveState, budgetStore]);
+
+  // Handler — Redémarrer la conversation
+  const handleRestart = useCallback(() => {
+    budgetStore.reset();
+    setSaveState('idle');
+    restart();
+  }, [budgetStore, restart]);
 
   // Auto-scroll en bas à chaque nouveau message
   useEffect(() => {
@@ -281,8 +307,9 @@ export default function ChatScreen() {
             <CelebrationCard
               totalRevenus={msg.cardData?.totalRevenus || '0 CHF'}
               capaciteEpargne={msg.cardData?.capaciteEpargne || '0 CHF'}
-              onSave={() => {/* TODO: implement save */}}
-              onRestart={() => {/* TODO: implement restart */}}
+              onSave={handleSave}
+              onRestart={handleRestart}
+              saveState={saveState}
             />
           </MotiView>
         );
