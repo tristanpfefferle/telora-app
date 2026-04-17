@@ -52,7 +52,7 @@ const computeTotalAssurances = (a: DepenseAssurances): number =>
   a.lamal + a.complementaire + a.menageRc + a.vehicule;
 
 const computeTotalTransport = (t: DepenseTransport): number =>
-  t.essence + t.entretien + t.parking + t.leasing + t.transportsPublics;
+  (t.aVoiture ? t.essence + t.entretien + t.parking + t.leasing : 0) + t.transportsPublics;
 
 const computeTotalTelecom = (t: DepenseTelecom): number => t.mobile;
 
@@ -71,7 +71,8 @@ const computeTotalFixes = (data: BudgetDataV2): number =>
   computeTotalEngagements(data.engagements);
 
 const computeTotalVariables = (v: DepenseVariables): number =>
-  v.alimentaire + v.restaurants + v.sorties + v.vetements + v.voyages + v.cadeaux + v.autres;
+  Math.max(0, v.alimentaire) + Math.max(0, v.restaurants) + Math.max(0, v.sorties) +
+  Math.max(0, v.vetements) + Math.max(0, v.voyages) + Math.max(0, v.cadeaux) + Math.max(0, v.autres);
 
 const computeTotalRevenus = (r: RevenusData): number => {
   const treiziemeMensuel = r.salaire.treizieme ? Math.round(r.salaire.treiziemeMontant / 12) : 0;
@@ -83,12 +84,12 @@ const computeTotalRevenus = (r: RevenusData): number => {
 // Helpers — Ratios & Diagnostic
 // ============================================================================
 
-const computeRatios = (totalRevenus: number, totalFixes: number, totalVariables: number, epargneActuelle: number) => {
+const computeRatios = (totalRevenus: number, totalFixes: number, totalVariables: number, capaciteEpargne: number) => {
   if (totalRevenus <= 0) return { ratioFixes: 0, ratioVariables: 0, ratioEpargne: 0 };
   return {
     ratioFixes: Math.round((totalFixes / totalRevenus) * 1000) / 10,
     ratioVariables: Math.round((totalVariables / totalRevenus) * 1000) / 10,
-    ratioEpargne: Math.round((epargneActuelle / totalRevenus) * 1000) / 10,
+    ratioEpargne: Math.round((capaciteEpargne / totalRevenus) * 1000) / 10,
   };
 };
 
@@ -197,6 +198,23 @@ const PLAN_ACTION_LABELS: Record<PlanActionId, { title: string; description: str
 };
 
 /**
+ * Remplace les valeurs sentinelles (-1 = skip) par 0 dans un objet BudgetDataV2.
+ * Le flow-engine stocke -1 quand l'utilisateur skip une question numérique ;
+ * on ne veut pas envoyer ces -1 au backend.
+ */
+const sanitizeSkipValues = (obj: unknown): unknown => {
+  if (Array.isArray(obj)) return obj.map(sanitizeSkipValues);
+  if (obj !== null && typeof obj === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      out[k] = v === -1 ? 0 : sanitizeSkipValues(v);
+    }
+    return out;
+  }
+  return obj;
+};
+
+/**
  * Convertit BudgetDataV2 en BackendBudgetPayload (format V1 pour le backend)
  */
 const toBackendPayload = (data: BudgetDataV2, objectifFinancier?: string, mindset?: string): BackendBudgetPayload => {
@@ -295,8 +313,8 @@ const toBackendPayload = (data: BudgetDataV2, objectifFinancier?: string, mindse
     ratio_variables: data.ratioVariables,
     ratio_epargne: data.ratioEpargne,
     plan_action,
-    // Données détaillées V2 stockées pour les futurs usages
-    data_v2: data,
+    // Données détaillées V2 stockées pour les futurs usages (sans valeurs sentinelles -1)
+    data_v2: sanitizeSkipValues(data) as BudgetDataV2,
   };
 };
 
@@ -322,7 +340,7 @@ const DEFAULT_LOGEMENT: DepenseLogement = {
   electricite: 0,
   chauffage: 0,
   internet: 0,
-  serafe: 0,
+  serafe: 28,
 };
 
 const DEFAULT_ASSURANCES: DepenseAssurances = {
@@ -346,7 +364,7 @@ const DEFAULT_TELECOM: DepenseTelecom = {
 };
 
 const DEFAULT_IMPOTS: DepenseImpots = {
-  mode: 'non_concerne',
+  mode: 'preleve_source',
   acomptes: 0,
 };
 
@@ -933,7 +951,7 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
 
       // Ratios
       const { ratioFixes, ratioVariables, ratioEpargne } = computeRatios(
-        totalRevenus, totalFixes, totalVariables, data.epargne.montantActuel
+        totalRevenus, totalFixes, totalVariables, capaciteEpargne
       );
 
       // Diagnostic

@@ -397,8 +397,8 @@ export class FlowEngine {
     // 5. Compteur de phase
     this.state.phaseStepCounts[step.phase] = (this.state.phaseStepCounts[step.phase] ?? 0) + 1;
 
-    // 6. Prochaine étape
-    const nextStepId = step.nextStep ?? this.getNextSequentialStep();
+    // 6. Prochaine étape — résoudre les branchements conditionnels aussi en cas de skip
+    const nextStepId = this.resolveNextStep(skipValue, step);
     this.goToStep(nextStepId, newMessages);
 
     // 7. Recalculer
@@ -649,7 +649,7 @@ export class FlowEngine {
         break;
 
       case 'logement_charges':
-        data.logement.charges = typeof value === 'number' ? value : (step.numericConfig?.skipValue ?? -1);
+        data.logement.charges = typeof value === 'number' ? value : 0;
         break;
 
       case 'logement_electricite':
@@ -657,7 +657,7 @@ export class FlowEngine {
         break;
 
       case 'logement_chauffage':
-        data.logement.chauffage = typeof value === 'number' ? value : (step.numericConfig?.skipValue ?? -1);
+        data.logement.chauffage = typeof value === 'number' ? value : 0;
         break;
 
       case 'logement_internet':
@@ -717,7 +717,14 @@ export class FlowEngine {
 
       // ── Impôts ──
       case 'impots_acomptes':
-        data.impots.mode = (typeof value === 'string' ? value : 'preleve_source') as ImpotMode;
+        if (this.impotsNeedsAmount) {
+          // Sous-étape : stocker le montant des acomptes/provision
+          data.impots.acomptes = typeof value === 'number' ? value : 0;
+          this.impotsNeedsAmount = false;
+        } else {
+          // Étape principale : stocker le mode d'imposition
+          data.impots.mode = (typeof value === 'string' ? value : 'preleve_source') as ImpotMode;
+        }
         break;
 
       // ── Engagements ──
@@ -869,22 +876,22 @@ export class FlowEngine {
     data.totalFixes = logementTotal + assurancesTotal + transportTotal + telecomTotal + impotsTotal + engagementsTotal;
 
     // Total dépenses variables
-    data.totalVariables = data.variables.alimentaire
-      + data.variables.restaurants
-      + data.variables.sorties
-      + data.variables.vetements
-      + data.variables.voyages
-      + data.variables.cadeaux
-      + data.variables.autres;
+    data.totalVariables = Math.max(0, data.variables.alimentaire)
+      + Math.max(0, data.variables.restaurants)
+      + Math.max(0, data.variables.sorties)
+      + Math.max(0, data.variables.vetements)
+      + Math.max(0, data.variables.voyages)
+      + Math.max(0, data.variables.cadeaux)
+      + Math.max(0, data.variables.autres);
 
     // Capacité d'épargne
     data.capaciteEpargne = data.totalRevenus - data.totalFixes - data.totalVariables;
 
     // Ratios (par rapport aux revenus)
     if (data.totalRevenus > 0) {
-      data.ratioFixes = Math.round((data.totalFixes / data.totalRevenus) * 100);
-      data.ratioVariables = Math.round((data.totalVariables / data.totalRevenus) * 100);
-      data.ratioEpargne = Math.round(((data.epargne.montantActuel) / data.totalRevenus) * 100);
+      data.ratioFixes = Math.round((data.totalFixes / data.totalRevenus) * 1000) / 10;
+      data.ratioVariables = Math.round((data.totalVariables / data.totalRevenus) * 1000) / 10;
+      data.ratioEpargne = Math.round((data.capaciteEpargne / data.totalRevenus) * 1000) / 10;
     } else {
       data.ratioFixes = 0;
       data.ratioVariables = 0;
@@ -1220,18 +1227,18 @@ export class FlowEngine {
   // ==========================================================================
 
   /** Sérialise l'état complet pour persistence */
-  serialize(): ConversationState {
-    return { ...this.state };
+  serialize(): ConversationState & { _impotsNeedsAmount?: boolean } {
+    return { ...this.state, _impotsNeedsAmount: this.impotsNeedsAmount };
   }
 
   /** Restaure l'état depuis une sauvegarde */
-  deserialize(savedState: ConversationState): void {
+  deserialize(savedState: ConversationState & { _impotsNeedsAmount?: boolean }): void {
     this.state = savedState;
     this.variantsState = initVariantsState();
     this.messages = [];
     this.loopQueue = [];
     this.currentLoopItem = null;
-    this.impotsNeedsAmount = false;
+    this.impotsNeedsAmount = savedState._impotsNeedsAmount ?? false;
   }
 
   /** Restaure le budget data seul (sans la position conversationnelle) */
