@@ -13,6 +13,10 @@ export default function MainLayout() {
         },
         animation: 'slide_from_right',
       }}
-    />
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="assistants" options={{ headerShown: false }} />
+      <Stack.Screen name="network-test" options={{ title: 'Test réseau', headerShown: true }} />
+    </Stack>
   );
 }

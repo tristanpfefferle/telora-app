@@ -317,8 +317,6 @@ export function NumericChfInput({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border + '40',
@@ -333,6 +331,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   suggestionChip: {
     backgroundColor: colors.primary + '18',

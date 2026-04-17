@@ -16,13 +16,13 @@ export function useAuth() {
     // Ne rien faire pendant le chargement initial
     if (isLoading) return;
 
-    // Déterminer si on est dans un groupe protégé (main)
-    const inAuthGroup = segments[0] === '(auth)';
-    const inMainGroup = segments[0] === '(main)';
+    const route = segments[0];
+    const inAuthGroup = route === '(auth)';
 
-    if (!isAuthenticated && inMainGroup) {
+    if (!isAuthenticated && !inAuthGroup) {
       // Utilisateur non connecté essaie d'accéder à une route protégée
       router.replace('/(auth)/login');
+      return;
     }
 
     if (isAuthenticated && inAuthGroup) {

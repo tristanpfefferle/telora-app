@@ -8,29 +8,29 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MotiView } from 'moti';
-import { colors, spacing, borderRadius, fontSize } from '../../../lib/theme';
-import { useFlowEngine } from '../../../hooks/useFlowEngine';
-import { BudgetSummaryCard } from '../../../components/chat/BudgetSummaryCard';
-import { RevenusRecapCard } from '../../../components/chat/RevenusRecapCard';
-import { FixesRecapCard } from '../../../components/chat/FixesRecapCard';
-import { VariablesRecapCard } from '../../../components/chat/VariablesRecapCard';
-import { DiagnosticCard } from '../../../components/chat/DiagnosticCard';
-import { TipCard, AchievementBadge } from '../../../components/chat/TipCard';
-import { NumericChfInput } from '../../../components/chat/NumericChfInput';
-import { MultiSelectButtons } from '../../../components/chat/MultiSelectButtons';
-import { TypingIndicator } from '../../../components/chat/TypingIndicator';
-import { ProgressIndicatorV2 } from '../../../components/chat/ProgressIndicator';
-import { PlanActionCard } from '../../../components/chat/PlanActionCard';
-import { ConseilsActionCard } from '../../../components/chat/ConseilsActionCard';
-import { CelebrationCard } from '../../../components/chat/CelebrationCard';
-import type { PhaseProgressInfo } from '../../../components/chat/ProgressIndicator';
-import type { ChatMessage, QuickReplyOption, InputMode, PhaseId } from '../../../lib/budget-assistant-v2/types';
-import { PHASE_STEPS } from '../../../lib/budget-assistant-v2/conversation-flow';
-import { budgetAPI } from '../../../lib/api';
-import { useBudgetStore } from '../../../stores/budgetStore';
+import { colors, spacing, borderRadius, fontSize } from '../../../../lib/theme';
+import { useFlowEngine } from '../../../../hooks/useFlowEngine';
+import { BudgetSummaryCard } from '../../../../components/chat/BudgetSummaryCard';
+import { RevenusRecapCard } from '../../../../components/chat/RevenusRecapCard';
+import { FixesRecapCard } from '../../../../components/chat/FixesRecapCard';
+import { VariablesRecapCard } from '../../../../components/chat/VariablesRecapCard';
+import { DiagnosticCard } from '../../../../components/chat/DiagnosticCard';
+import { TipCard, AchievementBadge } from '../../../../components/chat/TipCard';
+import { NumericChfInput } from '../../../../components/chat/NumericChfInput';
+import { MultiSelectButtons } from '../../../../components/chat/MultiSelectButtons';
+import { TypingIndicator } from '../../../../components/chat/TypingIndicator';
+import { ProgressIndicatorV2 } from '../../../../components/chat/ProgressIndicator';
+import { PlanActionCard } from '../../../../components/chat/PlanActionCard';
+import { ConseilsActionCard } from '../../../../components/chat/ConseilsActionCard';
+import { CelebrationCard } from '../../../../components/chat/CelebrationCard';
+import type { PhaseProgressInfo } from '../../../../components/chat/ProgressIndicator';
+import type { ChatMessage, QuickReplyOption, InputMode, PhaseId } from '../../../../lib/budget-assistant-v2/types';
+import { PHASE_STEPS } from '../../../../lib/budget-assistant-v2/conversation-flow';
+import { budgetAPI } from '../../../../lib/api';
+import { useBudgetStore } from '../../../../stores/budgetStore';
 
 // ============================================================================
 // Noms et icônes des 6 phases
@@ -52,6 +52,7 @@ const PHASE_META: Record<PhaseId, { name: string; icon: string }> = {
 export default function ChatScreen() {
   const params = useLocalSearchParams();
   const { id: assistantId } = params as { id: string };
+  const router = useRouter();
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -480,20 +481,45 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarEmoji}>💰</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>←</Text>
+          <Text style={styles.backButtonLabel}>Retour</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.indexButton}>
+          <Text style={styles.indexButtonIcon}>📋</Text>
+          <Text style={styles.indexButtonLabel}>Index</Text>
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarEmoji}>💰</Text>
+          </View>
+          <View style={styles.infoContainer}>
+            <Text style={styles.assistantName}>Théo — Budget Coach</Text>
+            <Text style={styles.status}>
+              {isComplete ? 'Terminé' : currentPhaseName}
+            </Text>
+          </View>
         </View>
-        <View style={styles.infoContainer}>
-          <Text style={styles.assistantName}>Théo — Budget Coach</Text>
-          <Text style={styles.status}>
-            {isComplete ? 'Terminé' : currentPhaseName}
-          </Text>
+
+        <View style={styles.headerActions}>
+          {saveState === 'saving' && (
+            <ActivityIndicator size="small" color={colors.primary} />
+          )}
+          {saveState === 'saved' && (
+            <Text style={styles.savedBadge}>✓</Text>
+          )}
+          {saveState === 'error' && (
+            <Text style={styles.errorBadge}>✗</Text>
+          )}
+          
+          {isComplete && (
+            <TouchableOpacity onPress={handleRestart} style={styles.restartButton}>
+              <Text style={styles.restartButtonText}>↻</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        {isComplete && (
-          <TouchableOpacity onPress={restart} style={styles.restartButton}>
-            <Text style={styles.restartButtonText}>↻ Recommencer</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Progress bar V2 — 6 phases + intra-phase */}
@@ -511,13 +537,15 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}  // 60 pour Android pour éviter le header
       >
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
         >
           {messages.map((message, index) => renderMessage(message, index))}
 
@@ -547,11 +575,54 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surfaceLight,
+  },
+  backButtonText: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  backButtonLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  indexButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surfaceLight,
+  },
+  indexButtonIcon: {
+    fontSize: fontSize.lg,
+  },
+  indexButtonLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   avatarContainer: {
     width: 48,
@@ -596,7 +667,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    padding: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl, // Plus d'espace en bas pour le clavier
+    paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
   messageWrapper: {

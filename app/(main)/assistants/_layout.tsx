@@ -15,10 +15,16 @@ export default function AssistantsLayout() {
       }}
     >
       <Stack.Screen 
-        name="[id]/chat" 
+        name="index" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
+      <Stack.Screen 
+        name="[id]" 
         options={{ 
           title: 'Budget Coach',
-          headerBackTitle: 'Assistants',
+          headerBackTitle: 'Retour',
         }} 
       />
     </Stack>

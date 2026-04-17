@@ -93,7 +93,7 @@ export default function DashboardScreen() {
               Crée ton budget personnalisé avec ton assistant personnel !
             </Text>
             <Button
-              onPress={() => router.push('/assistants')}
+              onPress={() => router.push('/(main)/assistants' as any)}
               size="lg"
               icon={<Text style={styles.buttonIcon}>💬</Text>}
             >

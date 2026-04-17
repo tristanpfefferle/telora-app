@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, spacing } from '../../lib/theme';
-import { AssistantCard } from '../../components/assistants/AssistantCard';
+import { colors, spacing } from '../../../lib/theme';
+import { AssistantCard } from '../../../components/assistants/AssistantCard';
 
 interface Assistant {
   id: string;
@@ -33,7 +33,7 @@ export default function AssistantsScreen() {
     return (
       <AssistantCard
         assistant={item}
-        onPress={() => item.available && router.push(`/assistants/${item.id}`)}
+        onPress={() => item.available && router.push(`/(main)/assistants/${item.id}` as any)}
       />
     );
   };
