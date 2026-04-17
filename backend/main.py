@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 
-from database import engine, get_db, create_tables
+from database import engine, get_db, create_tables, migrate_add_data_v2
 from models import User, Budget, UserProgress, ConversationHistory
 from schemas import (
     UserCreate, UserResponse, Token,
@@ -51,6 +51,7 @@ app.include_router(budget_assistant_router.router)
 @app.on_event("startup")
 def startup_event():
     create_tables()
+    migrate_add_data_v2()
 
 # Helper to convert SQLAlchemy model to dict
 def model_to_dict(model):

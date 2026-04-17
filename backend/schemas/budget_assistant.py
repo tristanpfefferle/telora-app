@@ -92,6 +92,10 @@ class BudgetDataBase(BaseModel):
     ratioFixes: Optional[float] = None
     ratioVariables: Optional[float] = None
     ratioEpargne: Optional[float] = None
+    dataV2: Optional[Dict[str, Any]] = Field(None, alias="data_v2")
+
+    class Config:
+        populate_by_name = True
 
 
 class BudgetCreate(BudgetDataBase):
@@ -115,6 +119,10 @@ class BudgetUpdate(BaseModel):
     ratioVariables: Optional[float] = None
     ratioEpargne: Optional[float] = None
     planAction: Optional[List[Dict[str, Any]]] = None
+    dataV2: Optional[Dict[str, Any]] = Field(None, alias="data_v2")
+
+    class Config:
+        populate_by_name = True
 
 
 class BudgetSchema(BudgetDataBase):
@@ -128,6 +136,7 @@ class BudgetSchema(BudgetDataBase):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 # ============================================================================

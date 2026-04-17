@@ -41,6 +41,7 @@ class BudgetCreate(BaseModel):
     ratio_variables: float = 0
     ratio_epargne: float = 0
     plan_action: List[Dict[str, Any]] = []
+    data_v2: Optional[Dict[str, Any]] = None
 
 class BudgetResponse(BaseModel):
     id: str
@@ -60,6 +61,7 @@ class BudgetResponse(BaseModel):
     ratio_variables: float
     ratio_epargne: float
     plan_action: List[Dict[str, Any]]
+    data_v2: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
     

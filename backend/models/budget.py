@@ -41,6 +41,9 @@ class Budget(Base):
     # Étape 7 : Plan d'action
     plan_action = Column(JSON, default=list)  # [{id, title, description, completed, priority}]
     
+    # Données détaillées V2 (JSON structuré avec chaque poste individuel)
+    data_v2 = Column(JSON, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

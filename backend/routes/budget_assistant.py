@@ -295,6 +295,7 @@ async def create_budget(
         ratio_fixes=ratios["ratioFixes"],
         ratio_variables=ratios["ratioVariables"],
         ratio_epargne=ratios["ratioEpargne"],
+        data_v2=budget.dataV2,
     )
     
     db.add(db_budget)
@@ -344,11 +345,30 @@ async def update_budget(
     if not budget:
         raise HTTPException(status_code=404, detail="Budget not found")
     
-    update_data = budget_update.model_dump(exclude_unset=True)
-    
+    update_data = budget_update.model_dump(exclude_unset=True, by_alias=True)
+
+    # Mapping camelCase (Pydantic) → snake_case (SQLAlchemy)
+    camel_to_snake = {
+        "objectifFinancier": "objectif_financier",
+        "depensesFixes": "depenses_fixes",
+        "depensesVariables": "depenses_variables",
+        "epargneActuelle": "epargne_actuelle",
+        "epargneObjectif": "epargne_objectif",
+        "totalRevenus": "total_revenus",
+        "totalFixes": "total_fixes",
+        "totalVariables": "total_variables",
+        "capaciteEpargne": "capacite_epargne",
+        "ratioFixes": "ratio_fixes",
+        "ratioVariables": "ratio_variables",
+        "ratioEpargne": "ratio_epargne",
+        "planAction": "plan_action",
+        "data_v2": "data_v2",  # déjà snake_case grâce à by_alias=True
+    }
+
     for field, value in update_data.items():
-        if hasattr(budget, field):
-            setattr(budget, field, value)
+        snake_field = camel_to_snake.get(field, field)
+        if hasattr(budget, snake_field):
+            setattr(budget, snake_field, value)
     
     # Recalculer les ratios si nécessaire
     if any(k in update_data for k in ['total_revenus', 'total_fixes', 'total_variables']):

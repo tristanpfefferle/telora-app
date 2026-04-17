@@ -27,6 +27,19 @@ def create_tables():
     """Créer toutes les tables"""
     Base.metadata.create_all(bind=engine)
 
+def migrate_add_data_v2():
+    """Ajouter la colonne data_v2 à la table budgets si elle n'existe pas"""
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    columns = [col['name'] for col in inspector.get_columns('budgets')]
+    if 'data_v2' not in columns:
+        with engine.connect() as conn:
+            conn.execute(text('ALTER TABLE budgets ADD COLUMN data_v2 JSON'))
+            conn.commit()
+        print("Migration: colonne data_v2 ajoutée à la table budgets")
+    else:
+        print("Migration: colonne data_v2 déjà présente")
+
 def drop_tables():
     """Supprimer toutes les tables (dev only)"""
     Base.metadata.drop_all(bind=engine)
