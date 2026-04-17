@@ -4,11 +4,14 @@
  * L'UI est déclarative : elle lit l'état du hook useFlowEngine
  * et route vers les composants d'input contextuels.
  *
+ * Architecture : input fixé en bas (chat pattern), messages scrollent au-dessus.
+ * Le clavier ne cache plus la conversation.
+ *
  * Étape 9 du plan Théo V2.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius, fontSize } from '../../../../lib/theme';
@@ -133,6 +136,27 @@ export default function ChatScreen() {
   const handleQuickReply = (reply: QuickReplyOption) => {
     submitValue(reply.value);
   };
+
+  // ============================================================================
+  // Déterminer l'input actif et la config
+  // ============================================================================
+
+  const activeBotMessage = messages.find(m => m.id === lastBotMessageId && m.type === 'bot');
+
+  const activeInputMode: InputMode | null =
+    activeBotMessage?.inputMode &&
+    activeBotMessage.inputMode !== 'info_only' &&
+    !isComplete
+      ? activeBotMessage.inputMode
+      : null;
+
+  const activeNumericConfig = activeBotMessage?.numericConfig || inputConfig.numericConfig || { placeholder: "Ex: 1'000" };
+  const activeMultiSelectConfig = activeBotMessage?.multiSelectConfig || inputConfig.multiSelectConfig || { options: [] };
+
+  // Quick replies actifs (peuvent être sur des messages précédents)
+  const activeQuickReplies = messages.find(
+    m => m.inputMode === 'quick_replies' && m.quickRepliesActive && m.quickReplies && m.quickReplies.length > 0 && !isComplete
+  );
 
   // ============================================================================
   // Card rendering
@@ -321,103 +345,7 @@ export default function ChatScreen() {
   };
 
   // ============================================================================
-  // Input rendering
-  // ============================================================================
-
-  const isInputActiveForMessage = (message: ChatMessage): boolean => {
-    return message.id === lastBotMessageId
-      && message.type === 'bot'
-      && message.inputMode !== undefined
-      && message.inputMode !== 'info_only'
-      && !isComplete;
-  };
-
-  const shouldRenderInput = (message: ChatMessage): boolean => {
-    if (!message.inputMode) return false;
-
-    // Quick replies : affichés tant que quickRepliesActive (même messages passés)
-    if (message.inputMode === 'quick_replies') {
-      return message.quickRepliesActive && !!message.quickReplies && message.quickReplies.length > 0;
-    }
-
-    // numeric_chf et multi_select : seulement si input actif
-    return isInputActiveForMessage(message);
-  };
-
-  const renderContextualInput = (message: ChatMessage) => {
-    if (!shouldRenderInput(message)) return null;
-
-    const isActive = isInputActiveForMessage(message);
-    const mode: InputMode = message.inputMode!;
-
-    switch (mode) {
-      case 'numeric_chf': {
-        const config = message.numericConfig || inputConfig.numericConfig || { placeholder: "Ex: 1'000" };
-        return (
-          <NumericChfInput
-            config={config as any}
-            onSubmit={handleNumericSubmit}
-            onSkip={handleNumericSkip}
-            visible={isActive}
-            disabled={!isActive}
-          />
-        );
-      }
-
-      case 'multi_select': {
-        const config = message.multiSelectConfig || inputConfig.multiSelectConfig || { options: [] };
-        return (
-          <MultiSelectButtons
-            config={config}
-            onSubmit={handleMultiSelectSubmit}
-            onSkipNone={handleMultiSelectSkipNone}
-            visible={isActive}
-            disabled={!isActive}
-          />
-        );
-      }
-
-      case 'quick_replies': {
-        if (!message.quickReplies) return null;
-        return (
-          <View style={styles.quickRepliesInline}>
-            {message.quickReplies.map((reply, idx) => (
-              <MotiView
-                key={reply.id}
-                from={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: 'spring', damping: 15, delay: idx * 60 }}
-              >
-                <TouchableOpacity
-                  onPress={() => handleQuickReply(reply)}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.quickReplyButton,
-                    idx === 0 && styles.quickReplyButtonPrimary,
-                  ]}
-                >
-                  {reply.icon && <Text style={styles.quickReplyIcon}>{reply.icon}</Text>}
-                  <Text style={[
-                    styles.quickReplyLabel,
-                    idx === 0 && styles.quickReplyLabelPrimary,
-                  ]}>
-                    {reply.label}
-                  </Text>
-                </TouchableOpacity>
-              </MotiView>
-            ))}
-          </View>
-        );
-      }
-
-      case 'info_only':
-      default:
-        return null;
-    }
-  };
-
-  // ============================================================================
-  // Message rendering
+  // Message rendering (sans input intégré — l'input est dans la barre fixe)
   // ============================================================================
 
   const renderMessage = (message: ChatMessage, index: number) => {
@@ -444,13 +372,81 @@ export default function ChatScreen() {
           </Text>
         </View>
 
-        {/* Input contextuel attaché au message */}
-        {renderContextualInput(message)}
+        {/* Quick replies restent inline car ils n'ouvrent pas le clavier */}
+        {message.inputMode === 'quick_replies' &&
+          message.quickRepliesActive &&
+          message.quickReplies &&
+          message.quickReplies.length > 0 &&
+          !isComplete && (
+            <View style={styles.quickRepliesInline}>
+              {message.quickReplies.map((reply, idx) => (
+                <MotiView
+                  key={reply.id}
+                  from={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', damping: 15, delay: idx * 60 }}
+                >
+                  <TouchableOpacity
+                    onPress={() => handleQuickReply(reply)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.quickReplyButton,
+                      idx === 0 && styles.quickReplyButtonPrimary,
+                    ]}
+                  >
+                    {reply.icon && <Text style={styles.quickReplyIcon}>{reply.icon}</Text>}
+                    <Text style={[
+                      styles.quickReplyLabel,
+                      idx === 0 && styles.quickReplyLabelPrimary,
+                    ]}>
+                      {reply.label}
+                    </Text>
+                  </TouchableOpacity>
+                </MotiView>
+              ))}
+            </View>
+          )}
 
         {/* Carte intégrée */}
         {message.cardType && renderCard(message)}
       </MotiView>
     );
+  };
+
+  // ============================================================================
+  // Barre d'input fixe en bas
+  // ============================================================================
+
+  const renderBottomInput = () => {
+    if (isComplete) return null;
+
+    // Numeric CHF input
+    if (activeInputMode === 'numeric_chf') {
+      return (
+        <NumericChfInput
+          config={activeNumericConfig as any}
+          onSubmit={handleNumericSubmit}
+          onSkip={handleNumericSkip}
+          visible
+          disabled={false}
+        />
+      );
+    }
+
+    // Multi-select input
+    if (activeInputMode === 'multi_select') {
+      return (
+        <MultiSelectButtons
+          config={activeMultiSelectConfig}
+          onSubmit={handleMultiSelectSubmit}
+          onSkipNone={handleMultiSelectSkipNone}
+          visible
+          disabled={false}
+        />
+      );
+    }
+
+    return null;
   };
 
   // ============================================================================
@@ -484,11 +480,6 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>←</Text>
           <Text style={styles.backButtonLabel}>Retour</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.indexButton}>
-          <Text style={styles.indexButtonIcon}>📋</Text>
-          <Text style={styles.indexButtonLabel}>Index</Text>
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
@@ -533,12 +524,12 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* Messages */}
+      {/* Chat area : messages scrollent, input fixé en bas */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 60}  // 60 pour Android pour éviter le header
       >
+        {/* Messages — scrollable */}
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
@@ -556,8 +547,12 @@ export default function ChatScreen() {
             />
           )}
 
-          <View style={styles.spacer} />
+          {/* Spacer pour laisser de la place quand l'input fixe est visible */}
+          {activeInputMode ? <View style={styles.inputSpacer} /> : <View style={styles.spacer} />}
         </ScrollView>
+
+        {/* Input fixe en bas — toujours visible au-dessus du clavier */}
+        {renderBottomInput()}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -601,23 +596,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  indexButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surfaceLight,
-  },
-  indexButtonIcon: {
-    fontSize: fontSize.lg,
-  },
-  indexButtonLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -649,6 +627,21 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     marginTop: 2,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  savedBadge: {
+    color: colors.success,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+  },
+  errorBadge: {
+    color: colors.error,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+  },
   restartButton: {
     backgroundColor: colors.primary + '20',
     paddingHorizontal: spacing.md,
@@ -668,7 +661,7 @@ const styles = StyleSheet.create({
   },
   messagesContent: {
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xxl, // Plus d'espace en bas pour le clavier
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
@@ -744,7 +737,13 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
     maxWidth: '90%',
   },
+  // Spacer normal (fin de conversation)
   spacer: {
     height: spacing.xxl,
+  },
+  // Spacer plus grand quand l'input fixe est visible
+  // pour que le dernier message ne soit pas caché par la barre d'input
+  inputSpacer: {
+    height: 180,
   },
 });

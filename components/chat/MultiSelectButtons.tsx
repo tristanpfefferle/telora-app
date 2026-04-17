@@ -280,10 +280,17 @@ export function MultiSelectButtons({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border + '40',
+    borderTopColor: colors.border,
+    // Ombre légère pour séparer de la zone de messages
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 8,
   },
   containerDisabled: {
     opacity: 0.5,

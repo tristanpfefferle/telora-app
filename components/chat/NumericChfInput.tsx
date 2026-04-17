@@ -317,9 +317,18 @@ export function NumericChfInput({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border + '40',
+    borderTopColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    // Ombre légère pour séparer de la zone de messages
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 8,
   },
   containerDisabled: {
     opacity: 0.5,
@@ -331,8 +340,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
   },
   suggestionChip: {
     backgroundColor: colors.primary + '18',
