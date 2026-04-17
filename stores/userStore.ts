@@ -40,6 +40,7 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  _hasValidatedToken: boolean;
   
   // Actions
   setUser: (user: User | null) => void;
@@ -58,6 +59,7 @@ export const useUserStore = create<UserState>()(
       token: null,
       isAuthenticated: false,
       isLoading: true,
+      _hasValidatedToken: false,
       
       setUser: (user) =>
         set({
@@ -135,12 +137,14 @@ export const useUserStore = create<UserState>()(
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.error('Error rehydrating user store:', error);
-        } else if (state) {
-          // La réhydratation est terminée mais on NE passe PAS isLoading à false ici
-          // On attend la validation du token via validateToken()
-          // → isLoading reste true jusqu'à ce que validateToken() resolve
-          state.validateToken();
+          // En cas d'erreur de réhydratation, on sort du loading
+          if (state) {
+            state.setLoading(false);
+          }
         }
+        // On N'appelle PAS validateToken() ici — c'est ce qui causait
+        // la boucle infinie (Maximum update depth exceeded).
+        // La validation du token se fait via useValidateToken() dans le layout.
       },
     }
   )
