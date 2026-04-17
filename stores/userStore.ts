@@ -40,7 +40,6 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  _hasValidatedToken: boolean;
   
   // Actions
   setUser: (user: User | null) => void;
@@ -59,7 +58,6 @@ export const useUserStore = create<UserState>()(
       token: null,
       isAuthenticated: false,
       isLoading: true,
-      _hasValidatedToken: false,
       
       setUser: (user) =>
         set({
@@ -89,7 +87,7 @@ export const useUserStore = create<UserState>()(
       /**
        * Valide le token persisté en appelant /api/auth/me
        * Si le token est invalide/expiré, déconnecte l'utilisateur
-       * À appeler au démarrage de l'app
+       * Appelé une seule fois depuis onRehydrateStorage
        */
       validateToken: async () => {
         const { token } = get();
@@ -128,6 +126,8 @@ export const useUserStore = create<UserState>()(
           ? localStorage
           : secureStoreAdapter
       ),
+      // NE PAS persister isLoading — il doit toujours démarrer à true
+      // pour afficher le loader pendant la réhydratation
       partialize: (state) => ({
         token: state.token,
         user: state.user,
@@ -137,14 +137,24 @@ export const useUserStore = create<UserState>()(
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.error('Error rehydrating user store:', error);
-          // En cas d'erreur de réhydratation, on sort du loading
+          // En cas d'erreur, on sort du loading
           if (state) {
             state.setLoading(false);
           }
+          return;
         }
-        // On N'appelle PAS validateToken() ici — c'est ce qui causait
-        // la boucle infinie (Maximum update depth exceeded).
-        // La validation du token se fait via useValidateToken() dans le layout.
+        // La réhydratation est terminée.
+        // On utilise un micro-delay pour sortir du cycle de rendu en cours
+        // avant d'appeler validateToken(), évitant ainsi la boucle infinie.
+        if (state) {
+          const { validateToken } = state;
+          // setTimeout(0) garantit que setState dans validateToken
+          // s'exécute dans un nouveau cycle macro-task, pas dans
+          // le commitLayoutEffect en cours
+          setTimeout(() => {
+            validateToken();
+          }, 0);
+        }
       },
     }
   )
