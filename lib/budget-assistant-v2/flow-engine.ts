@@ -535,6 +535,12 @@ export class FlowEngine {
     // Ajouter les messages de l'étape
     this.addStepMessages(stepId, newMessages);
 
+    // Auto-avancer les étapes info_only (pas d'input utilisateur nécessaire)
+    // On affiche les messages, puis on avance directement vers la prochaine étape
+    if (step.inputMode === 'info_only' && step.nextStep && stepId !== 'recap_fin') {
+      this.goToStep(step.nextStep, newMessages);
+    }
+
     // Si la nouvelle étape est multi-select sans montant, traiter les sélections en inline
     // (le processUserResponse sera appelé séparément par l'UI)
   }
