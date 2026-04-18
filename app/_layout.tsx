@@ -1,40 +1,60 @@
 import { useEffect } from 'react';
-import { Stack, Redirect } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { useUserStore } from '../stores/userStore';
 
 /**
- * Layout racine — Architecture anti-boucle v3
+ * Layout racine — Architecture anti-boucle v4
+ * 
+ * RÈGLE CRITIQUE : Ne JAMAIS utiliser <Redirect> pendant le render !
+ * <Redirect> modifie l'état React Navigation pendant la phase de commit
+ * → forceStoreRerender → boucle infinie.
+ * 
+ * À la place : utiliser router.replace() DANS un useEffect.
  * 
  * Flow :
  * 1. App lance → isLoading=true, _rehydrated=false → spinner affiché
  * 2. Zustand hydrate le token depuis SecureStore
- * 3. onRehydrateStorage set _rehydrated=true
- * 4. useEffect detecte _rehydrated=true → lance validateToken()
- * 5. validateToken() set isLoading=false → routing se fait
- * 
- * AUCUN setState dans onRehydrateStorage (sauf _rehydrated via useUserStore.setState)
- * AUCUNE boucle possible car useEffect ne se déclenche QU'UNE fois quand _rehydrated passe à true
+ * 3. onRehydrateStorage set _rehydrated=true via useUserStore.setState()
+ * 4. useEffect[_rehydrated] lance validateToken() via getState()
+ * 5. validateToken() set isLoading=false → useEffect de routing se déclenche
+ * 6. useEffect de routing appelle router.replace() → navigation ASYNC → pas de boucle
  */
 export default function RootLayout() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const isLoading = useUserStore((s) => s.isLoading);
   const _rehydrated = useUserStore((s) => s._rehydrated);
   const token = useUserStore((s) => s.token);
-  const validateToken = useUserStore((s) => s.validateToken);
-  const setLoading = useUserStore((s) => s.setLoading);
+  const router = useRouter();
+  const segments = useSegments();
 
+  // --- Auth initialization : attendre _rehydrated puis valider le token ---
   useEffect(() => {
-    if (!_rehydrated) return; // Attendre que l'hydratation soit terminée
+    if (!_rehydrated) return;
 
     if (!token) {
-      setLoading(false); // Pas de token → montrer login
+      useUserStore.getState().setLoading(false);
       return;
     }
 
-    validateToken(); // Token présent → valider avec le backend
-  }, [_rehydrated]); // Ne se déclenche QUE quand _rehydrated change
+    useUserStore.getState().validateToken();
+  }, [_rehydrated]);
+
+  // --- Routing : TOUJOURS dans useEffect, JAMAIS via <Redirect> en render ---
+  useEffect(() => {
+    if (isLoading) return; // Attendre que l'auth soit résolue
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // Pas connecté, pas sur page auth → go login
+      router.replace('/(auth)/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      // Connecté, sur page auth → go dashboard
+      router.replace('/(main)');
+    }
+  }, [isAuthenticated, isLoading, segments]);
 
   if (isLoading) {
     return (
@@ -44,15 +64,7 @@ export default function RootLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <StatusBar style="light" />
-        <Redirect href="/(auth)/login" />
-      </>
-    );
-  }
-
+  // JAMAIS de <Redirect> ici — le useEffect de routing s'en charge
   return (
     <>
       <StatusBar style="light" />

@@ -11,7 +11,9 @@ import { colors, borderRadius, spacing } from '../../lib/theme';
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { user, progress, setProgress } = useUserStore();
+  const user = useUserStore((s) => s.user);
+  const progress = useUserStore((s) => s.progress);
+  const setProgress = useUserStore((s) => s.setProgress);
   const [refreshing, setRefreshing] = useState(false);
   const [budgets, setBudgets] = useState<Budget[]>([]);
 

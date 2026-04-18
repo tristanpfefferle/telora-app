@@ -10,7 +10,8 @@ import { colors, spacing, borderRadius } from '../../lib/theme';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { setUser, setLoading } = useUserStore();
+  const setUser = useUserStore((s) => s.setUser);
+  const setLoading = useUserStore((s) => s.setLoading);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

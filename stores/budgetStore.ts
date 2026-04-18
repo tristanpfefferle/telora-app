@@ -1142,10 +1142,74 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
   // =========================================================================
 
   loadBudgetData: (budgetData) => {
-    set((state) => ({
-      data: budgetData,
-    }));
-    // Recalculer immédiatement
-    get().recalculate();
+    // Fusion data + recalculate en UN SEUL set() pour éviter
+    // le double re-render qui amplifie les cascades
+    set((state) => {
+      const data = budgetData;
+
+      const totalLogement = computeTotalLogement(data.logement);
+      const totalAssurances = computeTotalAssurances(data.assurances);
+      const totalTransport = computeTotalTransport(data.transport);
+      const totalTelecom = computeTotalTelecom(data.telecom);
+      const totalImpots = computeTotalImpots(data.impots);
+      const totalEngagements = computeTotalEngagements(data.engagements);
+
+      const totalRevenus = computeTotalRevenus(data.revenus);
+      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements;
+      const totalVariables = computeTotalVariables(data.variables);
+      const capaciteEpargne = totalRevenus - totalFixes - totalVariables;
+
+      const { ratioFixes, ratioVariables, ratioEpargne } = computeRatios(
+        totalRevenus, totalFixes, totalVariables, capaciteEpargne
+      );
+
+      const diagnosticCase = computeDiagnostic(ratioFixes, ratioVariables, ratioEpargne, capaciteEpargne);
+      const diagnosticMessage = DIAGNOSTIC_MESSAGES[diagnosticCase];
+
+      const updatedData: BudgetDataV2 = {
+        ...data,
+        totalRevenus,
+        totalFixes,
+        totalVariables,
+        capaciteEpargne,
+        ratioFixes,
+        ratioVariables,
+        ratioEpargne,
+      };
+
+      const payload = toBackendPayload(updatedData, state.objectifFinancier ?? undefined, state.mindset ?? undefined);
+      const v1Revenus: BackendRevenu[] = payload.revenus;
+      const v1DepensesFixes: BackendDepenseFixe[] = payload.depenses_fixes;
+      const v1DepensesVariables: BackendDepenseVariable[] = payload.depenses_variables;
+      const v1PlanAction: PlanAction[] = payload.plan_action.map((pa) => ({
+        action: pa.title,
+        done: pa.completed,
+      }));
+
+      return {
+        data: updatedData,
+        totalRevenus,
+        totalFixes,
+        totalVariables,
+        totalLogement,
+        totalAssurances,
+        totalTransport,
+        totalTelecom,
+        totalImpots,
+        totalEngagements,
+        capaciteEpargne,
+        ratioFixes,
+        ratioVariables,
+        ratioEpargne,
+        diagnosticCase,
+        diagnosticMessage,
+        revenus: v1Revenus,
+        depensesFixes: v1DepensesFixes,
+        depensesVariables: v1DepensesVariables,
+        epargneActuelle: data.epargne.montantActuel,
+        epargneObjectif: data.epargne.objectif?.montant ?? 0,
+        planAction: v1PlanAction,
+      };
+    });
   },
 }));
