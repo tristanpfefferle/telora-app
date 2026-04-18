@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius, fontSize } from '../../../../lib/theme';
 import { useFlowEngine } from '../../../../hooks/useFlowEngine';
@@ -56,6 +57,7 @@ export default function ChatScreen() {
   const params = useLocalSearchParams();
   const { id: assistantId } = params as { id: string };
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -479,7 +481,7 @@ export default function ChatScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -534,7 +536,7 @@ export default function ChatScreen() {
 
       {/* Chat area : messages scrollent, input fixé en bas */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         {/* Messages — scrollable */}
@@ -559,8 +561,10 @@ export default function ChatScreen() {
           {activeInputMode ? <View style={styles.inputSpacer} /> : <View style={styles.spacer} />}
         </ScrollView>
 
-        {/* Input fixe en bas — toujours visible au-dessus du clavier */}
-        {renderBottomInput()}
+        {/* Input fixe en bas — toujours visible au-dessus du clavier et safe area */}
+        <View style={{ paddingBottom: Math.max(insets.bottom, 8) }}>
+          {renderBottomInput()}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
