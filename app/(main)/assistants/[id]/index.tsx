@@ -113,13 +113,23 @@ export default function ChatScreen() {
     restart(); // restart() appelle déjà clearPersistedConversation()
   }, [restart]);
 
-  // Auto-scroll en bas à chaque nouveau message
+  // Auto-scroll intelligent — seulement si l'utilisateur est déjà en bas (comme WhatsApp)
+  const isNearBottomRef = useRef(true);
+
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+    isNearBottomRef.current = distanceFromBottom < 150;
+  }, []);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [messages, isTyping]);
+    if (isNearBottomRef.current) {
+      const timer = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
 
   // ============================================================================
   // Handlers — adaptateurs entre les composants UI et le FlowEngine
@@ -365,30 +375,36 @@ export default function ChatScreen() {
     const isGroupStart = !prevMessage || prevMessage.type !== message.type;
     const isGroupEnd = !nextMessage || nextMessage.type !== message.type;
 
-    // Espacement réduit entre bulles du même groupe, normal entre groupes
-    const marginBottom = isGroupEnd ? spacing.md : 2;
+    // Espacement WhatsApp-like : serré dans un groupe, plus grand entre groupes
+    const marginBottom = isGroupEnd ? 12 : 3;
 
-    // Avatar seulement sur la première bulle d'un groupe bot
-    const showAvatar = isBot && isGroupStart;
+    // Radius WhatsApp-like : coin pointu au début du groupe, arrondi ensuite
+    const botRadius = {
+      borderTopLeftRadius: isGroupStart ? 4 : 16,
+      borderTopRightRadius: 16,
+      borderBottomLeftRadius: isGroupEnd ? 16 : 4,
+      borderBottomRightRadius: 16,
+    };
+
+    const userRadius = {
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: isGroupStart ? 4 : 16,
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: isGroupEnd ? 16 : 4,
+    };
 
     return (
       <MotiView
         key={message.id}
-        from={{ opacity: 0, translateY: 10 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 250 }}
+        from={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ type: 'timing', duration: 200 }}
         style={{ marginBottom }}
       >
         <View style={[
           isBot ? styles.botBubble : styles.userBubble,
+          isBot ? botRadius : userRadius,
         ]}>
-          {showAvatar ? (
-            <View style={styles.messageAvatar}>
-              <Text style={styles.messageAvatarInitial}>T</Text>
-            </View>
-          ) : isBot ? (
-            <View style={styles.messageAvatarSpacer} />
-          ) : null}
           <Text style={[
             styles.messageText,
             !isBot && styles.userMessageText,
@@ -407,9 +423,9 @@ export default function ChatScreen() {
               {message.quickReplies.map((reply, idx) => (
                 <MotiView
                   key={reply.id}
-                  from={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: 'spring', damping: 15, delay: idx * 60 }}
+                  from={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ type: 'timing', duration: 200, delay: idx * 80 }}
                 >
                   <TouchableOpacity
                     onPress={() => handleQuickReply(reply)}
@@ -449,6 +465,7 @@ export default function ChatScreen() {
     if (activeInputMode === 'numeric_chf') {
       return (
         <NumericChfInput
+          key={currentStepId}
           config={activeNumericConfig as any}
           onSubmit={handleNumericSubmit}
           onSkip={handleNumericSkip}
@@ -462,6 +479,7 @@ export default function ChatScreen() {
     if (activeInputMode === 'multi_select') {
       return (
         <MultiSelectButtons
+          key={currentStepId}
           config={activeMultiSelectConfig}
           onSubmit={handleMultiSelectSubmit}
           onSkipNone={handleMultiSelectSkipNone}
@@ -565,6 +583,8 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
+          onScroll={handleScroll}
+          scrollEventThrottle={100}
         >
           {messages.map((message, index) => renderMessage(message, index))}
 
@@ -695,57 +715,28 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.lg,
+    flexGrow: 1,
   },
   botBubble: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     backgroundColor: colors.surface,
     alignSelf: 'flex-start',
-    maxWidth: '85%',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    gap: spacing.sm,
+    maxWidth: '80%',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    // Les border-radius sont dynamiques (via botRadius dans renderMessage)
   },
   userBubble: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     backgroundColor: colors.primary,
     alignSelf: 'flex-end',
-    maxWidth: '75%',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 6,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginLeft: 'auto',
-  },
-  messageAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#5E6AD2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  messageAvatarInitial: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  messageAvatarSpacer: {
-    width: 28,
+    maxWidth: '70%',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    // Les border-radius sont dynamiques (via userRadius dans renderMessage)
   },
   messageText: {
     color: colors.textPrimary,
-    fontSize: fontSize.md,
-    lineHeight: 22,
-    flex: 1,
+    fontSize: 15,
+    lineHeight: 21,
   },
   userMessageText: {
     color: '#FFFFFF',
@@ -753,20 +744,20 @@ const styles = StyleSheet.create({
   quickRepliesInline: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-    marginLeft: spacing.md,
+    gap: 8,
+    marginTop: 8,
+    paddingLeft: 4,
   },
   quickReplyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: borderRadius.xl,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.xs,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 4,
   },
   quickReplyButtonPrimary: {
     backgroundColor: colors.primary,
@@ -776,8 +767,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   quickReplyLabel: {
-    color: colors.textPrimary,
-    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
   quickReplyLabelPrimary: {
@@ -792,9 +783,7 @@ const styles = StyleSheet.create({
   spacer: {
     height: spacing.xxl,
   },
-  // Spacer plus grand quand l'input fixe est visible
-  // pour que le dernier message ne soit pas caché par la barre d'input
   inputSpacer: {
-    height: 180,
+    height: 16,
   },
 });

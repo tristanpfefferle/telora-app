@@ -1,17 +1,24 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { useUserStore } from '../stores/userStore';
 
 /**
- * Layout racine — Architecture anti-boucle v4
+ * Layout racine — Architecture anti-boucle v5
  * 
  * RÈGLE CRITIQUE : Ne JAMAIS utiliser <Redirect> pendant le render !
  * <Redirect> modifie l'état React Navigation pendant la phase de commit
  * → forceStoreRerender → boucle infinie.
  * 
  * À la place : utiliser router.replace() DANS un useEffect.
+ * 
+ * PROTECTION ANTI-BOUCLE :
+ * 1. segments is read INSIDE the effect, NOT in the dependency array
+ *    (useSegments() returns a new array ref each render → infinite loop if in deps)
+ * 2. A ref guard (routingRef) prevents competing navigations from
+ *    firing multiple router.replace() in the same tick
+ * 3. index.tsx has its own hasRedirected ref guard to prevent overlapping
  * 
  * Flow :
  * 1. App lance → isLoading=true, _rehydrated=false → spinner affiché
@@ -28,6 +35,7 @@ export default function RootLayout() {
   const token = useUserStore((s) => s.token);
   const router = useRouter();
   const segments = useSegments();
+  const routingRef = useRef(false);
 
   // --- Auth initialization : attendre _rehydrated puis valider le token ---
   useEffect(() => {
@@ -42,19 +50,25 @@ export default function RootLayout() {
   }, [_rehydrated]);
 
   // --- Routing : TOUJOURS dans useEffect, JAMAIS via <Redirect> en render ---
+  // ⚠️ segments is read INSIDE the effect, NOT in the dependency array
+  // because useSegments() returns a new array reference each render
+  // which would cause infinite re-triggering of this effect.
   useEffect(() => {
     if (isLoading) return; // Attendre que l'auth soit résolue
+    if (routingRef.current) return; // Éviter les navigations concurrentes
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!isAuthenticated && !inAuthGroup) {
       // Pas connecté, pas sur page auth → go login
+      routingRef.current = true;
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
       // Connecté, sur page auth → go dashboard
+      routingRef.current = true;
       router.replace('/(main)');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading]); // ⚠️ PAS de segments ici !
 
   if (isLoading) {
     return (
