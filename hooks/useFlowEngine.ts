@@ -279,15 +279,14 @@ export function useFlowEngine(): UseFlowEngineReturn {
           return;
         }
 
-        // Mettre à jour tous les états SAUF messages immédiatement
-        // (les nouveaux messages seront séquencés un par un)
+        // Mettre à jour les états qui ne dépendent PAS des messages immédiatement
         const engine = engineRef.current;
         setCurrentStepId(engine.getCurrentStepId());
         setCurrentStep(engine.getCurrentStep());
         setCurrentPhase(engine.getCurrentPhase());
         setCurrentPhaseName(engine.getCurrentPhaseName());
-        setInputMode(engine.getCurrentInputMode());
-        setInputConfig(engine.getCurrentInputConfig());
+        // ⚠️ inputMode et inputConfig sont mis à jour APRÈS le séquencement
+        // pour s'assurer que lastBotMessageId existe déjà dans messages[]
         setGlobalProgress(engine.getGlobalProgress());
         setPhaseProgress(engine.getPhaseProgress());
         setBudgetData(engine.getBudgetData());
@@ -317,7 +316,10 @@ export function useFlowEngine(): UseFlowEngineReturn {
             setMessages(prev => [...prev, msg]);
 
             if (i === newMessages.length - 1) {
-              // Dernier message → désactiver le typing indicator
+              // Dernier message → synchroniser inputMode/inputConfig et désactiver typing
+              // C'est SEULEMENT maintenant que lastBotMessageId sera dans messages[]
+              setInputMode(engine.getCurrentInputMode());
+              setInputConfig(engine.getCurrentInputConfig());
               setIsTyping(false);
             } else {
               // Entre les bulles → typing indicator visible
