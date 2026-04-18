@@ -81,7 +81,8 @@ export default function ChatScreen() {
     restart,
   } = useFlowEngine();
 
-  const budgetStore = useBudgetStore();
+  // ⚠️ Pas de useBudgetStore() hook ici — objet instable dans useCallback deps.
+  // On utilise useBudgetStore.getState() pour accès direct sans subscription.
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   // Handler — Sauvegarder le budget sur le backend
@@ -89,21 +90,21 @@ export default function ChatScreen() {
     if (saveState === 'saving' || saveState === 'saved') return;
     setSaveState('saving');
     try {
-      const payload = budgetStore.getBackendPayload();
+      const payload = useBudgetStore.getState().getBackendPayload();
       await budgetAPI.create(payload);
       setSaveState('saved');
     } catch (err) {
       console.error('[ChatScreen] Erreur sauvegarde budget:', err);
       setSaveState('error');
     }
-  }, [saveState, budgetStore]);
+  }, [saveState]);
 
   // Handler — Redémarrer la conversation
   const handleRestart = useCallback(() => {
-    budgetStore.reset();
+    useBudgetStore.getState().reset();
     setSaveState('idle');
     restart();
-  }, [budgetStore, restart]);
+  }, [restart]);
 
   // Auto-scroll en bas à chaque nouveau message
   useEffect(() => {

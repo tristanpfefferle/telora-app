@@ -93,7 +93,9 @@ const TYPING_DELAY_MS = 600;
 export function useFlowEngine(): UseFlowEngineReturn {
   // --- Instance du FlowEngine (stable, jamais recréée sauf restart) ---
   const engineRef = useRef<FlowEngine>(new FlowEngine());
-  const budgetStore = useBudgetStore();
+  // ⚠️ NE PAS utiliser useBudgetStore() ici — l'objet store est instable
+  // et provoque des boucles infinies quand placé dans useCallback deps.
+  // On utilise useBudgetStore.getState() pour accès direct sans subscription.
 
   // --- État React réactif ---
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -138,10 +140,9 @@ export function useFlowEngine(): UseFlowEngineReturn {
     setRatioFeedback(engine.getRatioFeedback());
     setSerializedState(engine.serialize());
 
-    // Synchroniser les données V2 dans le budgetStore Zustand
-    const data = engine.getBudgetData();
-    budgetStore.loadBudgetData(data);
-  }, [budgetStore]);
+    // Sync vers Zustand SANS subscription React → pas de re-render en cascade
+    useBudgetStore.getState().loadBudgetData(engine.getBudgetData());
+  }, []);  // ← AUCUNE dépendance externe = stable à jamais
 
   // --- Initialisation : démarrer la conversation au montage ---
   useEffect(() => {
