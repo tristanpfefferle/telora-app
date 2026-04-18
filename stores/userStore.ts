@@ -1,6 +1,17 @@
 /**
  * Store Zustand pour l'état utilisateur avec persistance
- * Utilise expo-secure-store comme adapter de stockage pour React Native
+ * 
+ * Architecture anti-boucle (v3) :
+ * - isLoading démarre à true → affiche le spinner
+ * - _rehydrated flag signalé par onRehydrateStorage → NE FAIT AUCUN setState autre
+ * - Le layout racine attend _rehydrated=true dans useEffect → lance validateToken()
+ * - validateToken() set isLoading=false → le composant route
+ * - isAuthenticated, isLoading et _rehydrated NE SONT JAMAIS persistés
+ * 
+ * RÈGLES :
+ * 1. JAMAIS de setState() dans onRehydrateStorage (sauf _rehydrated via useUserStore.setState)
+ * 2. JAMAIS persister isLoading, isAuthenticated ou _rehydrated
+ * 3. Le flag _rehydrated est l'unique signal que l'hydratation est terminée
  */
 
 import { create } from 'zustand';
@@ -9,7 +20,6 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { User, UserProgress, authAPI } from '../lib/api';
 
-// Adapter de stockage pour React Native via expo-secure-store
 const secureStoreAdapter: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     try {
@@ -40,6 +50,7 @@ interface UserState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  _rehydrated: boolean; // Signal flag — never persisted
   
   // Actions
   setUser: (user: User | null) => void;
@@ -56,8 +67,10 @@ export const useUserStore = create<UserState>()(
       user: null,
       progress: null,
       token: null,
+      // Ces trois valeurs NE SONT JAMAIS persistées (voir partialize)
       isAuthenticated: false,
       isLoading: true,
+      _rehydrated: false,
       
       setUser: (user) =>
         set({
@@ -86,13 +99,12 @@ export const useUserStore = create<UserState>()(
       
       /**
        * Valide le token persisté en appelant /api/auth/me
-       * Si le token est invalide/expiré, déconnecte l'utilisateur
-       * Appelé une seule fois depuis onRehydrateStorage
+       * Appelé UNE SEULE FOIS depuis le useEffect du RootLayout
+       * quand _rehydrated passe à true
        */
       validateToken: async () => {
         const { token } = get();
         
-        // Pas de token → on reste sur l'écran de login
         if (!token) {
           set({ isLoading: false, isAuthenticated: false });
           return;
@@ -100,14 +112,12 @@ export const useUserStore = create<UserState>()(
         
         try {
           const response = await authAPI.me();
-          // Token valide → mettre à jour les infos utilisateur
           set({
             user: response.data,
             isLoading: false,
             isAuthenticated: true,
           });
         } catch (error) {
-          // Token invalide ou expiré → déconnexion propre
           console.warn('[Auth] Token invalide, déconnexion:', error);
           set({
             user: null,
@@ -122,39 +132,27 @@ export const useUserStore = create<UserState>()(
     {
       name: 'telora-storage',
       storage: createJSONStorage(() =>
-        Platform.OS === 'web'
-          ? localStorage
-          : secureStoreAdapter
+        Platform.OS === 'web' ? localStorage : secureStoreAdapter
       ),
-      // NE PAS persister isLoading — il doit toujours démarrer à true
-      // pour afficher le loader pendant la réhydratation
+      // SEULEMENT les données durables sont persistées
       partialize: (state) => ({
         token: state.token,
         user: state.user,
         progress: state.progress,
-        isAuthenticated: state.isAuthenticated,
       }),
-      onRehydrateStorage: () => (state, error) => {
-        if (error) {
-          console.error('Error rehydrating user store:', error);
-          // En cas d'erreur, on sort du loading
-          if (state) {
-            state.setLoading(false);
+      onRehydrateStorage: () => {
+        return (state, error) => {
+          if (error) {
+            console.error('[Auth] Rehydration error:', error);
+            useUserStore.setState({ isLoading: false });
+            return;
           }
-          return;
-        }
-        // La réhydratation est terminée.
-        // On utilise un micro-delay pour sortir du cycle de rendu en cours
-        // avant d'appeler validateToken(), évitant ainsi la boucle infinie.
-        if (state) {
-          const { validateToken } = state;
-          // setTimeout(0) garantit que setState dans validateToken
-          // s'exécute dans un nouveau cycle macro-task, pas dans
-          // le commitLayoutEffect en cours
-          setTimeout(() => {
-            validateToken();
-          }, 0);
-        }
+          // Signal que l'hydratation est terminée
+          // Le RootLayout surveille _rehydrated et lance validateToken()
+          if (state) {
+            useUserStore.setState({ _rehydrated: true });
+          }
+        };
       },
     }
   )
