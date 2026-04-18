@@ -17,6 +17,7 @@ import type {
   ConversationStepId,
   ConversationStep,
   ConversationState,
+  PersistedConversationState,
   ChatMessage,
   BudgetDataV2,
   PhaseId,
@@ -1238,19 +1239,46 @@ export class FlowEngine {
   // Sérialisation — sauvegarder / restaurer l'état
   // ==========================================================================
 
-  /** Sérialise l'état complet pour persistence */
-  serialize(): ConversationState & { _impotsNeedsAmount?: boolean } {
-    return { ...this.state, _impotsNeedsAmount: this.impotsNeedsAmount };
+  /** Sérialise l'état complet + messages + loop pour persistence */
+  serialize(): PersistedConversationState {
+    return {
+      ...this.state,
+      _impotsNeedsAmount: this.impotsNeedsAmount,
+      _messages: [...this.messages],
+      _messageCounter: this.messageCounter,
+      _loopQueue: [...this.loopQueue],
+      _currentLoopItem: this.currentLoopItem,
+      _savedAt: Date.now(),
+      _version: 2,
+    };
   }
 
-  /** Restaure l'état depuis une sauvegarde */
-  deserialize(savedState: ConversationState & { _impotsNeedsAmount?: boolean }): void {
-    this.state = savedState;
+  /** Restaure l'état complet depuis une sauvegarde (messages + loop inclus) */
+  deserialize(savedState: PersistedConversationState): void {
+    this.state = {
+      currentStep: savedState.currentStep,
+      previousStep: savedState.previousStep,
+      isComplete: savedState.isComplete,
+      data: savedState.data,
+      variantHistory: savedState.variantHistory,
+      startedAt: savedState.startedAt,
+      phaseStepCounts: savedState.phaseStepCounts,
+    };
     this.variantsState = initVariantsState();
-    this.messages = [];
-    this.loopQueue = [];
-    this.currentLoopItem = null;
     this.impotsNeedsAmount = savedState._impotsNeedsAmount ?? false;
+
+    // Restaurer les messages sauvegardés
+    if (savedState._messages && savedState._messages.length > 0) {
+      this.messages = savedState._messages;
+      this.messageCounter = savedState._messageCounter ?? savedState._messages.length;
+    } else {
+      this.messages = [];
+      this.messageCounter = 0;
+    }
+
+    // Restaurer l'état du loop (sélections multiples en cours)
+    this.loopQueue = savedState._loopQueue ?? [];
+    this.currentLoopItem = savedState._currentLoopItem ?? null;
   }
 
   /** Restaure le budget data seul (sans la position conversationnelle) */

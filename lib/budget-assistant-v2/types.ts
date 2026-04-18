@@ -393,6 +393,20 @@ export interface ConversationState {
   phaseStepCounts: Record<PhaseId, number>;  // Nombre de steps complétés par phase
 }
 
+/**
+ * État sérialisé complet pour persistence (AsyncStorage).
+ * Étend ConversationState avec les messages, le loop state et les métadonnées.
+ */
+export interface PersistedConversationState extends ConversationState {
+  _impotsNeedsAmount?: boolean;
+  _messages: ChatMessage[];
+  _messageCounter: number;
+  _loopQueue: Array<{ sourceId: string; sourceLabel: string; stepId: ConversationStepId }>;
+  _currentLoopItem: { sourceId: string; sourceLabel: string } | null;
+  _savedAt: number;
+  _version: 2;
+}
+
 // ============================================================================
 // Message du chat
 // ============================================================================

@@ -23,8 +23,7 @@ export default function AssistantsLayout() {
       <Stack.Screen 
         name="[id]" 
         options={{ 
-          title: 'Budget Coach',
-          headerBackTitle: 'Retour',
+          headerShown: false,
         }} 
       />
     </Stack>

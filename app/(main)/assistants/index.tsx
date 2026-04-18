@@ -17,9 +17,9 @@ interface Assistant {
 const ASSISTANTS: Assistant[] = [
   {
     id: 'budget-coach',
-    name: 'Budget Coach',
+    name: 'Théo',
     role: 'Création de budget',
-    description: 'Je t\'aide à créer ton budget personnalisé en toute simplicité',
+    description: 'Ton coach budget personnel — crée ton budget étape par étape',
     icon: '💰',
     color: '#7C3AED',
     available: true,

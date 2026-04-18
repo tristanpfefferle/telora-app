@@ -63,6 +63,7 @@ export default function ChatScreen() {
     messages,
     lastBotMessageId,
     isTyping,
+    isRestoring,
     currentStepId,
     currentStep,
     currentPhase,
@@ -79,13 +80,14 @@ export default function ChatScreen() {
     submitMultiSelect,
     skip,
     restart,
+    clearPersistedConversation,
   } = useFlowEngine();
 
   // ⚠️ Pas de useBudgetStore() hook ici — objet instable dans useCallback deps.
   // On utilise useBudgetStore.getState() pour accès direct sans subscription.
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
-  // Handler — Sauvegarder le budget sur le backend
+  // Handler — Sauvegarder le budget sur le backend (puis effacer la conversation locale)
   const handleSave = useCallback(async () => {
     if (saveState === 'saving' || saveState === 'saved') return;
     setSaveState('saving');
@@ -93,17 +95,19 @@ export default function ChatScreen() {
       const payload = useBudgetStore.getState().getBackendPayload();
       await budgetAPI.create(payload);
       setSaveState('saved');
+      // Le budget est sauvegardé → on peut effacer la conversation locale
+      await clearPersistedConversation();
     } catch (err) {
       console.error('[ChatScreen] Erreur sauvegarde budget:', err);
       setSaveState('error');
     }
-  }, [saveState]);
+  }, [saveState, clearPersistedConversation]);
 
   // Handler — Redémarrer la conversation
   const handleRestart = useCallback(() => {
     useBudgetStore.getState().reset();
     setSaveState('idle');
-    restart();
+    restart(); // restart() appelle déjà clearPersistedConversation()
   }, [restart]);
 
   // Auto-scroll en bas à chaque nouveau message
@@ -487,7 +491,7 @@ export default function ChatScreen() {
             <Text style={styles.avatarEmoji}>💰</Text>
           </View>
           <View style={styles.infoContainer}>
-            <Text style={styles.assistantName}>Budget Coach</Text>
+            <Text style={styles.assistantName}>Théo</Text>
             <Text style={styles.status}>
               {isComplete ? 'Terminé' : currentPhaseName}
             </Text>

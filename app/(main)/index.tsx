@@ -99,7 +99,7 @@ export default function DashboardScreen() {
               size="lg"
               icon={<Text style={styles.buttonIcon}>💬</Text>}
             >
-              Parler à Budget Coach
+              Parler à Théo
             </Button>
           </CardContent>
         </Card>

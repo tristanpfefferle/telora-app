@@ -7,15 +7,18 @@
  * - Fournir les actions : submitValue, submitMultiSelect, processSkip, restart
  * - Synchroniser les données budget dans budgetStore (Zustand)
  * - Gérer le typing indicator (délai humain entre messages bot)
- * - Persister l'état conversationnel via serialize/deserialize
+ * - Persister l'état conversationnel via AsyncStorage (auto-save debounced)
+ * - Restaurer l'état au montage si une conversation sauvegardée existe
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlowEngine, createEmptyBudgetData } from '../lib/budget-assistant-v2/flow-engine';
 import type {
   ChatMessage,
   ConversationStepId,
   ConversationState,
+  PersistedConversationState,
   InputMode,
   BudgetDataV2,
   PhaseId,
@@ -40,6 +43,8 @@ export interface FlowEngineActions {
   skip: () => void;
   /** Redémarrer la conversation complète */
   restart: () => void;
+  /** Effacer la conversation sauvegardée (après save finale ou restart) */
+  clearPersistedConversation: () => Promise<void>;
 }
 
 export interface FlowEngineState {
@@ -74,7 +79,9 @@ export interface FlowEngineState {
   /** Ratio feedback messages */
   ratioFeedback: { fixes: string; variables: string; epargne: string };
   /** État sérialisé (pour persistence externe) */
-  serializedState: ConversationState;
+  serializedState: PersistedConversationState;
+  /** La conversation est-elle en cours de restauration ? */
+  isRestoring: boolean;
 }
 
 export type UseFlowEngineReturn = FlowEngineState & FlowEngineActions;
@@ -85,6 +92,12 @@ export type UseFlowEngineReturn = FlowEngineState & FlowEngineActions;
 
 /** Délai de "typing" avant d'afficher les nouveaux messages bot (ms) */
 const TYPING_DELAY_MS = 600;
+
+/** Clé AsyncStorage pour la conversation sauvegardée */
+const STORAGE_KEY = '@telora/conversation_state_v2';
+
+/** Délai de debounce pour l'auto-save (ms) */
+const SAVE_DEBOUNCE_MS = 1500;
 
 // ============================================================================
 // Hook
@@ -100,6 +113,7 @@ export function useFlowEngine(): UseFlowEngineReturn {
   // --- État React réactif ---
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true); // true pendant le chargement initial
   const [currentStepId, setCurrentStepId] = useState<ConversationStepId>('welcome');
   const [currentStep, setCurrentStep] = useState<ConversationStep>(engineRef.current.getCurrentStep());
   const [currentPhase, setCurrentPhase] = useState<PhaseId>(1);
@@ -112,7 +126,10 @@ export function useFlowEngine(): UseFlowEngineReturn {
   const [isComplete, setIsComplete] = useState(false);
   const [diagnostic, setDiagnostic] = useState<DiagnosticResult | null>(null);
   const [ratioFeedback, setRatioFeedback] = useState({ fixes: '', variables: '', epargne: '' });
-  const [serializedState, setSerializedState] = useState<ConversationState>(engineRef.current.serialize());
+  const [serializedState, setSerializedState] = useState<PersistedConversationState>(engineRef.current.serialize());
+
+  // --- Ref pour le debounce de l'auto-save ---
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- ID du dernier message bot pour activer l'input ---
   const lastBotMessageId = (() => {
@@ -121,6 +138,43 @@ export function useFlowEngine(): UseFlowEngineReturn {
     }
     return null;
   })();
+
+  // --- Auto-save debounced vers AsyncStorage ---
+  const saveToStorage = useCallback(async () => {
+    try {
+      const state = engineRef.current.serialize();
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (err) {
+      console.warn('[useFlowEngine] Erreur sauvegarde conversation:', err);
+    }
+  }, []);
+
+  const debouncedSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(() => {
+      saveToStorage();
+    }, SAVE_DEBOUNCE_MS);
+  }, [saveToStorage]);
+
+  // --- Nettoyer le timer au démontage ---
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
+
+  // --- Effacer la conversation sauvegardée ---
+  const clearPersistedConversation = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch (err) {
+      console.warn('[useFlowEngine] Erreur suppression conversation sauvegardée:', err);
+    }
+  }, []);
 
   // --- Synchroniser l'état du FlowEngine vers React + budgetStore ---
   const syncState = useCallback(() => {
@@ -142,15 +196,56 @@ export function useFlowEngine(): UseFlowEngineReturn {
 
     // Sync vers Zustand SANS subscription React → pas de re-render en cascade
     useBudgetStore.getState().loadBudgetData(engine.getBudgetData());
-  }, []);  // ← AUCUNE dépendance externe = stable à jamais
 
-  // --- Initialisation : démarrer la conversation au montage ---
+    // Déclencher l'auto-save debounced
+    debouncedSave();
+  }, [debouncedSave]);
+
+  // --- Initialisation : restaurer si sauvegarde existe, sinon démarrer fresh ---
   useEffect(() => {
-    const engine = engineRef.current;
-    engine.start();
-    syncState();
+    const init = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed: PersistedConversationState = JSON.parse(saved);
+          // Vérifier que c'est bien un état V2 valide
+          if (parsed._version === 2 && parsed.currentStep) {
+            engineRef.current.deserialize(parsed);
+            syncState();
+            console.log('[useFlowEngine] Conversation restaurée depuis AsyncStorage, step:', parsed.currentStep);
+          } else {
+            // Format invalide → supprimer et démarrer fresh
+            await AsyncStorage.removeItem(STORAGE_KEY);
+            engineRef.current.start();
+            syncState();
+          }
+        } else {
+          engineRef.current.start();
+          syncState();
+        }
+      } catch (err) {
+        console.warn('[useFlowEngine] Erreur restauration conversation:', err);
+        engineRef.current.start();
+        syncState();
+      }
+      setIsRestoring(false);
+    };
+
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // --- Sauvegarder avant que l'app passe en arrière-plan ---
+  useEffect(() => {
+    const subscription = () => {
+      // Sauvegarde synchrone immédiate quand l'app passe en background
+      saveToStorage();
+    };
+
+    // AppState listener — sera ajouté quand on importera AppState
+    // Pour l'instant, le debounced save suffit
+    return () => {};
+  }, [saveToStorage]);
 
   // --- Actions ---
 
@@ -195,27 +290,15 @@ export function useFlowEngine(): UseFlowEngineReturn {
     engineRef.current = new FlowEngine();
     engineRef.current.start();
     syncState();
-  }, [syncState]);
-
-  // --- Restaurer un état sauvegardé (optionnel, pour persistence) ---
-  const restoreState = useCallback(
-    (savedState: ConversationState) => {
-      const engine = new FlowEngine();
-      engine.deserialize(savedState);
-      engineRef.current = engine;
-      syncState();
-    },
-    [syncState],
-  );
-
-  // On n'expose pas restoreState dans le return public pour garder l'API simple
-  // mais on le garde pour usage interne / futures besoins de persistence
+    clearPersistedConversation(); // Supprimer la sauvegarde
+  }, [syncState, clearPersistedConversation]);
 
   return {
     // State
     messages,
     lastBotMessageId,
     isTyping,
+    isRestoring,
     currentStepId,
     currentStep,
     currentPhase,
@@ -235,5 +318,6 @@ export function useFlowEngine(): UseFlowEngineReturn {
     submitMultiSelect,
     skip,
     restart,
+    clearPersistedConversation,
   };
 }
