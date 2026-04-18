@@ -8,7 +8,7 @@ interface TypingIndicatorProps {
   visible?: boolean;
 }
 
-export function TypingIndicator({ text = 'En train d\'écrire...', visible = true }: TypingIndicatorProps) {
+export function TypingIndicator({ text = 'Théo écrit...', visible = true }: TypingIndicatorProps) {
   if (!visible) {
     return null;
   }

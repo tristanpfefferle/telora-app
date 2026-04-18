@@ -11,9 +11,10 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { colors, spacing, borderRadius, fontSize } from '../../../../lib/theme';
 import { useFlowEngine } from '../../../../hooks/useFlowEngine';
@@ -357,20 +358,37 @@ export default function ChatScreen() {
 
   const renderMessage = (message: ChatMessage, index: number) => {
     const isBot = message.type === 'bot';
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+
+    // Groupe : cette bulle fait partie d'un groupe si le message précédent est du même type
+    const isGroupStart = !prevMessage || prevMessage.type !== message.type;
+    const isGroupEnd = !nextMessage || nextMessage.type !== message.type;
+
+    // Espacement réduit entre bulles du même groupe, normal entre groupes
+    const marginBottom = isGroupEnd ? spacing.md : 2;
+
+    // Avatar seulement sur la première bulle d'un groupe bot
+    const showAvatar = isBot && isGroupStart;
 
     return (
       <MotiView
         key={message.id}
-        from={{ opacity: 0, translateY: 20 }}
+        from={{ opacity: 0, translateY: 10 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 300, delay: Math.min(index * 30, 300) }}
-        style={styles.messageWrapper}
+        transition={{ type: 'timing', duration: 250 }}
+        style={{ marginBottom }}
       >
         <View style={[
-          styles.messageBubble,
           isBot ? styles.botBubble : styles.userBubble,
         ]}>
-          {message.emoji && <Text style={styles.messageEmoji}>{message.emoji}</Text>}
+          {showAvatar ? (
+            <View style={styles.messageAvatar}>
+              <Text style={styles.messageAvatarInitial}>T</Text>
+            </View>
+          ) : isBot ? (
+            <View style={styles.messageAvatarSpacer} />
+          ) : null}
           <Text style={[
             styles.messageText,
             !isBot && styles.userMessageText,
@@ -485,12 +503,12 @@ export default function ChatScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.backButtonIcon}>{'<'}</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatarEmoji}>💰</Text>
+            <Text style={styles.avatarInitial}>T</Text>
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.assistantName}>Théo</Text>
@@ -551,10 +569,7 @@ export default function ChatScreen() {
           {messages.map((message, index) => renderMessage(message, index))}
 
           {isTyping && (
-            <TypingIndicator
-              text={`${currentPhaseName}...`}
-              visible
-            />
+            <TypingIndicator visible />
           )}
 
           {/* Spacer pour laisser de la place quand l'input fixe est visible */}
@@ -594,13 +609,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface + '80',
   },
-  backButtonIcon: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: colors.textSecondary,
-    marginTop: -2,
-    marginLeft: 2,
-  },
   headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -612,12 +620,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primary + '20',
+    backgroundColor: '#5E6AD2',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarEmoji: {
-    fontSize: 18,
+  avatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   infoContainer: {
     marginLeft: spacing.sm,
@@ -687,30 +697,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
-  messageWrapper: {
-    marginBottom: spacing.sm,
-  },
   messageBubble: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: spacing.md,
     borderRadius: borderRadius.xl,
-    maxWidth: '85%',
     gap: spacing.sm,
   },
   botBubble: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 4,
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   userBubble: {
     backgroundColor: colors.primary,
     alignSelf: 'flex-end',
-    borderTopRightRadius: 4,
+    maxWidth: '75%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 6,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     marginLeft: 'auto',
   },
-  messageEmoji: {
-    fontSize: 20,
+  messageAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#5E6AD2',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 2,
+  },
+  messageAvatarInitial: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  messageAvatarSpacer: {
+    width: 28,
   },
   messageText: {
     color: colors.textPrimary,

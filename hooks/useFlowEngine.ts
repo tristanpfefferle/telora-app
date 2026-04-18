@@ -130,6 +130,8 @@ export function useFlowEngine(): UseFlowEngineReturn {
 
   // --- Ref pour le debounce de l'auto-save ---
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // --- Ref pour les timers de séquencement des messages ---
+  const sequenceTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // --- ID du dernier message bot pour activer l'input ---
   const lastBotMessageId = (() => {
@@ -164,6 +166,8 @@ export function useFlowEngine(): UseFlowEngineReturn {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
       }
+      // Nettoyer les timers de séquencement
+      sequenceTimersRef.current.forEach(t => clearTimeout(t));
     };
   }, []);
 
@@ -253,13 +257,79 @@ export function useFlowEngine(): UseFlowEngineReturn {
     (action: () => void) => {
       setIsTyping(true);
 
+      // Nettoyer les timers de séquencement précédents (si l'utilisateur agit vite)
+      sequenceTimersRef.current.forEach(t => clearTimeout(t));
+      sequenceTimersRef.current = [];
+
       setTimeout(() => {
+        // Sauvegarder le nombre de messages AVANT l'action
+        const prevCount = engineRef.current.getMessages().length;
+
+        // Exécuter l'action (met à jour le FlowEngine)
         action();
-        syncState();
-        setIsTyping(false);
+
+        // Récupérer les nouveaux messages
+        const allMessages = engineRef.current.getMessages();
+        const newMessages = allMessages.slice(prevCount);
+
+        // S'il n'y a pas de nouveaux messages, sync direct
+        if (newMessages.length === 0) {
+          syncState();
+          setIsTyping(false);
+          return;
+        }
+
+        // Mettre à jour tous les états SAUF messages immédiatement
+        // (les nouveaux messages seront séquencés un par un)
+        const engine = engineRef.current;
+        setCurrentStepId(engine.getCurrentStepId());
+        setCurrentStep(engine.getCurrentStep());
+        setCurrentPhase(engine.getCurrentPhase());
+        setCurrentPhaseName(engine.getCurrentPhaseName());
+        setInputMode(engine.getCurrentInputMode());
+        setInputConfig(engine.getCurrentInputConfig());
+        setGlobalProgress(engine.getGlobalProgress());
+        setPhaseProgress(engine.getPhaseProgress());
+        setBudgetData(engine.getBudgetData());
+        setIsComplete(engine.getIsComplete());
+        setDiagnostic(engine.getDiagnostic());
+        setRatioFeedback(engine.getRatioFeedback());
+        setSerializedState(engine.serialize());
+        useBudgetStore.getState().loadBudgetData(engine.getBudgetData());
+        debouncedSave();
+
+        // Séquencer les nouveaux messages un par un avec délai réaliste
+        // Délai par message : 400ms + (text.length * 15), min 300ms, max 1500ms
+        // Messages user (type='user') ajoutés immédiatement (délai 0)
+        // puis on reprend le délai pour les messages bot suivants
+        let cumulativeDelay = 0;
+
+        newMessages.forEach((msg, i) => {
+          const isUserMsg = msg.type === 'user';
+          const textLen = (msg.text || '').length;
+          const msgDelay = isUserMsg
+            ? 0
+            : Math.min(1500, Math.max(300, 400 + textLen * 15));
+
+          cumulativeDelay += msgDelay;
+
+          const timer = setTimeout(() => {
+            setMessages(prev => [...prev, msg]);
+
+            if (i === newMessages.length - 1) {
+              // Dernier message → désactiver le typing indicator
+              setIsTyping(false);
+            } else {
+              // Entre les bulles → typing indicator visible
+              setIsTyping(true);
+            }
+          }, cumulativeDelay);
+
+          sequenceTimersRef.current.push(timer);
+        });
       }, TYPING_DELAY_MS);
     },
-    [syncState],
+    [syncState, debouncedSave],
   );
 
   const submitValue = useCallback(

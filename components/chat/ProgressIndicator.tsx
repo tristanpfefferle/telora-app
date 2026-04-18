@@ -1,8 +1,10 @@
 /**
- * ProgressIndicator V2 — Barre de progression minimaliste
+ * ProgressIndicator V2 — Barre de progression segmentée par 6 phases
  *
- * Affiche une barre fine avec le % de progression et le nom de la phase.
- * Design compact : une seule ligne, pas de pills.
+ * Affiche 6 segments (un par phase) avec couleurs distinctes :
+ * - Phase complétée → vert (#4ADE80)
+ * - Phase active    → orange/primary avec remplissage animé
+ * - Phase future    → gris foncé (colors.border)
  *
  * Design dark mode Telora (#0A0A0F)
  */
@@ -45,10 +47,12 @@ interface ProgressIndicatorV2Props {
 }
 
 // ============================================================================
-// Main Component — Compact one-line progress bar
+// Main Component — Segmented 6-phase progress bar
 // ============================================================================
 
 export function ProgressIndicatorV2({
+  phases,
+  currentPhase,
   currentPhaseName,
   globalProgress,
   visible = true,
@@ -57,20 +61,44 @@ export function ProgressIndicatorV2({
 
   const percentage = Math.min(100, Math.max(0, globalProgress * 100));
 
+  // Find the active phase to display its icon
+  const activePhase = phases.find((p) => p.isActive);
+
   return (
     <View style={styles.container}>
-      {/* Barre fine avec label */}
+      {/* Label row: active phase icon+name (left) — global % (right) */}
       <View style={styles.barRow}>
-        <Text style={styles.phaseLabel}>{currentPhaseName}</Text>
+        <Text style={styles.phaseLabel}>
+          {activePhase ? `${activePhase.icon} ${activePhase.name}` : currentPhaseName}
+        </Text>
         <Text style={styles.percentageLabel}>{percentage.toFixed(0)}%</Text>
       </View>
-      <View style={styles.track}>
-        <MotiView
-          from={{ width: '0%' }}
-          animate={{ width: `${percentage}%` }}
-          transition={{ type: 'timing', duration: 600 }}
-          style={styles.fill}
-        />
+
+      {/* Segmented progress bar — 6 segments with 2px gaps */}
+      <View style={styles.segmentsRow}>
+        {phases.map((phase) => {
+          const isComplete = phase.isComplete;
+          const isActive = phase.isActive;
+          const fillPercent = Math.min(100, Math.max(0, phase.progress * 100));
+
+          return (
+            <View key={phase.id} style={styles.segmentTrack}>
+              {isComplete ? (
+                // Completed phase → full green, no animation needed
+                <View style={styles.segmentFillComplete} />
+              ) : isActive ? (
+                // Active phase → animated primary fill
+                <MotiView
+                  from={{ width: '0%' }}
+                  animate={{ width: `${fillPercent}%` }}
+                  transition={{ type: 'timing', duration: 600 }}
+                  style={styles.segmentFillActive}
+                />
+              ) : null}
+              {/* Future phases: track alone is visible, no fill */}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -141,7 +169,7 @@ export function ProgressIndicator({ current, total, label, visible = true }: Pro
 // ============================================================================
 
 const styles = StyleSheet.create({
-  // --- Container V2 — compact ---
+  // --- Container V2 — segmented ---
   container: {
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
@@ -155,7 +183,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   phaseLabel: {
     fontSize: fontSize.sm,
@@ -168,14 +196,28 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
-  // Thin progress track
-  track: {
-    height: 3,
-    backgroundColor: colors.border,
+  // Segmented progress bar — 6 segments with 2px gaps
+  segmentsRow: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  // Each segment track (background)
+  segmentTrack: {
+    flex: 1,
+    height: 4,
     borderRadius: 2,
+    backgroundColor: colors.border,
     overflow: 'hidden',
   },
-  fill: {
+  // Completed phase fill — full green
+  segmentFillComplete: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#4ADE80',
+    borderRadius: 2,
+  },
+  // Active phase fill — animated primary/orange
+  segmentFillActive: {
     height: '100%',
     backgroundColor: colors.primary,
     borderRadius: 2,
