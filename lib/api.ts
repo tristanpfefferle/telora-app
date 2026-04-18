@@ -6,15 +6,15 @@ import axios from 'axios';
 import { useUserStore } from '../stores/userStore';
 import type { BackendBudgetPayload } from './budget-assistant-v2/types';
 
-// URL de l'API - Backend Render Telora
-const API_URL = 'https://telora-backend.onrender.com';
+// URL de l'API — utilise EXPO_PUBLIC_API_URL (.env) ou fallback Render
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://telora-backend.onrender.com';
 
 console.log('[API] Using URL:', API_URL);
 
 // Création de l'instance Axios
 export const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
