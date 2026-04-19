@@ -143,6 +143,9 @@ export default function DashboardScreen() {
                       {formatCHF(budget.capaciteEpargne || 0)}
                     </Text>
                   </View>
+                  <View style={styles.budgetTapHint}>
+                    <Text style={styles.budgetTapHintText}>Appuyer pour voir ou modifier →</Text>
+                  </View>
                   <ProgressBar
                     progress={budget.ratios?.epargneRevenus || 0}
                     color="secondary"
@@ -279,6 +282,17 @@ const styles = StyleSheet.create({
   budgetSavings: {
     color: colors.secondary,
     fontSize: 14,
+  },
+  budgetTapHint: {
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  budgetTapHintText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
   },
   badgesRow: {
     flexDirection: 'row',
