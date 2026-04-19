@@ -170,6 +170,7 @@ export class FlowEngine {
   // File d'attente pour les boucles (multi-select → montant par item)
   private loopQueue: Array<{ sourceId: string; sourceLabel: string; stepId: ConversationStepId }> = [];
   private currentLoopItem: { sourceId: string; sourceLabel: string } | null = null;
+  private miniTipCount = 0;
 
   // Flag pour la sous-étape impôts montant
   private impotsNeedsAmount = false;
@@ -290,6 +291,7 @@ export class FlowEngine {
   /** Démarre la conversation : ajoute les bulles d'accueil */
   start(): ChatMessage[] {
     this.messages = [];
+    this.miniTipCount = 0;
     this.addStepMessages('welcome');
     return this.getMessages();
   }
@@ -318,45 +320,43 @@ export class FlowEngine {
     // 3. Stocker la réponse dans le budget
     this.storeResponse(value, step, inputMode);
 
-    // 4. Ajouter un accusé de réception (variante)
-    const ackResult = this.getAckMessage(inputMode);
-    if (ackResult) {
-      const ackMsg = this.createBotMessage(ackResult, { quickRepliesActive: false });
+    // 4. Incrémenter le compteur de phase
+    this.state.phaseStepCounts[step.phase] = (this.state.phaseStepCounts[step.phase] ?? 0) + 1;
+    const stepsInPhase = this.state.phaseStepCounts[step.phase];
+
+    // 5. Déterminer la prochaine étape
+    const nextStepId = this.resolveNextStep(value, step);
+
+    // 6. ACK — 1 fois sur 3 seulement, jamais pour skip/0/info_only
+    const isSkipOrZero = (typeof value === 'number' && value === 0) || inputMode === 'info_only';
+    if (!isSkipOrZero && stepsInPhase % 3 === 0) {
+      const { text, state: vs } = pickAck(this.variantsState);
+      this.variantsState = vs;
+      const ackMsg = this.createBotMessage(text, { quickRepliesActive: false });
       this.messages.push(ackMsg);
       newMessages.push(ackMsg);
     }
 
-    // 5. Incrémenter le compteur de phase
-    this.state.phaseStepCounts[step.phase] = (this.state.phaseStepCounts[step.phase] ?? 0) + 1;
+    // 7. Pas de message de transition générique — les étapes ont déjà leurs propres intros
 
-    // 6. Déterminer la prochaine étape
-    const nextStepId = this.resolveNextStep(value, step);
-
-    // 7. Mini-tip aléatoire (parfois)
-    if (this.shouldShowMiniTip()) {
-      const { text, state: newVarState } = pickMiniTip(this.variantsState);
-      this.variantsState = newVarState;
-      const tipMsg = this.createBotMessage(text, { quickRepliesActive: false });
-      this.messages.push(tipMsg);
-      newMessages.push(tipMsg);
-    }
-
-    // 8. Transition (variante, sauf si info_only)
-    if (inputMode !== 'info_only') {
-      const { text, state: newVarState } = pickTransition(this.variantsState);
-      this.variantsState = newVarState;
-      const transMsg = this.createBotMessage(text, { quickRepliesActive: false });
-      this.messages.push(transMsg);
-      newMessages.push(transMsg);
-    }
-
-    // 9. Encouragement (si nécessaire)
-    if (this.shouldShowEncouragement()) {
-      const { text, state: newVarState } = pickEncouragement(this.variantsState);
-      this.variantsState = newVarState;
+    // 8. Encouragement — 1 seul, à mi-parcours de la phase 3
+    const midPointPhase3 = Math.floor((PHASE_STEPS[3]?.length ?? 20) / 2);
+    if (step.phase === 3 && stepsInPhase === midPointPhase3) {
+      const { text, state: vs } = pickEncouragement(this.variantsState);
+      this.variantsState = vs;
       const encMsg = this.createBotMessage(text, { quickRepliesActive: false });
       this.messages.push(encMsg);
       newMessages.push(encMsg);
+    }
+
+    // 9. Mini-tip — max 2 par conversation
+    if (this.shouldShowMiniTip() && (this.miniTipCount ?? 0) < 2) {
+      const { text, state: vs } = pickMiniTip(this.variantsState);
+      this.variantsState = vs;
+      const tipMsg = this.createBotMessage(text, { quickRepliesActive: false });
+      this.messages.push(tipMsg);
+      newMessages.push(tipMsg);
+      this.miniTipCount = (this.miniTipCount ?? 0) + 1;
     }
 
     // 10. Avancer à la prochaine étape
