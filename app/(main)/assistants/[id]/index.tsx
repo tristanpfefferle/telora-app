@@ -139,10 +139,10 @@ export default function ChatScreen() {
     if (isNearBottomRef.current) {
       const timer = setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 50);
+      }, 150);
       return () => clearTimeout(timer);
     }
-  }, [messages.length]);
+  }, [messages.length, lastBotMessageId, isTyping]);
 
   // ============================================================================
   // Handlers — adaptateurs entre les composants UI et le FlowEngine
