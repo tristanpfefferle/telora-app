@@ -376,7 +376,7 @@ export default function ChatScreen() {
     const isGroupEnd = !nextMessage || nextMessage.type !== message.type;
 
     // Espacement WhatsApp-like : serré dans un groupe, plus grand entre groupes
-    const marginBottom = isGroupEnd ? 12 : 3;
+    const marginBottom = isGroupEnd ? 10 : 2;
 
     // Radius WhatsApp-like : coin pointu au début du groupe, arrondi ensuite
     const botRadius = {
@@ -712,31 +712,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
     flexGrow: 1,
   },
   botBubble: {
     backgroundColor: colors.surface,
     alignSelf: 'flex-start',
-    maxWidth: '80%',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    maxWidth: '82%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     // Les border-radius sont dynamiques (via botRadius dans renderMessage)
   },
   userBubble: {
     backgroundColor: colors.primary,
     alignSelf: 'flex-end',
     maxWidth: '70%',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     // Les border-radius sont dynamiques (via userRadius dans renderMessage)
   },
   messageText: {
     color: colors.textPrimary,
     fontSize: 15,
-    lineHeight: 21,
+    lineHeight: 20,
   },
   userMessageText: {
     color: '#FFFFFF',
