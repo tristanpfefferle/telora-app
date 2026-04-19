@@ -8,11 +8,11 @@ import { budgetAPI, formatCHF, formatPercent, type Budget } from '../../../../li
 import { colors, borderRadius, spacing } from '../../../../lib/theme';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
-import type { BudgetDataV2, AbonnementNom } from '../../../../lib/budget-assistant-v2/types';
+import type { BudgetDataV2, AbonnementNom, AutreRevenu } from '../../../../lib/budget-assistant-v2/types';
 import { createEmptyBudgetData } from '../../../../lib/budget-assistant-v2/flow-engine';
 
 // ============================================================================
-// Helpers
+// Constants & Helpers
 // ============================================================================
 
 /** Définition d'un champ modifiable */
@@ -21,44 +21,104 @@ interface EditField {
   label: string;       // Label affiché (ex: 'Loyer')
   icon?: string;       // Emoji icône
   section: string;     // Section de regroupement (ex: 'Logement')
+  subsection?: string;  // Sous-catégorie de dépenses fixes (ex: 'Logement')
 }
 
-/** Tous les champs modifiables d'un budget, organisés par section */
+/** Mapping clé technique → label propre pour les revenus autres */
+const AUTRE_REVENU_LABELS: Record<string, string> = {
+  allocations_familiales: 'Allocations familiales',
+  indemnites_chomage: 'Indemnités de chômage',
+  pension: 'Pension / Retraite',
+  rentes: 'Rentes (AVS/AI/LPP)',
+  revenus_locatifs: 'Revenus locatifs',
+  revenus_independant: 'Revenus indépendant',
+  interets_dividendes: 'Intérêts / Dividendes',
+  autre: 'Autre revenu',
+};
+
+/** Mapping clé technique → label propre (mode lecture) */
+const DEPENSE_LABELS: Record<string, string> = {
+  // Logement
+  loyer: 'Loyer',
+  charges: 'Charges',
+  electricite: 'Électricité',
+  chauffage: 'Chauffage',
+  internet: 'Internet',
+  serafe: 'SERAFE',
+  // Assurances
+  lamal: 'LAMal',
+  complementaire: 'Complémentaire santé',
+  menageRc: 'Assurance ménage/RC',
+  vehicule: 'Assurance véhicule',
+  // Transport
+  essence: 'Essence',
+  entretien: 'Entretien voiture',
+  parking: 'Parking',
+  leasing: 'Leasing voiture',
+  transportsPublics: 'Transports publics',
+  // Télécom
+  mobile: 'Forfait mobile',
+  // Impôts
+  acomptes: 'Impôts (acomptes/mois)',
+  // Engagements
+  credits: 'Crédits/Leasing',
+  pension: 'Pension alimentaire',
+  // Variables
+  alimentaire: 'Courses alimentaires',
+  restaurants: 'Restaurants',
+  sorties: 'Sorties/Loisirs',
+  vetements: 'Vêtements',
+  voyages: 'Voyages',
+  cadeaux: 'Cadeaux',
+  autres: 'Autres envies',
+};
+
+/** Labels pour les abonnements */
+const ABO_LABELS: Record<string, string> = {
+  spotify_apple_music: 'Spotify / Apple Music',
+  netflix_disney: 'Netflix / Disney+',
+  salle_sport: 'Salle de sport',
+  cloud_icloud: 'Cloud / iCloud',
+  presse_journaux: 'Presse / journaux',
+  autre_abo: 'Autre abonnement',
+};
+
+/** Tous les champs modifiables d'un budget, organisés par section + subsection */
 const EDIT_FIELDS: EditField[] = [
   // Revenus
   { key: 'revenus.salaire.salaireNet', label: 'Salaire net', icon: '💼', section: 'Revenus' },
   { key: 'revenus.salaire.treiziemeMontant', label: '13e salaire (annuel)', icon: '💰', section: 'Revenus' },
 
   // Logement
-  { key: 'logement.loyer', label: 'Loyer', icon: '🏠', section: 'Logement' },
-  { key: 'logement.charges', label: 'Charges', icon: '📦', section: 'Logement' },
-  { key: 'logement.electricite', label: 'Électricité', icon: '⚡', section: 'Logement' },
-  { key: 'logement.chauffage', label: 'Chauffage', icon: '🔥', section: 'Logement' },
-  { key: 'logement.internet', label: 'Internet', icon: '🌐', section: 'Logement' },
-  { key: 'logement.serafe', label: 'SERAFE', icon: '📺', section: 'Logement' },
+  { key: 'logement.loyer', label: 'Loyer', icon: '🏠', section: 'Dépenses fixes', subsection: 'Logement' },
+  { key: 'logement.charges', label: 'Charges', icon: '📦', section: 'Dépenses fixes', subsection: 'Logement' },
+  { key: 'logement.electricite', label: 'Électricité', icon: '⚡', section: 'Dépenses fixes', subsection: 'Logement' },
+  { key: 'logement.chauffage', label: 'Chauffage', icon: '🔥', section: 'Dépenses fixes', subsection: 'Logement' },
+  { key: 'logement.internet', label: 'Internet', icon: '🌐', section: 'Dépenses fixes', subsection: 'Logement' },
+  { key: 'logement.serafe', label: 'SERAFE', icon: '📺', section: 'Dépenses fixes', subsection: 'Logement' },
 
   // Assurances
-  { key: 'assurances.lamal', label: 'LAMal', icon: '🏥', section: 'Assurances' },
-  { key: 'assurances.complementaire', label: 'Complémentaire santé', icon: '💊', section: 'Assurances' },
-  { key: 'assurances.menageRc', label: 'Ménage/RC', icon: '🛡️', section: 'Assurances' },
-  { key: 'assurances.vehicule', label: 'Assurance véhicule', icon: '🚗', section: 'Assurances' },
+  { key: 'assurances.lamal', label: 'LAMal', icon: '🏥', section: 'Dépenses fixes', subsection: 'Assurances' },
+  { key: 'assurances.complementaire', label: 'Complémentaire santé', icon: '💊', section: 'Dépenses fixes', subsection: 'Assurances' },
+  { key: 'assurances.menageRc', label: 'Ménage/RC', icon: '🛡️', section: 'Dépenses fixes', subsection: 'Assurances' },
+  { key: 'assurances.vehicule', label: 'Assurance véhicule', icon: '🚗', section: 'Dépenses fixes', subsection: 'Assurances' },
 
   // Transport
-  { key: 'transport.essence', label: 'Essence', icon: '⛽', section: 'Transport' },
-  { key: 'transport.entretien', label: 'Entretien voiture', icon: '🔧', section: 'Transport' },
-  { key: 'transport.parking', label: 'Parking', icon: '🅿️', section: 'Transport' },
-  { key: 'transport.leasing', label: 'Leasing voiture', icon: '🚙', section: 'Transport' },
-  { key: 'transport.transportsPublics', label: 'Transports publics', icon: '🚆', section: 'Transport' },
+  { key: 'transport.essence', label: 'Essence', icon: '⛽', section: 'Dépenses fixes', subsection: 'Transport' },
+  { key: 'transport.entretien', label: 'Entretien voiture', icon: '🔧', section: 'Dépenses fixes', subsection: 'Transport' },
+  { key: 'transport.parking', label: 'Parking', icon: '🅿️', section: 'Dépenses fixes', subsection: 'Transport' },
+  { key: 'transport.leasing', label: 'Leasing voiture', icon: '🚙', section: 'Dépenses fixes', subsection: 'Transport' },
+  { key: 'transport.transportsPublics', label: 'Transports publics', icon: '🚆', section: 'Dépenses fixes', subsection: 'Transport' },
 
   // Télécom
-  { key: 'telecom.mobile', label: 'Forfait mobile', icon: '📱', section: 'Télécom' },
+  { key: 'telecom.mobile', label: 'Forfait mobile', icon: '📱', section: 'Dépenses fixes', subsection: 'Télécom' },
 
   // Impôts
-  { key: 'impots.acomptes', label: 'Impôts (acomptes/mois)', icon: '🏛️', section: 'Impôts' },
+  { key: 'impots.acomptes', label: 'Impôts (acomptes/mois)', icon: '🏛️', section: 'Dépenses fixes', subsection: 'Impôts' },
 
   // Engagements
-  { key: 'engagements.credits', label: 'Crédits/leasing', icon: '💳', section: 'Engagements' },
-  { key: 'engagements.pension', label: 'Pension alimentaire', icon: '👨‍👩‍👧', section: 'Engagements' },
+  { key: 'engagements.credits', label: 'Crédits/leasing', icon: '💳', section: 'Dépenses fixes', subsection: 'Engagements' },
+  { key: 'engagements.pension', label: 'Pension alimentaire', icon: '👨‍👩‍👧', section: 'Dépenses fixes', subsection: 'Engagements' },
 
   // Variables
   { key: 'variables.alimentaire', label: 'Courses alimentaires', icon: '🥑', section: 'Dépenses variables' },
@@ -73,17 +133,7 @@ const EDIT_FIELDS: EditField[] = [
   { key: 'epargne.montantActuel', label: 'Épargne actuelle/mois', icon: '💎', section: 'Épargne' },
 ];
 
-/** Labels pour les abonnements */
-const ABO_LABELS: Record<string, string> = {
-  spotify_apple_music: 'Spotify / Apple Music',
-  netflix_disney: 'Netflix / Disney+',
-  salle_sport: 'Salle de sport',
-  cloud_icloud: 'Cloud / iCloud',
-  presse_journaux: 'Presse / journaux',
-  autre_abo: 'Autre abonnement',
-};
-
-/** Accède à une valeur imbriquée par chemin pointé (ex: 'logement.loyer') */
+/** Accède à une valeur imbriquée par chemin pointé */
 function getNestedValue(obj: any, path: string): number {
   const keys = path.split('.');
   let current = obj;
@@ -94,7 +144,7 @@ function getNestedValue(obj: any, path: string): number {
   return typeof current === 'number' ? current : 0;
 }
 
-/** Modifie une valeur imbérée par chemin pointé — retourne un nouvel objet */
+/** Modifie une valeur imbriquée par chemin pointé — retourne un nouvel objet */
 function setNestedValue(obj: any, path: string, value: number): any {
   const keys = path.split('.');
   const result = { ...obj };
@@ -107,6 +157,35 @@ function setNestedValue(obj: any, path: string, value: number): any {
   return result;
 }
 
+/** Calcule les sous-totaux par sous-catégorie de dépenses fixes */
+function computeFixesSubtotals(data: BudgetDataV2) {
+  const l = data.logement;
+  const logement = l.loyer + l.charges + l.electricite + l.chauffage + l.internet + l.serafe;
+  const a = data.assurances;
+  const assurances = a.lamal + a.complementaire + a.menageRc + a.vehicule;
+  const t = data.transport;
+  const transport = t.essence + t.entretien + t.parking + t.leasing + t.transportsPublics;
+  const telecom = data.telecom.mobile;
+  const impots = data.impots.acomptes;
+  const e = data.engagements;
+  const engagements = e.credits + e.pension + e.abonnements.reduce((s, ab) => s + ab.montant, 0);
+  return { logement, assurances, transport, telecom, impots, engagements };
+}
+
+/** Calcule les sous-totaux par catégorie de dépenses variables */
+function computeVariablesSubtotals(data: BudgetDataV2) {
+  const v = data.variables;
+  return {
+    alimentaire: v.alimentaire,
+    restaurants: v.restaurants,
+    sorties: v.sorties,
+    vetements: v.vetements,
+    voyages: v.voyages,
+    cadeaux: v.cadeaux,
+    autres: v.autres,
+  };
+}
+
 /** Calcule les totaux et ratios depuis dataV2 */
 function computeBudgetMetrics(data: BudgetDataV2) {
   const r = data.revenus;
@@ -114,25 +193,9 @@ function computeBudgetMetrics(data: BudgetDataV2) {
     + (r.salaire.treizieme ? Math.round(r.salaire.treiziemeMontant / 12) : 0)
     + r.autres.reduce((s, a) => s + a.montant, 0);
 
-  const totalFixes =
-    data.logement.loyer + data.logement.charges + data.logement.electricite
-    + data.logement.chauffage + data.logement.internet + data.logement.serafe
-    + data.assurances.lamal + data.assurances.complementaire
-    + data.assurances.menageRc + data.assurances.vehicule
-    + data.transport.essence + data.transport.entretien + data.transport.parking
-    + data.transport.leasing + data.transport.transportsPublics
-    + data.telecom.mobile
-    + data.impots.acomptes
-    + data.engagements.credits + data.engagements.pension
-    + data.engagements.abonnements.reduce((s, a) => s + a.montant, 0);
+  const totalFixes = Object.values(computeFixesSubtotals(data)).reduce((s: number, v) => s + v, 0) as number;
+  const totalVariables = Object.values(computeVariablesSubtotals(data)).reduce((s: number, v) => s + v, 0) as number;
 
-  const totalVariables =
-    data.variables.alimentaire + data.variables.restaurants
-    + data.variables.sorties + data.variables.vetements
-    + data.variables.voyages + data.variables.cadeaux + data.variables.autres;
-
-  const capaciteEpargne = totalRevenus - totalFixes - totalVariables + data.epargne.montantActuel;
-  // Note: epargne.montantActuel est ce qu'il épargne déjà, on la remet dans l'équation
   const epargneNet = totalRevenus - totalFixes - totalVariables;
 
   const ratioFixes = totalRevenus > 0 ? Math.round((totalFixes / totalRevenus) * 100) : 0;
@@ -149,6 +212,11 @@ function computeBudgetMetrics(data: BudgetDataV2) {
     ratioVariables,
     ratioEpargne,
   };
+}
+
+/** Résout le label d'un revenu "autre" */
+function resolveAutreRevenuLabel(source: string): string {
+  return AUTRE_REVENU_LABELS[source] ?? source;
 }
 
 // ============================================================================
@@ -180,7 +248,6 @@ export default function BudgetDetailScreen() {
         if (res.data.dataV2) {
           setEditData(res.data.dataV2 as unknown as BudgetDataV2);
         } else {
-          // Pas de data_v2 → on crée un BudgetDataV2 vide (les données ne seront pas éditables dans ce cas)
           setEditData(createEmptyBudgetData());
         }
       } catch (err: any) {
@@ -198,6 +265,11 @@ export default function BudgetDetailScreen() {
       const val = getNestedValue(editData, field.key);
       strings[field.key] = val === 0 ? '' : String(val);
     }
+    // Autres revenus (dynamiques)
+    editData.revenus.autres.forEach((autre, i) => {
+      const key = `autre_revenu_${i}`;
+      strings[key] = autre.montant === 0 ? '' : String(autre.montant);
+    });
     // Abonnements
     for (const abo of editData.engagements.abonnements) {
       const key = `abo_${abo.nom}`;
@@ -209,15 +281,33 @@ export default function BudgetDetailScreen() {
 
   // Annuler l'édition
   const cancelEdit = useCallback(() => {
+    if (budget?.dataV2) {
+      setEditData(budget.dataV2 as unknown as BudgetDataV2);
+    }
     setEditing(false);
     setEditStrings({});
-  }, []);
+  }, [budget]);
 
   // Mettre à jour une valeur d'édition
   const updateEditValue = useCallback((key: string, text: string) => {
     setEditStrings(prev => ({ ...prev, [key]: text }));
     const numVal = parseInt(text.replace(/[^0-9]/g, ''), 10) || 0;
-    // Vérifier si c'est un abonnement
+
+    // Autre revenu dynamique
+    if (key.startsWith('autre_revenu_')) {
+      const idx = parseInt(key.replace('autre_revenu_', ''), 10);
+      setEditData(prev => ({
+        ...prev,
+        revenus: {
+          ...prev.revenus,
+          autres: prev.revenus.autres.map((a, i) =>
+            i === idx ? { ...a, montant: numVal } : a
+          ),
+        },
+      }));
+      return;
+    }
+    // Abonnement
     if (key.startsWith('abo_')) {
       const aboNom = key.replace('abo_', '') as AbonnementNom;
       setEditData(prev => ({
@@ -229,9 +319,48 @@ export default function BudgetDetailScreen() {
           ),
         },
       }));
-    } else {
-      setEditData(prev => setNestedValue(prev, key, numVal));
+      return;
     }
+    // Champ standard
+    setEditData(prev => setNestedValue(prev, key, numVal));
+  }, []);
+
+  // Ajouter un autre revenu
+  const addAutreRevenu = useCallback(() => {
+    setEditData(prev => ({
+      ...prev,
+      revenus: {
+        ...prev.revenus,
+        autres: [...prev.revenus.autres, { source: 'autre', montant: 0 }],
+      },
+    }));
+    // Ajouter le string input pour le nouveau champ
+    const newIdx = editData.revenus.autres.length;
+    setEditStrings(prev => ({ ...prev, [`autre_revenu_${newIdx}`]: '' }));
+  }, [editData.revenus.autres.length]);
+
+  // Supprimer un autre revenu
+  const removeAutreRevenu = useCallback((idx: number) => {
+    setEditData(prev => ({
+      ...prev,
+      revenus: {
+        ...prev.revenus,
+        autres: prev.revenus.autres.filter((_, i) => i !== idx),
+      },
+    }));
+    // Nettoyer les strings
+    setEditStrings(prev => {
+      const next = { ...prev };
+      // Supprimer la clé du revenu retiré
+      delete next[`autre_revenu_${idx}`];
+      // Renommer les clés suivantes
+      for (let i = idx + 1; ; i++) {
+        if (!(next[`autre_revenu_${i}`] !== undefined)) break;
+        next[`autre_revenu_${i - 1}`] = next[`autre_revenu_${i}`];
+        delete next[`autre_revenu_${i}`];
+      }
+      return next;
+    });
   }, []);
 
   // Sauvegarder les modifications
@@ -241,7 +370,7 @@ export default function BudgetDetailScreen() {
     try {
       const metrics = computeBudgetMetrics(editData);
 
-      // Construire le payload V1 (snake_case) comme toBackendPayload mais simplifié
+      // Construire le payload V1 (snake_case)
       const revenus: { source: string; montant: number }[] = [
         { source: 'Salaire net', montant: editData.revenus.salaire.salaireNet },
       ];
@@ -249,7 +378,7 @@ export default function BudgetDetailScreen() {
         revenus.push({ source: '13e salaire (lissé)', montant: Math.round(editData.revenus.salaire.treiziemeMontant / 12) });
       }
       for (const autre of editData.revenus.autres) {
-        revenus.push({ source: autre.source, montant: autre.montant });
+        revenus.push({ source: resolveAutreRevenuLabel(autre.source), montant: autre.montant });
       }
 
       const depenses_fixes: { categorie: string; montant: number }[] = [];
@@ -350,6 +479,7 @@ export default function BudgetDetailScreen() {
     );
   }
 
+  const dataV2 = editData; // Toujours utiliser editData (mis à jour en mode édition)
   const metrics = editing ? computeBudgetMetrics(editData) : {
     totalRevenus: budget.totalRevenus,
     totalFixes: budget.totalFixes,
@@ -361,13 +491,27 @@ export default function BudgetDetailScreen() {
   };
 
   const totalDepenses = metrics.totalFixes + metrics.totalVariables;
+  const fixesSubtotals = computeFixesSubtotals(dataV2);
+  const variablesSubtotals = computeVariablesSubtotals(dataV2);
 
-  // Grouper les champs par section
-  const sections: Record<string, EditField[]> = {};
+  // Grouper les champs édition par section → subsection
+  const editSections: Record<string, Record<string, EditField[]>> = {};
   for (const field of EDIT_FIELDS) {
-    if (!sections[field.section]) sections[field.section] = [];
-    sections[field.section].push(field);
+    if (!editSections[field.section]) editSections[field.section] = {};
+    const sub = field.subsection ?? field.section;
+    if (!editSections[field.section][sub]) editSections[field.section][sub] = [];
+    editSections[field.section][sub].push(field);
   }
+
+  // Sous-catégories de dépenses fixes avec leurs sous-totaux
+  const fixesSubsectionData: { key: string; label: string; icon: string; total: number }[] = [
+    { key: 'logement', label: 'Logement', icon: '🏠', total: fixesSubtotals.logement },
+    { key: 'assurances', label: 'Assurances', icon: '🏥', total: fixesSubtotals.assurances },
+    { key: 'transport', label: 'Transport', icon: '🚗', total: fixesSubtotals.transport },
+    { key: 'telecom', label: 'Télécom', icon: '📱', total: fixesSubtotals.telecom },
+    { key: 'impots', label: 'Impôts', icon: '🏛️', total: fixesSubtotals.impots },
+    { key: 'engagements', label: 'Engagements', icon: '💳', total: fixesSubtotals.engagements },
+  ];
 
   return (
     <KeyboardAvoidingView
@@ -399,7 +543,7 @@ export default function BudgetDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Résumé visuel — toujours affiché, se met à jour en temps réel en mode édition */}
+        {/* Résumé visuel avec vraie répartition */}
         <Card variant="highlighted">
           <CardContent>
             <View style={styles.summaryRow}>
@@ -426,35 +570,44 @@ export default function BudgetDetailScreen() {
               </View>
             </View>
 
-            {/* Barres de ratio */}
-            <View style={styles.ratioBarContainer}>
-              <View style={styles.ratioRow}>
-                <Text style={styles.ratioLabelSmall}>Fixes {metrics.ratioFixes}%</Text>
-                <View style={styles.ratioBarBg}>
-                  <View style={[styles.ratioBar, styles.ratioBarFixes, { width: `${Math.min(100, metrics.ratioFixes)}%` }]} />
-                </View>
+            {/* Barre empilée — vraie répartition du budget */}
+            <View style={styles.stackedBarContainer}>
+              <View style={styles.stackedBar}>
+                <View style={[styles.stackedBarFixes, { flex: Math.max(0.5, metrics.ratioFixes) }]} />
+                <View style={[styles.stackedBarVariables, { flex: Math.max(0.5, metrics.ratioVariables) }]} />
+                <View style={[styles.stackedBarEpargne, { flex: Math.max(0.5, Math.max(0, metrics.ratioEpargne)) }]} />
               </View>
-              <View style={styles.ratioRow}>
-                <Text style={styles.ratioLabelSmall}>Variables {metrics.ratioVariables}%</Text>
-                <View style={styles.ratioBarBg}>
-                  <View style={[styles.ratioBar, styles.ratioBarVariables, { width: `${Math.min(100, metrics.ratioVariables)}%` }]} />
+              <View style={styles.stackedBarLegend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: colors.error }]} />
+                  <Text style={styles.legendText}>Fixes {metrics.ratioFixes}%</Text>
                 </View>
-              </View>
-              <View style={styles.ratioRow}>
-                <Text style={styles.ratioLabelSmall}>Épargne {metrics.ratioEpargne}%</Text>
-                <View style={styles.ratioBarBg}>
-                  <View style={[styles.ratioBar, styles.ratioBarEpargne, { width: `${Math.min(100, Math.max(0, metrics.ratioEpargne))}%` }]} />
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
+                  <Text style={styles.legendText}>Variables {metrics.ratioVariables}%</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: colors.secondary }]} />
+                  <Text style={styles.legendText}>Épargne {metrics.ratioEpargne}%</Text>
                 </View>
               </View>
             </View>
           </CardContent>
         </Card>
 
-        {/* Mode lecture : affichage par catégorie */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            MODE LECTURE
+        ═══════════════════════════════════════════════════════════════════ */}
         {!editing && (
           <>
+            {/* Revenus */}
             <Card>
-              <CardHeader><CardTitle>💰 Revenus</CardTitle></CardHeader>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>💰 Revenus</CardTitle>
+                  <Text style={styles.sectionTotal}>{formatCHF(metrics.totalRevenus)}</Text>
+                </View>
+              </CardHeader>
               <CardContent>
                 {budget.revenus.map((r, i) => (
                   <View key={i} style={styles.lineRow}>
@@ -462,25 +615,59 @@ export default function BudgetDetailScreen() {
                     <Text style={styles.lineValue}>{formatCHF(r.montant)}</Text>
                   </View>
                 ))}
-                {budget.revenus.length === 0 && <Text style={styles.emptyText}>Aucun revenu enregistré</Text>}
               </CardContent>
             </Card>
 
+            {/* Dépenses fixes — avec sous-catégories et sous-totaux */}
             <Card>
-              <CardHeader><CardTitle>📌 Dépenses fixes</CardTitle></CardHeader>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>📌 Dépenses fixes</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: colors.error }]}>{formatCHF(metrics.totalFixes)}</Text>
+                </View>
+              </CardHeader>
               <CardContent>
-                {budget.depensesFixes.map((d, i) => (
-                  <View key={i} style={styles.lineRow}>
-                    <Text style={styles.lineLabel}>{d.categorie}</Text>
-                    <Text style={styles.lineValue}>{formatCHF(d.montant)}</Text>
-                  </View>
-                ))}
-                {budget.depensesFixes.length === 0 && <Text style={styles.emptyText}>Aucune dépense fixe</Text>}
+                {fixesSubsectionData.map(sub => {
+                  if (sub.total === 0) return null;
+                  const items = budget.depensesFixes.filter(d => {
+                    // Associer les items V1 aux sous-catégories
+                    const subMap: Record<string, string[]> = {
+                      logement: ['Loyer', 'Charges', 'Électricité', 'Chauffage', 'Internet', 'SERAFE'],
+                      assurances: ['LAMal', 'Complémentaire santé', 'Assurance ménage/RC', 'Assurance véhicule'],
+                      transport: ['Essence', 'Entretien voiture', 'Parking', 'Leasing voiture', 'Transports publics'],
+                      telecom: ['Forfait mobile'],
+                      impots: ['Impôts (acomptes)', 'Impôts (acomptes/mois)'],
+                      engagements: ['Crédits/Leasing', 'Pension alimentaire', ...Object.values(ABO_LABELS)],
+                    };
+                    return (subMap[sub.key] ?? []).includes(d.categorie);
+                  });
+                  if (items.length === 0) return null;
+                  return (
+                    <View key={sub.key} style={styles.subSection}>
+                      <View style={styles.subSectionHeader}>
+                        <Text style={styles.subSectionTitle}>{sub.icon} {sub.label}</Text>
+                        <Text style={styles.subSectionTotal}>{formatCHF(sub.total)}</Text>
+                      </View>
+                      {items.map((d, i) => (
+                        <View key={`${sub.key}-${i}`} style={styles.lineRow}>
+                          <Text style={styles.lineLabelSub}>{d.categorie}</Text>
+                          <Text style={styles.lineValueSub}>{formatCHF(d.montant)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })}
               </CardContent>
             </Card>
 
+            {/* Dépenses variables — avec total */}
             <Card>
-              <CardHeader><CardTitle>🛍️ Dépenses variables</CardTitle></CardHeader>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>🛍️ Dépenses variables</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: '#F59E0B' }]}>{formatCHF(metrics.totalVariables)}</Text>
+                </View>
+              </CardHeader>
               <CardContent>
                 {budget.depensesVariables.map((d, i) => (
                   <View key={i} style={styles.lineRow}>
@@ -488,7 +675,24 @@ export default function BudgetDetailScreen() {
                     <Text style={styles.lineValue}>{formatCHF(d.montant)}</Text>
                   </View>
                 ))}
-                {budget.depensesVariables.length === 0 && <Text style={styles.emptyText}>Aucune dépense variable</Text>}
+              </CardContent>
+            </Card>
+
+            {/* Épargne */}
+            <Card>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>💎 Épargne</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: colors.secondary }]}>{formatCHF(metrics.capaciteEpargne)}</Text>
+                </View>
+              </CardHeader>
+              <CardContent>
+                <View style={styles.lineRow}>
+                  <Text style={styles.lineLabel}>Capacité d'épargne mensuelle</Text>
+                  <Text style={[styles.lineValue, { color: metrics.capaciteEpargne >= 0 ? colors.secondary : colors.error }]}>
+                    {formatCHF(metrics.capaciteEpargne)}
+                  </Text>
+                </View>
               </CardContent>
             </Card>
 
@@ -498,7 +702,9 @@ export default function BudgetDetailScreen() {
                 <CardContent>
                   {budget.planAction.map((pa, i) => (
                     <View key={i} style={styles.planRow}>
-                      <Text style={styles.planAction}>{pa.action}</Text>
+                      <Text style={pa.done ? styles.planActionDone : styles.planAction}>
+                        {pa.done ? '✅' : '⬜'} {pa.action}
+                      </Text>
                     </View>
                   ))}
                 </CardContent>
@@ -507,24 +713,62 @@ export default function BudgetDetailScreen() {
           </>
         )}
 
-        {/* Mode édition : champs modifiables par section */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            MODE ÉDITION
+        ═══════════════════════════════════════════════════════════════════ */}
         {editing && (
           <>
-            {Object.entries(sections).map(([sectionName, fields]) => (
-              <Card key={sectionName}>
-                <CardHeader><CardTitle>{sectionName}</CardTitle></CardHeader>
-                <CardContent>
-                  {fields.map(field => (
-                    <View key={field.key} style={styles.editRow}>
-                      <View style={styles.editLabelContainer}>
-                        <Text style={styles.editIcon}>{field.icon || ''}</Text>
-                        <Text style={styles.editLabel}>{field.label}</Text>
+            {/* Revenus — avec autres revenus dynamiques */}
+            <Card>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>💰 Revenus</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: colors.secondary }]}>
+                    {formatCHF(metrics.totalRevenus)}
+                  </Text>
+                </View>
+              </CardHeader>
+              <CardContent>
+                {editSections['Revenus']?.['Revenus'].map(field => (
+                  <View key={field.key} style={styles.editRow}>
+                    <View style={styles.editLabelContainer}>
+                      <Text style={styles.editIcon}>{field.icon || ''}</Text>
+                      <Text style={styles.editLabel}>{field.label}</Text>
+                    </View>
+                    <View style={styles.editInputContainer}>
+                      <TextInput
+                        style={styles.editInput}
+                        value={editStrings[field.key] ?? ''}
+                        onChangeText={(text) => updateEditValue(field.key, text)}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={colors.textMuted}
+                        returnKeyType="done"
+                      />
+                      <Text style={styles.editCurrency}>CHF</Text>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Autres revenus — dynamiques */}
+                {editData.revenus.autres.map((autre, i) => {
+                  const key = `autre_revenu_${i}`;
+                  return (
+                    <View key={key} style={styles.editRow}>
+                      <View style={[styles.editLabelContainer, { flex: 1 }]}>
+                        <Text style={styles.editIcon}>➕</Text>
+                        <Text style={styles.editLabel}>
+                          {resolveAutreRevenuLabel(autre.source)}
+                        </Text>
+                        <TouchableOpacity onPress={() => removeAutreRevenu(i)} style={styles.removeBtn}>
+                          <Text style={styles.removeBtnText}>✕</Text>
+                        </TouchableOpacity>
                       </View>
                       <View style={styles.editInputContainer}>
                         <TextInput
                           style={styles.editInput}
-                          value={editStrings[field.key] ?? ''}
-                          onChangeText={(text) => updateEditValue(field.key, text)}
+                          value={editStrings[key] ?? ''}
+                          onChangeText={(text) => updateEditValue(key, text)}
                           keyboardType="numeric"
                           placeholder="0"
                           placeholderTextColor={colors.textMuted}
@@ -533,41 +777,158 @@ export default function BudgetDetailScreen() {
                         <Text style={styles.editCurrency}>CHF</Text>
                       </View>
                     </View>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
+                  );
+                })}
 
-            {/* Abonnements (si présents) */}
-            {editData.engagements.abonnements.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>🎵 Abonnements</CardTitle></CardHeader>
-                <CardContent>
-                  {editData.engagements.abonnements.map((abo) => {
-                    const key = `abo_${abo.nom}`;
-                    return (
-                      <View key={key} style={styles.editRow}>
-                        <Text style={styles.editLabel}>
-                          {ABO_LABELS[abo.nom] ?? abo.nom}
-                        </Text>
-                        <View style={styles.editInputContainer}>
-                          <TextInput
-                            style={styles.editInput}
-                            value={editStrings[key] ?? ''}
-                            onChangeText={(text) => updateEditValue(key, text)}
-                            keyboardType="numeric"
-                            placeholder="0"
-                            placeholderTextColor={colors.textMuted}
-                            returnKeyType="done"
-                          />
-                          <Text style={styles.editCurrency}>CHF</Text>
-                        </View>
+                {/* Bouton ajouter revenu */}
+                <TouchableOpacity style={styles.addRow} onPress={addAutreRevenu}>
+                  <Text style={styles.addRowText}>+ Ajouter un revenu</Text>
+                </TouchableOpacity>
+              </CardContent>
+            </Card>
+
+            {/* Dépenses fixes — par sous-catégorie */}
+            <Card>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>📌 Dépenses fixes</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: colors.error }]}>{formatCHF(metrics.totalFixes)}</Text>
+                </View>
+              </CardHeader>
+              <CardContent>
+                {fixesSubsectionData.map(sub => {
+                  const fields = editSections['Dépenses fixes']?.[sub.key];
+                  if (!fields || fields.length === 0) return null;
+                  const subTotal = sub.total;
+                  return (
+                    <View key={sub.key} style={styles.editSubSection}>
+                      <View style={styles.subSectionHeader}>
+                        <Text style={styles.subSectionTitle}>{sub.icon} {sub.label}</Text>
+                        <Text style={styles.subSectionTotal}>{formatCHF(subTotal)}</Text>
                       </View>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            )}
+                      {fields.map(field => (
+                        <View key={field.key} style={styles.editRow}>
+                          <View style={styles.editLabelContainer}>
+                            <Text style={styles.editIconSmall}>{field.icon || ''}</Text>
+                            <Text style={styles.editLabel}>{field.label}</Text>
+                          </View>
+                          <View style={styles.editInputContainer}>
+                            <TextInput
+                              style={styles.editInput}
+                              value={editStrings[field.key] ?? ''}
+                              onChangeText={(text) => updateEditValue(field.key, text)}
+                              keyboardType="numeric"
+                              placeholder="0"
+                              placeholderTextColor={colors.textMuted}
+                              returnKeyType="done"
+                            />
+                            <Text style={styles.editCurrency}>CHF</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  );
+                })}
+
+                {/* Abonnements (si présents) */}
+                {editData.engagements.abonnements.length > 0 && (
+                  <View style={styles.editSubSection}>
+                    <View style={styles.subSectionHeader}>
+                      <Text style={styles.subSectionTitle}>🎵 Abonnements</Text>
+                      <Text style={styles.subSectionTotal}>
+                        {formatCHF(editData.engagements.abonnements.reduce((s, a) => s + a.montant, 0))}
+                      </Text>
+                    </View>
+                    {editData.engagements.abonnements.map((abo) => {
+                      const key = `abo_${abo.nom}`;
+                      return (
+                        <View key={key} style={styles.editRow}>
+                          <Text style={styles.editLabel}>
+                            {ABO_LABELS[abo.nom] ?? abo.nom}
+                          </Text>
+                          <View style={styles.editInputContainer}>
+                            <TextInput
+                              style={styles.editInput}
+                              value={editStrings[key] ?? ''}
+                              onChangeText={(text) => updateEditValue(key, text)}
+                              keyboardType="numeric"
+                              placeholder="0"
+                              placeholderTextColor={colors.textMuted}
+                              returnKeyType="done"
+                            />
+                            <Text style={styles.editCurrency}>CHF</Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Dépenses variables */}
+            <Card>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>🛍️ Dépenses variables</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: '#F59E0B' }]}>{formatCHF(metrics.totalVariables)}</Text>
+                </View>
+              </CardHeader>
+              <CardContent>
+                {(editSections['Dépenses variables']?.['Dépenses variables'] ?? []).map(field => (
+                  <View key={field.key} style={styles.editRow}>
+                    <View style={styles.editLabelContainer}>
+                      <Text style={styles.editIconSmall}>{field.icon || ''}</Text>
+                      <Text style={styles.editLabel}>{field.label}</Text>
+                    </View>
+                    <View style={styles.editInputContainer}>
+                      <TextInput
+                        style={styles.editInput}
+                        value={editStrings[field.key] ?? ''}
+                        onChangeText={(text) => updateEditValue(field.key, text)}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={colors.textMuted}
+                        returnKeyType="done"
+                      />
+                      <Text style={styles.editCurrency}>CHF</Text>
+                    </View>
+                  </View>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Épargne */}
+            <Card>
+              <CardHeader>
+                <View style={styles.sectionHeaderRow}>
+                  <CardTitle>💎 Épargne</CardTitle>
+                  <Text style={[styles.sectionTotal, { color: colors.secondary }]}>{formatCHF(metrics.capaciteEpargne)}</Text>
+                </View>
+              </CardHeader>
+              <CardContent>
+                {(editSections['Épargne']?.['Épargne'] ?? []).map(field => (
+                  <View key={field.key} style={styles.editRow}>
+                    <View style={styles.editLabelContainer}>
+                      <Text style={styles.editIconSmall}>{field.icon || ''}</Text>
+                      <Text style={styles.editLabel}>{field.label}</Text>
+                    </View>
+                    <View style={styles.editInputContainer}>
+                      <TextInput
+                        style={styles.editInput}
+                        value={editStrings[field.key] ?? ''}
+                        onChangeText={(text) => updateEditValue(field.key, text)}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={colors.textMuted}
+                        returnKeyType="done"
+                      />
+                      <Text style={styles.editCurrency}>CHF</Text>
+                    </View>
+                  </View>
+                ))}
+              </CardContent>
+            </Card>
 
             {/* Bouton sauvegarder */}
             <View style={styles.saveContainer}>
@@ -609,30 +970,89 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   editButtonText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+
+  // Résumé
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },
   summaryItem: { alignItems: 'center', flex: 1 },
   summaryLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
   summaryValue: { fontSize: 18, fontWeight: '700' },
 
-  // Ratio bars
-  ratioBarContainer: { marginTop: spacing.sm },
-  ratioRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  ratioLabelSmall: { fontSize: 11, color: colors.textMuted, width: 110 },
-  ratioBarBg: { flex: 1, height: 8, backgroundColor: colors.surface, borderRadius: 4, overflow: 'hidden' },
-  ratioBar: { height: '100%', borderRadius: 4 },
-  ratioBarFixes: { backgroundColor: colors.error },
-  ratioBarVariables: { backgroundColor: '#F59E0B' },
-  ratioBarEpargne: { backgroundColor: colors.secondary },
+  // Barre empilée (stacked bar)
+  stackedBarContainer: { marginTop: spacing.sm },
+  stackedBar: {
+    flexDirection: 'row',
+    height: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 7,
+    overflow: 'hidden',
+  },
+  stackedBarFixes: { backgroundColor: colors.error },
+  stackedBarVariables: { backgroundColor: '#F59E0B' },
+  stackedBarEpargne: { backgroundColor: colors.secondary },
+  stackedBarLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 10,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, color: colors.textMuted },
 
-  // Mode lecture
+  // Section headers avec totaux
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+
+  // Sous-section (sous-catégorie de dépenses)
+  subSection: {
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
+  subSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  subSectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  subSectionTotal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+
+  // Mode lecture — lignes
   lineRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   lineLabel: { fontSize: 14, color: colors.textSecondary, flex: 1 },
+  lineLabelSub: { fontSize: 13, color: colors.textMuted, flex: 1, paddingLeft: 8 },
   lineValue: { fontSize: 14, color: colors.textPrimary, fontWeight: '500' },
+  lineValueSub: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
   emptyText: { fontSize: 14, color: colors.textMuted, fontStyle: 'italic' },
   planRow: { marginBottom: 8 },
   planAction: { fontSize: 14, color: colors.textPrimary },
+  planActionDone: { fontSize: 14, color: colors.textMuted, textDecorationLine: 'line-through' },
 
   // Mode édition
+  editSubSection: {
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
+  },
   editRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -646,7 +1066,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   editIcon: { fontSize: 16, marginRight: 8 },
-  editLabel: { fontSize: 14, color: colors.textSecondary },
+  editIconSmall: { fontSize: 14, marginRight: 6 },
+  editLabel: { fontSize: 14, color: colors.textSecondary, flex: 1 },
   editInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -671,6 +1092,29 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     fontSize: 12,
     color: colors.textMuted,
+    fontWeight: '600',
+  },
+
+  // Bouton supprimer revenu
+  removeBtn: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  removeBtnText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  // Bouton ajouter revenu
+  addRow: {
+    marginTop: 4,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  addRowText: {
+    color: colors.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
 
