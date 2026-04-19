@@ -214,6 +214,11 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
       skipValue: 0,
     }),
     messages: [],
+    // Si l'utilisateur n'a pas de salaire (skip/valeur 0), on saute le 13e
+    // et on va directement aux autres revenus
+    branchOn: [
+      { value: 0, nextStep: 'revenus_autres' },
+    ],
     nextStep: 'revenus_treizieme',
   },
 
