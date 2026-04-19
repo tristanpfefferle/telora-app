@@ -11,7 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -106,11 +106,24 @@ export default function ChatScreen() {
     }
   }, [saveState, clearPersistedConversation]);
 
-  // Handler — Redémarrer la conversation
+  // Handler — Redémarrer la conversation (avec confirmation)
   const handleRestart = useCallback(() => {
-    useBudgetStore.getState().reset();
-    setSaveState('idle');
-    restart(); // restart() appelle déjà clearPersistedConversation()
+    Alert.alert(
+      'Nouvelle conversation',
+      'Veux-tu vraiment recommencer depuis le début ? Ton budget actuel sera effacé.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Recommencer',
+          style: 'destructive',
+          onPress: () => {
+            useBudgetStore.getState().reset();
+            setSaveState('idle');
+            restart();
+          },
+        },
+      ],
+    );
   }, [restart]);
 
   // Auto-scroll intelligent — seulement si l'utilisateur est déjà en bas (comme WhatsApp)
@@ -551,11 +564,9 @@ export default function ChatScreen() {
             </View>
           )}
           
-          {isComplete && (
-            <TouchableOpacity onPress={handleRestart} style={styles.restartButton} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}>
-              <Text style={styles.restartButtonText}>↻</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={handleRestart} style={styles.restartButton} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}>
+            <Ionicons name="refresh" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -695,15 +706,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   restartButton: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
-  },
-  restartButtonText: {
-    color: colors.primary,
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+    padding: spacing.sm,
   },
   keyboardView: {
     flex: 1,
