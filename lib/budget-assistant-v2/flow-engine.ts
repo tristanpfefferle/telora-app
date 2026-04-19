@@ -619,7 +619,13 @@ export class FlowEngine {
     const impotsStep = IMPOTS_MONTANT_STEP;
     const helpText = impotsStep.numericConfig?.helpText ?? 'Montant mensuel que tu paies ou provisionnes pour les impôts.';
 
-    const botMsg = this.createBotMessage('Combien par mois pour les impôts ?', {
+    // Adapter le message selon le mode d'impôts choisi
+    const impotMode = this.state.data.impots.mode;
+    const messageText = impotMode === 'provision_personnelle'
+      ? 'Combien mets-tu de côté par mois pour les impôts ?'
+      : 'Combien paies-tu d\'acomptes mensuels pour les impôts ?';
+
+    const botMsg = this.createBotMessage(messageText, {
       quickRepliesActive: false,
     });
     this.messages.push(botMsg);
@@ -793,7 +799,14 @@ export class FlowEngine {
         data.engagements.pension = typeof value === 'number' ? value : 0;
         break;
 
-      case 'engagements_abonnements': {
+      case 'engagements_abonnements':
+        // Oui/Non gate — si Non, pas d'abonnements
+        if (value === false) {
+          data.engagements.abonnements = [];
+        }
+        break;
+
+      case 'engagements_abonnements_oui_non': {
         if (Array.isArray(value)) {
           const aboIds = value.map(id => id as AbonnementNom);
           data.engagements.abonnements = aboIds.map(id => ({ nom: id, montant: 0 }));

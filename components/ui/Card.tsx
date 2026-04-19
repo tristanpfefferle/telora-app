@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, borderRadius } from '../../lib/theme';
 
 interface CardProps {
   children: React.ReactNode;
   variant?: 'default' | 'highlighted' | 'success' | 'muted';
   style?: any;
+  onPress?: () => void;
 }
 
-export function Card({ children, variant = 'default', style }: CardProps) {
+export function Card({ children, variant = 'default', style, onPress }: CardProps) {
   const borderColor = {
     default: colors.border,
     highlighted: colors.primary,
@@ -18,8 +19,18 @@ export function Card({ children, variant = 'default', style }: CardProps) {
 
   const borderWidth = variant === 'default' ? 1 : 2;
 
+  const cardStyle = [styles.card, { borderColor, borderWidth }, style];
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.7}>
+        {children}
+      </TouchableOpacity>
+    );
+  }
+
   return (
-    <View style={[styles.card, { borderColor, borderWidth }, style]}>
+    <View style={cardStyle}>
       {children}
     </View>
   );

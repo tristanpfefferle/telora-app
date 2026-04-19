@@ -240,8 +240,9 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   // --- E. Impôts ---
   impots_acomptes: {
     messages: [
-      "Les impôts maintenant. 🏛️\nComment gères-tu tes impôts chaque mois ?",
-      "⚠️ Important : n'inclus PAS ce qui est déjà déduit de ton salaire (AVS, LPP, etc.). On parle ici uniquement de l'impôt sur le revenu.",
+      "Les impôts maintenant. 🏛️",
+      "Comment gères-tu tes impôts sur le revenu ?",
+      "⚠️ N'inclus PAS ce qui est déjà déduit de ton salaire (AVS, LPP, etc.). On parle ici uniquement de l'impôt cantonal et fédéral sur le revenu.",
     ],
   },
 
@@ -261,7 +262,13 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   engagements_abonnements: {
     messages: [
-      "Les abonnements récurrents ! 🎵 Sélectionne ceux que tu as :",
+      "As-tu des abonnements récurrents ? 🎵",
+    ],
+  },
+
+  engagements_abonnements_oui_non: {
+    messages: [
+      "Lesquels ? Sélectionne ceux que tu as 👇",
     ],
   },
 
@@ -496,8 +503,8 @@ export const BUTTON_LABELS = {
   pasDeLeasing: "Pas de leasing",
   comprisesDansLoyer: "Comprises dans le loyer",
   comprisDansLesCharges: "Compris dans les charges",
-  prelevesSource: "Prélevés à la source (impôt à la source)",
-  provisionMoiMeme: "Je mets de l'argent de côté pour l'impôt",
+  prelevesSource: "Prélevé à la source (impôt à la source)",
+  provisionMoiMeme: "Je provisionne moi-même",
   acomptesMensuels: "Je paie des acomptes mensuels",
   utiliser28Chf: "Utiliser 28 CHF",
   autreMontant: "Autre montant",

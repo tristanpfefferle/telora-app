@@ -101,6 +101,7 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   'engagements_credits',
   'engagements_pension',
   'engagements_abonnements',
+  'engagements_abonnements_oui_non',
   'engagements_abonnements_montant',
 
   // Phase 3 : Récap
@@ -150,7 +151,7 @@ export const PHASE_STEPS: Record<PhaseId, ConversationStepId[]> = {
     'transport_voiture', 'assurances_vehicule', 'transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing', 'transport_publics',
     'telecom_mobile',
     'impots_acomptes',
-    'engagements_credits', 'engagements_pension', 'engagements_abonnements', 'engagements_abonnements_montant',
+    'engagements_credits', 'engagements_pension', 'engagements_abonnements', 'engagements_abonnements_oui_non', 'engagements_abonnements_montant',
     'depenses_fixes_recap',
   ],
   4: ['variables_intro', 'variables_alimentaire', 'variables_restaurants', 'variables_sorties', 'variables_vetements', 'variables_voyages', 'variables_cadeaux', 'variables_autres', 'variables_recap'],
@@ -675,7 +676,24 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
   engagements_abonnements: {
     id: 'engagements_abonnements',
     phase: 3,
-    name: 'Abonnements',
+    name: 'Abonnements récurrents',
+    inputMode: 'quick_replies',
+    quickReplies: [
+      qr('oui', BUTTON_LABELS.oui, true, '🎵'),
+      qr('non', BUTTON_LABELS.non, false),
+    ],
+    messages: [],
+    branchOn: [
+      { value: true, nextStep: 'engagements_abonnements_oui_non' },
+      { value: false, nextStep: 'depenses_fixes_recap' },
+    ],
+    nextStep: 'engagements_abonnements_oui_non',
+  },
+
+  engagements_abonnements_oui_non: {
+    id: 'engagements_abonnements_oui_non',
+    phase: 3,
+    name: 'Sélection abonnements',
     inputMode: 'multi_select',
     multiSelectConfig: {
       options: [
@@ -686,12 +704,11 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         { id: 'presse_journaux', label: BUTTON_LABELS.presseJournaux, icon: '📰' },
         { id: 'autre_abo', label: BUTTON_LABELS.autreAbo, icon: '📎' },
       ],
-      minSelections: 0,
+      minSelections: 1,
       maxSelections: 6,
       requireAmountPerSelection: true,
     },
     messages: [],
-    // Si rien sélectionné, on va directement au recap
     // Le Flow Engine gère la boucle pour engagements_abonnements_montant
     nextStep: 'engagements_abonnements_montant',
   },
@@ -1125,7 +1142,7 @@ export const LOOP_STEPS: Partial<Record<ConversationStepId, LoopStepConfig>> = {
     multiSelectSourceStep: 'revenus_autres_sources',
   },
   'engagements_abonnements_montant': {
-    multiSelectSourceStep: 'engagements_abonnements',
+    multiSelectSourceStep: 'engagements_abonnements_oui_non',
   },
 };
 

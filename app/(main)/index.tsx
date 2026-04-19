@@ -115,7 +115,7 @@ export default function DashboardScreen() {
             </View>
             
             {budgets.slice(0, 3).map((budget: any) => (
-              <Card key={budget.id} style={styles.budgetCard}>
+              <Card key={budget.id} style={styles.budgetCard} onPress={() => router.push(`/(main)/budgets/${budget.id}` as any)}>
                 <CardHeader>
                   <View style={styles.budgetCardHeader}>
                     <CardTitle>Budget #{budget.id.slice(0, 8)}</CardTitle>

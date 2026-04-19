@@ -105,7 +105,8 @@ export type ConversationStepId =
   // Phase 3 : F. Engagements fixes
   | 'engagements_credits'
   | 'engagements_pension'
-  | 'engagements_abonnements'       // Multi-select
+  | 'engagements_abonnements'       // Oui/Non gate
+  | 'engagements_abonnements_oui_non' // Multi-select
   | 'engagements_abonnements_montant' // Montant par abo sélectionné
 
   // Phase 3 : Récap

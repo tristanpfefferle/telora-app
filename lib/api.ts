@@ -56,6 +56,53 @@ export interface User {
   createdAt: string;
 }
 
+// ============================================================================
+// Snake_case → camelCase mapper (backend → frontend)
+// ============================================================================
+
+/** Convertit les clés snake_case d'un objet en camelCase (1 niveau) */
+function toCamelCase<T = any>(obj: any): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map((item: any) => toCamelCase<T>(item)) as any;
+  const result: any = {};
+  for (const key of Object.keys(obj)) {
+    const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camelKey] = obj[key];
+  }
+  return result;
+}
+
+/** Mappe un budget backend (snake_case) vers le type Budget frontend (camelCase) */
+function mapBudgetFromApi(raw: any): Budget {
+  return {
+    id: raw.id,
+    userId: raw.user_id,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+    objectifFinancier: raw.objectif_financier,
+    mindset: raw.mindset,
+    revenus: raw.revenus || [],
+    depensesFixes: raw.depenses_fixes || [],
+    depensesVariables: raw.depenses_variables || [],
+    epargneActuelle: raw.epargne_actuelle || 0,
+    epargneObjectif: raw.epargne_objectif || 0,
+    totalRevenus: raw.total_revenus || 0,
+    totalFixes: raw.total_fixes || 0,
+    totalVariables: raw.total_variables || 0,
+    capaciteEpargne: raw.capacite_epargne || 0,
+    ratioFixes: raw.ratio_fixes || 0,
+    ratioVariables: raw.ratio_variables || 0,
+    ratioEpargne: raw.ratio_epargne || 0,
+    planAction: raw.plan_action || [],
+    dataV2: raw.data_v2,
+    ratios: {
+      fixesRevenus: raw.ratio_fixes || 0,
+      variablesRevenus: raw.ratio_variables || 0,
+      epargneRevenus: raw.ratio_epargne || 0,
+    },
+  };
+}
+
 export interface Budget {
   id: string;
   userId: string;
@@ -77,6 +124,7 @@ export interface Budget {
   ratioEpargne: number;
   planAction: PlanAction[];
   dataV2?: Record<string, unknown>;
+  ratios?: Ratios;
 }
 
 export interface Revenu {
@@ -139,17 +187,25 @@ export const authAPI = {
 };
 
 export const budgetAPI = {
-  list: () =>
-    api.get<Budget[]>('/api/budget/'),
+  list: async () => {
+    const res = await api.get<any[]>('/api/budget/');
+    return { ...res, data: res.data.map(mapBudgetFromApi) };
+  },
   
-  get: (id: string) =>
-    api.get<Budget>(`/api/budget/${id}`),
+  get: async (id: string) => {
+    const res = await api.get<any>(`/api/budget/${id}`);
+    return { ...res, data: mapBudgetFromApi(res.data) };
+  },
   
-  create: (data: BackendBudgetPayload) =>
-    api.post<Budget>('/api/budget/', data),
+  create: async (data: BackendBudgetPayload) => {
+    const res = await api.post<any>('/api/budget/', data);
+    return { ...res, data: mapBudgetFromApi(res.data) };
+  },
   
-  update: (id: string, data: Partial<BackendBudgetPayload>) =>
-    api.put<Budget>(`/api/budget/${id}`, data),
+  update: async (id: string, data: Partial<BackendBudgetPayload>) => {
+    const res = await api.put<any>(`/api/budget/${id}`, data);
+    return { ...res, data: mapBudgetFromApi(res.data) };
+  },
   
   delete: (id: string) =>
     api.delete(`/api/budget/${id}`),
