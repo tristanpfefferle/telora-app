@@ -444,6 +444,8 @@ export class FlowEngine {
         // Cas spécial : impôts → si acomptes ou provision, on doit insérer une sous-étape
         if (step.id === 'impots_acomptes' && (value === 'acomptes_mensuels' || value === 'provision_personnelle')) {
           this.impotsNeedsAmount = true;
+          // Stay on impots_acomptes to show the amount input sub-step
+          return 'impots_acomptes';
         }
         return branch.nextStep;
       }
@@ -506,10 +508,16 @@ export class FlowEngine {
       const nextItem = this.loopQueue.shift()!;
       this.currentLoopItem = { sourceId: nextItem.sourceId, sourceLabel: nextItem.sourceLabel };
 
-      // Message avec template
-      const stepMessages = STEP_MESSAGES['revenus_autres_montant'] ?? STEP_MESSAGES['engagements_abonnements_montant'];
-      const template = stepMessages.messages[0] ?? 'Combien pour {source} ?';
-      const filled = fillTemplate(template, { source: this.currentLoopItem.sourceLabel });
+      // Message avec template — utiliser le bon template selon le type de boucle
+      const isAboLoop = this.state.currentStep === 'engagements_abonnements_montant';
+      const stepMessages = isAboLoop
+        ? STEP_MESSAGES['engagements_abonnements_montant']
+        : STEP_MESSAGES['revenus_autres_montant'];
+      const template = stepMessages?.messages[0] ?? 'Combien pour {source} ?';
+      const templateVars: Record<string, string> = isAboLoop
+        ? { aboName: this.currentLoopItem.sourceLabel }
+        : { source: this.currentLoopItem.sourceLabel };
+      const filled = fillTemplate(template, templateVars);
       const botMsg = this.createBotMessage(filled, {
         inputMode: 'numeric_chf',
         numericConfig: this.getStepNumericConfig(),
@@ -528,8 +536,13 @@ export class FlowEngine {
       this.state.isComplete = true;
     }
 
-    // Ajouter les messages de l'étape
-    this.addStepMessages(stepId, newMessages);
+    // Si c'est la sous-étape impôts montant, montrer les messages de montant au lieu des messages par défaut
+    if (stepId === 'impots_acomptes' && this.impotsNeedsAmount) {
+      this.addImpotsMontantMessages(newMessages);
+    } else {
+      // Ajouter les messages de l'étape
+      this.addStepMessages(stepId, newMessages);
+    }
 
     // Auto-avancer les étapes info_only (pas d'input utilisateur nécessaire)
     // On affiche les messages, puis on avance directement vers la prochaine étape
@@ -593,6 +606,40 @@ export class FlowEngine {
           this.messages[lastBotIdx].cardType = this.getCardType(step.showRecapCard);
           this.messages[lastBotIdx].cardData = this.getCardData(step.showRecapCard);
         }
+      }
+    }
+  }
+
+  /**
+   * Ajoute les messages pour la sous-étape impôts montant.
+   * Cette méthode affiche un message demandant le montant mensuel des impôts,
+   * avec une config numeric_chf adaptée.
+   */
+  private addImpotsMontantMessages(newMessages?: ChatMessage[]): void {
+    const impotsStep = IMPOTS_MONTANT_STEP;
+    const helpText = impotsStep.numericConfig?.helpText ?? 'Montant mensuel que tu paies ou provisionnes pour les impôts.';
+
+    const botMsg = this.createBotMessage('Combien par mois pour les impôts ?', {
+      quickRepliesActive: false,
+    });
+    this.messages.push(botMsg);
+    newMessages?.push(botMsg);
+
+    // Bulle d'aide
+    const helpMsg = this.createBotMessage(helpText, { quickRepliesActive: false });
+    this.messages.push(helpMsg);
+    newMessages?.push(helpMsg);
+
+    // Attacher l'input numeric_chf au dernier message bot
+    if (this.messages.length > 0) {
+      const lastBotIdx = this.findLastBotMessageIndex();
+      if (lastBotIdx >= 0) {
+        this.messages[lastBotIdx] = {
+          ...this.messages[lastBotIdx],
+          inputMode: 'numeric_chf',
+          numericConfig: impotsStep.numericConfig,
+          quickRepliesActive: true,
+        };
       }
     }
   }
@@ -730,6 +777,10 @@ export class FlowEngine {
         } else {
           // Étape principale : stocker le mode d'imposition
           data.impots.mode = (typeof value === 'string' ? value : 'preleve_source') as ImpotMode;
+          // Si prélevé à la source ou non concerné, pas de montant mensuel
+          if (value === 'preleve_source' || value === 'non_concerne') {
+            data.impots.acomptes = 0;
+          }
         }
         break;
 

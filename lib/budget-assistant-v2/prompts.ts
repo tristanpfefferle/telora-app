@@ -186,7 +186,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   assurances_vehicule: {
     messages: [
-      "Assurance voiture ? Si tu n'as pas de véhicule, on saute.",
+      "Combien paies-tu d'assurance voiture par mois ?",
     ],
   },
 
@@ -497,6 +497,7 @@ export const BUTTON_LABELS = {
   comprisDansLesCharges: "Compris dans les charges",
   prelevesSource: "Prélevés à la source",
   provisionMoiMeme: "Je provisionne moi-même",
+  acomptesMensuels: "Je paie des acomptes",
   utiliser28Chf: "Utiliser 28 CHF",
   autreMontant: "Autre montant",
   rienPourLinstant: "Rien pour l'instant",
@@ -615,7 +616,7 @@ export const PHASE_INTRO_VARIANTS: Record<number, string[]> = {
     "C'est parti pour le bloc le plus important : tes besoins essentiels. 💪",
   ],
   4: [
-    "OK, on passe à la partie灵活 : tes envies et dépenses du quotidien. 🎉",
+    "OK, on passe à la partie flexible : tes envies et dépenses du quotidien. 🎉",
     "Enchaînons avec tes dépenses variables — celles où tu as le plus de marge. 🎉",
     "Direction les envies ! C'est ici que tu as le plus de flexibilité. ✨",
   ],
@@ -625,7 +626,7 @@ export const PHASE_INTRO_VARIANTS: Record<number, string[]> = {
     "Presque fini ! Parlons épargne — ça transforme un budget en outil de liberté. 💎",
   ],
   6: [
-    "Et voilà, on a fait le tour ! 🎉 Regardons le resultat.",
+    "Et voilà, on a fait le tour ! 🎉 Regardons le résultat.",
     "Le moment de vérité ! On récapitule tout. 🎉",
     "On y est ! Le récap de ton budget. 🎉",
   ],

@@ -583,7 +583,7 @@ export default function ChatScreen() {
 
       {/* Chat area : messages scrollent, input fixé en bas */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
       >
         {/* Messages — scrollable */}
@@ -608,7 +608,7 @@ export default function ChatScreen() {
         </ScrollView>
 
         {/* Input fixe en bas — toujours visible au-dessus du clavier et safe area */}
-        <View style={{ paddingBottom: Math.max(insets.bottom, 8) }}>
+        <View style={{ paddingBottom: Math.max(insets.bottom, 8), backgroundColor: colors.background }}>
           {renderBottomInput()}
         </View>
       </KeyboardAvoidingView>
@@ -710,6 +710,7 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   messagesContainer: {
     flex: 1,

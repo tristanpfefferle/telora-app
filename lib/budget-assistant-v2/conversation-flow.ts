@@ -81,10 +81,10 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   'assurances_lamal',
   'assurances_complementaire',
   'assurances_menage_rc',
-  'assurances_vehicule',
 
   // Phase 3 : C. Transport
   'transport_voiture',
+  'assurances_vehicule',
   'transport_essence',
   'transport_entretien',
   'transport_parking',
@@ -146,8 +146,8 @@ export const PHASE_STEPS: Record<PhaseId, ConversationStepId[]> = {
   3: [
     'depenses_fixes_intro',
     'logement_loyer', 'logement_charges', 'logement_electricite', 'logement_chauffage', 'logement_internet', 'logement_serafe',
-    'assurances_intro', 'assurances_lamal', 'assurances_complementaire', 'assurances_menage_rc', 'assurances_vehicule',
-    'transport_voiture', 'transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing', 'transport_publics',
+    'assurances_intro', 'assurances_lamal', 'assurances_complementaire', 'assurances_menage_rc',
+    'transport_voiture', 'assurances_vehicule', 'transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing', 'transport_publics',
     'telecom_mobile',
     'impots_acomptes',
     'engagements_credits', 'engagements_pension', 'engagements_abonnements', 'engagements_abonnements_montant',
@@ -479,22 +479,6 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
       helpText: "Souvent groupées. RC privée ~100-150 CHF/an.",
     }),
     messages: [],
-    nextStep: 'assurances_vehicule',
-  },
-
-  assurances_vehicule: {
-    id: 'assurances_vehicule',
-    phase: 3,
-    name: 'Assurance véhicule',
-    inputMode: 'numeric_chf',
-    numericConfig: numConfig({
-      placeholder: "Ex: 80",
-      min: 0,
-      max: 1000,
-      skipButtonLabel: BUTTON_LABELS.pasDeVehicule,
-      skipValue: 0,
-    }),
-    messages: [],
     nextStep: 'transport_voiture',
   },
 
@@ -510,10 +494,24 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     ],
     messages: [],
     branchOn: [
-      { value: true, nextStep: 'transport_essence' },
+      { value: true, nextStep: 'assurances_vehicule' },
       { value: false, nextStep: 'transport_publics' },
     ],
     nextStep: 'transport_publics',
+  },
+
+  assurances_vehicule: {
+    id: 'assurances_vehicule',
+    phase: 3,
+    name: 'Assurance véhicule',
+    inputMode: 'numeric_chf',
+    numericConfig: numConfig({
+      placeholder: "Ex: 80",
+      min: 0,
+      max: 1000,
+    }),
+    messages: [],
+    nextStep: 'transport_essence',
   },
 
   transport_essence: {
@@ -619,7 +617,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     inputMode: 'quick_replies',
     quickReplies: [
       qr('source', BUTTON_LABELS.prelevesSource, 'preleve_source'),
-      qr('acomptes', 'Je paie des acomptes mensuels', 'acomptes_mensuels'),
+      qr('acomptes', BUTTON_LABELS.acomptesMensuels, 'acomptes_mensuels'),
       qr('provision', BUTTON_LABELS.provisionMoiMeme, 'provision_personnelle'),
       qr('non_concerne', BUTTON_LABELS.pasConcerne, 'non_concerne'),
     ],
