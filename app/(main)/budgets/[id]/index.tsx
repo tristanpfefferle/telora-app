@@ -21,7 +21,7 @@ interface EditField {
   label: string;       // Label affiché (ex: 'Loyer')
   icon?: string;       // Emoji icône
   section: string;     // Section de regroupement (ex: 'Logement')
-  subsection?: string;  // Sous-catégorie de dépenses fixes (ex: 'Logement')
+  subsection?: string;  // Sous-catégorie de dépenses essentielles (ex: 'Logement')
 }
 
 /** Mapping clé technique → label propre pour les revenus autres */
@@ -63,7 +63,7 @@ const DEPENSE_LABELS: Record<string, string> = {
   // Engagements
   credits: 'Crédits/Leasing',
   pension: 'Pension alimentaire',
-  // Variables
+  // Variables (loisirs + alimentaire)
   alimentaire: 'Courses alimentaires',
   restaurants: 'Restaurants',
   sorties: 'Sorties/Loisirs',
@@ -90,44 +90,46 @@ const EDIT_FIELDS: EditField[] = [
   { key: 'revenus.salaire.treiziemeMontant', label: '13e salaire (annuel)', icon: '💰', section: 'Revenus' },
 
   // Logement
-  { key: 'logement.loyer', label: 'Loyer', icon: '🏠', section: 'Dépenses fixes', subsection: 'Logement' },
-  { key: 'logement.charges', label: 'Charges', icon: '📦', section: 'Dépenses fixes', subsection: 'Logement' },
-  { key: 'logement.electricite', label: 'Électricité', icon: '⚡', section: 'Dépenses fixes', subsection: 'Logement' },
-  { key: 'logement.chauffage', label: 'Chauffage', icon: '🔥', section: 'Dépenses fixes', subsection: 'Logement' },
-  { key: 'logement.internet', label: 'Internet', icon: '🌐', section: 'Dépenses fixes', subsection: 'Logement' },
-  { key: 'logement.serafe', label: 'SERAFE', icon: '📺', section: 'Dépenses fixes', subsection: 'Logement' },
+  { key: 'logement.loyer', label: 'Loyer', icon: '🏠', section: 'Dépenses essentielles', subsection: 'Logement' },
+  { key: 'logement.charges', label: 'Charges', icon: '📦', section: 'Dépenses essentielles', subsection: 'Logement' },
+  { key: 'logement.electricite', label: 'Électricité', icon: '⚡', section: 'Dépenses essentielles', subsection: 'Logement' },
+  { key: 'logement.chauffage', label: 'Chauffage', icon: '🔥', section: 'Dépenses essentielles', subsection: 'Logement' },
+  { key: 'logement.internet', label: 'Internet', icon: '🌐', section: 'Dépenses essentielles', subsection: 'Logement' },
+  { key: 'logement.serafe', label: 'SERAFE', icon: '📺', section: 'Dépenses essentielles', subsection: 'Logement' },
 
   // Assurances
-  { key: 'assurances.lamal', label: 'LAMal', icon: '🏥', section: 'Dépenses fixes', subsection: 'Assurances' },
-  { key: 'assurances.complementaire', label: 'Complémentaire santé', icon: '💊', section: 'Dépenses fixes', subsection: 'Assurances' },
-  { key: 'assurances.menageRc', label: 'Ménage/RC', icon: '🛡️', section: 'Dépenses fixes', subsection: 'Assurances' },
-  { key: 'assurances.vehicule', label: 'Assurance véhicule', icon: '🚗', section: 'Dépenses fixes', subsection: 'Assurances' },
+  { key: 'assurances.lamal', label: 'LAMal', icon: '🏥', section: 'Dépenses essentielles', subsection: 'Assurances' },
+  { key: 'assurances.complementaire', label: 'Complémentaire santé', icon: '💊', section: 'Dépenses essentielles', subsection: 'Assurances' },
+  { key: 'assurances.menageRc', label: 'Ménage/RC', icon: '🛡️', section: 'Dépenses essentielles', subsection: 'Assurances' },
+  { key: 'assurances.vehicule', label: 'Assurance véhicule', icon: '🚗', section: 'Dépenses essentielles', subsection: 'Assurances' },
 
   // Transport
-  { key: 'transport.essence', label: 'Essence', icon: '⛽', section: 'Dépenses fixes', subsection: 'Transport' },
-  { key: 'transport.entretien', label: 'Entretien voiture', icon: '🔧', section: 'Dépenses fixes', subsection: 'Transport' },
-  { key: 'transport.parking', label: 'Parking', icon: '🅿️', section: 'Dépenses fixes', subsection: 'Transport' },
-  { key: 'transport.leasing', label: 'Leasing voiture', icon: '🚙', section: 'Dépenses fixes', subsection: 'Transport' },
-  { key: 'transport.transportsPublics', label: 'Transports publics', icon: '🚆', section: 'Dépenses fixes', subsection: 'Transport' },
+  { key: 'transport.essence', label: 'Essence', icon: '⛽', section: 'Dépenses essentielles', subsection: 'Transport' },
+  { key: 'transport.entretien', label: 'Entretien voiture', icon: '🔧', section: 'Dépenses essentielles', subsection: 'Transport' },
+  { key: 'transport.parking', label: 'Parking', icon: '🅿️', section: 'Dépenses essentielles', subsection: 'Transport' },
+  { key: 'transport.leasing', label: 'Leasing voiture', icon: '🚙', section: 'Dépenses essentielles', subsection: 'Transport' },
+  { key: 'transport.transportsPublics', label: 'Transports publics', icon: '🚆', section: 'Dépenses essentielles', subsection: 'Transport' },
 
   // Télécom
-  { key: 'telecom.mobile', label: 'Forfait mobile', icon: '📱', section: 'Dépenses fixes', subsection: 'Télécom' },
+  { key: 'telecom.mobile', label: 'Forfait mobile', icon: '📱', section: 'Dépenses essentielles', subsection: 'Télécom' },
 
   // Impôts
-  { key: 'impots.acomptes', label: 'Impôts (acomptes/mois)', icon: '🏛️', section: 'Dépenses fixes', subsection: 'Impôts' },
+  { key: 'impots.acomptes', label: 'Impôts (acomptes/mois)', icon: '🏛️', section: 'Dépenses essentielles', subsection: 'Impôts' },
 
   // Engagements
-  { key: 'engagements.credits', label: 'Crédits/leasing', icon: '💳', section: 'Dépenses fixes', subsection: 'Engagements' },
-  { key: 'engagements.pension', label: 'Pension alimentaire', icon: '👨‍👩‍👧', section: 'Dépenses fixes', subsection: 'Engagements' },
+  { key: 'engagements.credits', label: 'Crédits/leasing', icon: '💳', section: 'Dépenses essentielles', subsection: 'Engagements' },
+  { key: 'engagements.pension', label: 'Pension alimentaire', icon: '👨‍👩‍👧', section: 'Dépenses essentielles', subsection: 'Engagements' },
 
-  // Variables
-  { key: 'variables.alimentaire', label: 'Courses alimentaires', icon: '🥑', section: 'Dépenses variables' },
-  { key: 'variables.restaurants', label: 'Restaurants', icon: '🍽️', section: 'Dépenses variables' },
-  { key: 'variables.sorties', label: 'Sorties/Loisirs', icon: '🎉', section: 'Dépenses variables' },
-  { key: 'variables.vetements', label: 'Vêtements', icon: '👕', section: 'Dépenses variables' },
-  { key: 'variables.voyages', label: 'Voyages', icon: '✈️', section: 'Dépenses variables' },
-  { key: 'variables.cadeaux', label: 'Cadeaux', icon: '🎁', section: 'Dépenses variables' },
-  { key: 'variables.autres', label: 'Autres envies', icon: '📎', section: 'Dépenses variables' },
+  // Alimentaire (dépense essentielle)
+  { key: 'variables.alimentaire', label: 'Courses alimentaires', icon: '🥑', section: 'Dépenses essentielles', subsection: 'Alimentaire' },
+
+  // Loisirs
+  { key: 'variables.restaurants', label: 'Restaurants', icon: '🍽️', section: 'Dépenses loisirs' },
+  { key: 'variables.sorties', label: 'Sorties/Loisirs', icon: '🎉', section: 'Dépenses loisirs' },
+  { key: 'variables.vetements', label: 'Vêtements', icon: '👕', section: 'Dépenses loisirs' },
+  { key: 'variables.voyages', label: 'Voyages', icon: '✈️', section: 'Dépenses loisirs' },
+  { key: 'variables.cadeaux', label: 'Cadeaux', icon: '🎁', section: 'Dépenses loisirs' },
+  { key: 'variables.autres', label: 'Autres envies', icon: '📎', section: 'Dépenses loisirs' },
 
   // Épargne
   { key: 'epargne.montantActuel', label: 'Épargne actuelle/mois', icon: '💎', section: 'Épargne' },
@@ -157,7 +159,7 @@ function setNestedValue(obj: any, path: string, value: number): any {
   return result;
 }
 
-/** Calcule les sous-totaux par sous-catégorie de dépenses fixes */
+/** Calcule les sous-totaux par sous-catégorie de dépenses essentielles */
 function computeFixesSubtotals(data: BudgetDataV2) {
   const l = data.logement;
   const logement = l.loyer + l.charges + l.electricite + l.chauffage + l.internet + l.serafe;
@@ -169,14 +171,14 @@ function computeFixesSubtotals(data: BudgetDataV2) {
   const impots = data.impots.acomptes;
   const e = data.engagements;
   const engagements = e.credits + e.pension + e.abonnements.reduce((s, ab) => s + ab.montant, 0);
-  return { logement, assurances, transport, telecom, impots, engagements };
+  const alimentaire = data.variables?.alimentaire || 0;
+  return { logement, assurances, transport, telecom, impots, engagements, alimentaire };
 }
 
-/** Calcule les sous-totaux par catégorie de dépenses variables */
+/** Calcule les sous-totaux par catégorie de dépenses loisirs (sans alimentaire) */
 function computeVariablesSubtotals(data: BudgetDataV2) {
   const v = data.variables;
   return {
-    alimentaire: v.alimentaire,
     restaurants: v.restaurants,
     sorties: v.sorties,
     vetements: v.vetements,
@@ -408,10 +410,11 @@ export default function BudgetDetailScreen() {
       for (const abo of editData.engagements.abonnements) {
         depenses_fixes.push({ categorie: ABO_LABELS[abo.nom] ?? abo.nom, montant: abo.montant });
       }
-
+      // Alimentaire est une dépense essentielle
       const v = editData.variables;
+      if (v.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses alimentaires', montant: v.alimentaire });
+
       const depenses_variables: { categorie: string; montant: number }[] = [];
-      if (v.alimentaire > 0) depenses_variables.push({ categorie: 'Courses alimentaires', montant: v.alimentaire });
       if (v.restaurants > 0) depenses_variables.push({ categorie: 'Restaurants', montant: v.restaurants });
       if (v.sorties > 0) depenses_variables.push({ categorie: 'Sorties/Loisirs', montant: v.sorties });
       if (v.vetements > 0) depenses_variables.push({ categorie: 'Vêtements', montant: v.vetements });
@@ -498,7 +501,7 @@ export default function BudgetDetailScreen() {
     editSections[field.section][sub].push(field);
   }
 
-  // Sous-catégories de dépenses fixes avec leurs sous-totaux
+  // Sous-catégories de dépenses essentielles avec leurs sous-totaux
   const fixesSubsectionData: { key: string; label: string; icon: string; total: number }[] = [
     { key: 'logement', label: 'Logement', icon: '🏠', total: fixesSubtotals.logement },
     { key: 'assurances', label: 'Assurances', icon: '🏥', total: fixesSubtotals.assurances },
@@ -506,6 +509,7 @@ export default function BudgetDetailScreen() {
     { key: 'telecom', label: 'Télécom', icon: '📱', total: fixesSubtotals.telecom },
     { key: 'impots', label: 'Impôts', icon: '🏛️', total: fixesSubtotals.impots },
     { key: 'engagements', label: 'Engagements', icon: '💳', total: fixesSubtotals.engagements },
+    { key: 'alimentaire', label: 'Alimentaire', icon: '🥑', total: fixesSubtotals.alimentaire },
   ];
 
   return (
@@ -587,11 +591,11 @@ export default function BudgetDetailScreen() {
               <View style={styles.stackedBarLegend}>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: colors.error }]} />
-                  <Text style={styles.legendText}>Fixes {metrics.ratioFixes}%</Text>
+                  <Text style={styles.legendText}>Essentielles {metrics.ratioFixes}%</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
-                  <Text style={styles.legendText}>Variables {metrics.ratioVariables}%</Text>
+                  <Text style={styles.legendText}>Loisirs {metrics.ratioVariables}%</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: metrics.epargneNet >= 0 ? colors.secondary : '#9CA3AF' }]} />
@@ -627,11 +631,11 @@ export default function BudgetDetailScreen() {
               </CardContent>
             </Card>
 
-            {/* Dépenses fixes — avec sous-catégories et sous-totaux */}
+            {/* Dépenses essentielles — avec sous-catégories et sous-totaux */}
             <Card>
               <CardHeader>
                 <View style={styles.sectionHeaderRow}>
-                  <CardTitle>📌 Dépenses fixes</CardTitle>
+                  <CardTitle>📌 Dépenses essentielles</CardTitle>
                   <Text style={[styles.sectionTotal, { color: colors.error }]}>{formatCHF(metrics.totalFixes)}</Text>
                 </View>
               </CardHeader>
@@ -647,6 +651,7 @@ export default function BudgetDetailScreen() {
                       telecom: ['Forfait mobile'],
                       impots: ['Impôts (acomptes)', 'Impôts (acomptes/mois)'],
                       engagements: ['Crédits/Leasing', 'Pension alimentaire', ...Object.values(ABO_LABELS)],
+                      alimentaire: ['Courses alimentaires'],
                     };
                     return (subMap[sub.key] ?? []).includes(d.categorie);
                   });
@@ -669,11 +674,11 @@ export default function BudgetDetailScreen() {
               </CardContent>
             </Card>
 
-            {/* Dépenses variables — avec total */}
+            {/* Dépenses loisirs — avec total */}
             <Card>
               <CardHeader>
                 <View style={styles.sectionHeaderRow}>
-                  <CardTitle>🛍️ Dépenses variables</CardTitle>
+                  <CardTitle>🎉 Dépenses loisirs</CardTitle>
                   <Text style={[styles.sectionTotal, { color: '#F59E0B' }]}>{formatCHF(metrics.totalVariables)}</Text>
                 </View>
               </CardHeader>
@@ -796,17 +801,17 @@ export default function BudgetDetailScreen() {
               </CardContent>
             </Card>
 
-            {/* Dépenses fixes — par sous-catégorie */}
+            {/* Dépenses essentielles — par sous-catégorie */}
             <Card>
               <CardHeader>
                 <View style={styles.sectionHeaderRow}>
-                  <CardTitle>📌 Dépenses fixes</CardTitle>
+                  <CardTitle>📌 Dépenses essentielles</CardTitle>
                   <Text style={[styles.sectionTotal, { color: colors.error }]}>{formatCHF(metrics.totalFixes)}</Text>
                 </View>
               </CardHeader>
               <CardContent>
                 {fixesSubsectionData.map(sub => {
-                  const fields = editSections['Dépenses fixes']?.[sub.key];
+                  const fields = editSections['Dépenses essentielles']?.[sub.key];
                   if (!fields || fields.length === 0) return null;
                   const subTotal = sub.total;
                   return (
@@ -875,16 +880,16 @@ export default function BudgetDetailScreen() {
               </CardContent>
             </Card>
 
-            {/* Dépenses variables */}
+            {/* Dépenses loisirs */}
             <Card>
               <CardHeader>
                 <View style={styles.sectionHeaderRow}>
-                  <CardTitle>🛍️ Dépenses variables</CardTitle>
+                  <CardTitle>🎉 Dépenses loisirs</CardTitle>
                   <Text style={[styles.sectionTotal, { color: '#F59E0B' }]}>{formatCHF(metrics.totalVariables)}</Text>
                 </View>
               </CardHeader>
               <CardContent>
-                {(editSections['Dépenses variables']?.['Dépenses variables'] ?? []).map(field => (
+                {(editSections['Dépenses loisirs']?.['Dépenses loisirs'] ?? []).map(field => (
                   <View key={field.key} style={styles.editRow}>
                     <View style={styles.editLabelContainer}>
                       <Text style={styles.editIconSmall}>{field.icon || ''}</Text>

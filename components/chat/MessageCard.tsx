@@ -77,10 +77,10 @@ export function MessageCard({ type, title, data, message, icon }: MessageCardPro
           </View>
         </View>
 
-        {/* Dépenses fixes */}
+        {/* Dépenses essentielles */}
         <View style={styles.budgetRow}>
           <View style={styles.budgetLabel}>
-            <Text style={styles.budgetLabelText}>📋 Dépenses fixes</Text>
+            <Text style={styles.budgetLabelText}>📋 Dépenses essentielles</Text>
             <Text style={styles.budgetAmount}>{formatCHF(data.depensesFixes)} CHF</Text>
           </View>
           <View style={styles.progressBar}>
@@ -88,10 +88,10 @@ export function MessageCard({ type, title, data, message, icon }: MessageCardPro
           </View>
         </View>
 
-        {/* Dépenses variables */}
+        {/* Dépenses loisirs */}
         <View style={styles.budgetRow}>
           <View style={styles.budgetLabel}>
-            <Text style={styles.budgetLabelText}>🛒 Dépenses variables</Text>
+            <Text style={styles.budgetLabelText}>🎉 Dépenses loisirs</Text>
             <Text style={styles.budgetAmount}>{formatCHF(data.depensesVariables)} CHF</Text>
           </View>
           <View style={styles.progressBar}>

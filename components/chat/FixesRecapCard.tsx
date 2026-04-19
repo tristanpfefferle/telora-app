@@ -1,5 +1,5 @@
 /**
- * Carte récapitulative des dépenses fixes (fin de phase 3)
+ * Carte récapitulative des dépenses essentielles (fin de phase 3)
  * Affiche chaque poste : logement, assurances, transport, télécom, impôts, engagements
  */
 

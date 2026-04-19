@@ -1,6 +1,6 @@
 /**
  * Carte récapitulative finale du budget (phase 6 — récap global)
- * Affiche la répartition revenus / fixes / variables / épargne
+ * Affiche la répartition revenus / essentielles / loisirs / épargne
  * avec barres de progression, diagnostic personnalisé et conseil contextuel
  *
  * Étape 11 — Récaps intermédiaires + diagnostic personnalisé
@@ -153,7 +153,7 @@ export function BudgetSummaryCard({
 
         <ProgressRow
           icon="🏠"
-          label="Dépenses fixes"
+          label="Dépenses essentielles"
           amount={totalFixes}
           ratio={ratioFixes}
           targetPercent={50}
@@ -162,7 +162,7 @@ export function BudgetSummaryCard({
 
         <ProgressRow
           icon="🛒"
-          label="Dépenses variables"
+          label="Dépenses loisirs"
           amount={totalVariables}
           ratio={ratioVariables}
           targetPercent={30}

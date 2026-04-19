@@ -106,7 +106,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   },
 
   // ─────────────────────────────────────────────
-  // PHASE 3 — Dépenses fixes
+  // PHASE 3 — Dépenses essentielles
   // ─────────────────────────────────────────────
   depenses_fixes_intro: {
     messages: [
@@ -249,7 +249,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   // --- F. Engagements fixes ---
   engagements_credits: {
     messages: [
-      "Dernier bloc de dépenses fixes ! 💪\nAs-tu des crédits ou leasing en cours (hors voiture) ?",
+      "Dernier bloc de dépenses essentielles ! 💪\nAs-tu des crédits ou leasing en cours (hors voiture) ?",
     ],
     helpBubble: "Prêt personnel, achat à tempérament, leasing matériel…",
   },
@@ -285,7 +285,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   },
 
   // ─────────────────────────────────────────────
-  // PHASE 4 — Dépenses variables / envies
+  // PHASE 4 — Dépenses loisirs / envies
   // ─────────────────────────────────────────────
   variables_intro: {
     messages: [
@@ -551,7 +551,7 @@ export const BUTTON_LABELS = {
   dixAnsPlus: "10+ ans",
 
   // Plan d'action (multi-select)
-  reduireDepensesFixes: "Réduire mes dépenses fixes",
+  reduireDepensesFixes: "Réduire mes dépenses essentielles",
   mieuxSuivreEnvies: "Mieux suivre mes envies",
   automatiserEpargne: "Automatiser mon épargne",
   definirObjectifEpargne: "Définir un objectif d'épargne",
@@ -620,12 +620,12 @@ export const PHASE_INTRO_VARIANTS: Record<number, string[]> = {
   ],
   3: [
     "Maintenant le plus important : on va lister tout ce qui te coûte chaque mois. 🏠",
-    "Place aux dépenses fixes ! On va les passer au peigne fin. 🔍",
+    "Place aux dépenses essentielles ! On va les passer au peigne fin. 🔍",
     "C'est parti pour le bloc le plus important : tes besoins essentiels. 💪",
   ],
   4: [
     "OK, on passe à la partie flexible : tes envies et dépenses du quotidien. 🎉",
-    "Enchaînons avec tes dépenses variables — celles où tu as le plus de marge. 🎉",
+    "Enchaînons avec tes dépenses loisirs — celles où tu as le plus de marge. 🎉",
     "Direction les envies ! C'est ici que tu as le plus de flexibilité. ✨",
   ],
   5: [
@@ -641,7 +641,7 @@ export const PHASE_INTRO_VARIANTS: Record<number, string[]> = {
 };
 
 // ============================================================================
-// RATIO FEEDBACK — messages contextuels selon le ratio dépenses fixes / revenus
+// RATIO FEEDBACK — messages contextuels selon le ratio dépenses essentielles / revenus
 // ============================================================================
 
 export const RATIO_MESSAGES = {

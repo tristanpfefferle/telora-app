@@ -44,7 +44,7 @@ import { useBudgetStore } from '../../../../stores/budgetStore';
 const PHASE_META: Record<PhaseId, { name: string; icon: string }> = {
   1: { name: 'Accueil', icon: '👋' },
   2: { name: 'Revenus', icon: '💰' },
-  3: { name: 'Dépenses fixes', icon: '🏠' },
+  3: { name: 'Dépenses essentielles', icon: '🏠' },
   4: { name: 'Envies', icon: '🎉' },
   5: { name: 'Épargne', icon: '💎' },
   6: { name: 'Récapitulatif', icon: '🎯' },

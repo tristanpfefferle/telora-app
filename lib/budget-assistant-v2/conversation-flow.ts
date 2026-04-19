@@ -67,7 +67,7 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   'revenus_autres_montant',
   'revenus_recap',
 
-  // Phase 3 : Dépenses fixes — A. Logement
+  // Phase 3 : Dépenses essentielles — A. Logement
   'depenses_fixes_intro',
   'logement_loyer',
   'logement_charges',
@@ -107,7 +107,7 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   // Phase 3 : Récap
   'depenses_fixes_recap',
 
-  // Phase 4 : Dépenses variables
+  // Phase 4 : Dépenses loisirs
   'variables_intro',
   'variables_alimentaire',
   'variables_restaurants',
@@ -319,12 +319,12 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
   },
 
   // ─────────────────────────────────────────────
-  // PHASE 3 — Dépenses fixes
+  // PHASE 3 — Dépenses essentielles
   // ─────────────────────────────────────────────
   depenses_fixes_intro: {
     id: 'depenses_fixes_intro',
     phase: 3,
-    name: 'Intro dépenses fixes',
+    name: 'Intro dépenses essentielles',
     inputMode: 'info_only',
     messages: [],
     nextStep: 'logement_loyer',
@@ -731,7 +731,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
   depenses_fixes_recap: {
     id: 'depenses_fixes_recap',
     phase: 3,
-    name: 'Récap dépenses fixes',
+    name: 'Récap dépenses essentielles',
     inputMode: 'info_only',
     messages: [],
     showRecapCard: 'depenses_fixes',
@@ -739,12 +739,12 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
   },
 
   // ─────────────────────────────────────────────
-  // PHASE 4 — Dépenses variables / envies
+  // PHASE 4 — Dépenses loisirs / envies
   // ─────────────────────────────────────────────
   variables_intro: {
     id: 'variables_intro',
     phase: 4,
-    name: 'Intro dépenses variables',
+    name: 'Intro dépenses loisirs',
     inputMode: 'info_only',
     messages: [],
     nextStep: 'variables_alimentaire',

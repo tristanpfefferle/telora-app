@@ -1,5 +1,5 @@
 /**
- * Carte récapitulative des dépenses variables / envies (fin de phase 4)
+ * Carte récapitulative des dépenses loisirs / envies (fin de phase 4)
  * Affiche chaque poste variable + total + ratio par rapport aux revenus
  */
 

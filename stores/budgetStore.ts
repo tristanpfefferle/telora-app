@@ -68,10 +68,11 @@ const computeTotalFixes = (data: BudgetDataV2): number =>
   computeTotalTransport(data.transport) +
   computeTotalTelecom(data.telecom) +
   computeTotalImpots(data.impots) +
-  computeTotalEngagements(data.engagements);
+  computeTotalEngagements(data.engagements) +
+  Math.max(0, data.variables.alimentaire);
 
 const computeTotalVariables = (v: DepenseVariables): number =>
-  Math.max(0, v.alimentaire) + Math.max(0, v.restaurants) + Math.max(0, v.sorties) +
+  Math.max(0, v.restaurants) + Math.max(0, v.sorties) +
   Math.max(0, v.vetements) + Math.max(0, v.voyages) + Math.max(0, v.cadeaux) + Math.max(0, v.autres);
 
 const computeTotalRevenus = (r: RevenusData): number => {
@@ -100,16 +101,16 @@ const computeDiagnostic = (
   capaciteEpargne: number,
 ): DiagnosticCase => {
   if (capaciteEpargne < 0) return 'capacite_negative';
-  if (ratioFixes > 60) return 'besoins_elevés';
+  if (ratioFixes > 65) return 'besoins_elevés';
   if (ratioVariables > 30) return 'envies_elevees';
   if (ratioEpargne < 10 && capaciteEpargne > 0) return 'epargne_faible';
   return 'equilibre';
 };
 
 const DIAGNOSTIC_MESSAGES: Record<DiagnosticCase, string> = {
-  equilibre: 'Ton budget est bien équilibré ! Les dépenses fixes, variables et l\'épargne sont dans des proportions saines. Continue sur cette lancée ! 💪',
-  besoins_elevés: 'Tes dépenses fixes pèsent plus de 60 % de tes revenus. C\'est serré. Regarde si tu peux négocier certains contrats (assurances, abonnements) ou réduire ton loyer à terme.',
-  envies_elevees: 'Tes envies représentent plus de 30 % de tes revenus. Pas de panique, mais un petit ajustement libérera de la place pour épargner. Commence par repérer les dépenses « fantômes ».',
+  equilibre: 'Ton budget est bien équilibré ! Les dépenses essentielles, les loisirs et l\'épargne sont dans des proportions saines. Continue sur cette lancée ! 💪',
+  besoins_elevés: 'Tes dépenses essentielles pèsent plus de 65 % de tes revenus. C\'est serré. Regarde si tu peux négocier certains contrats (assurances, abonnements) ou réduire ton loyer à terme.',
+  envies_elevees: 'Tes loisirs représentent plus de 30 % de tes revenus. Pas de panique, mais un petit ajustement libérera de la place pour épargner. Commence par repérer les dépenses « fantômes ».',
   epargne_faible: 'Tu épargnes moins de 10 % de tes revenus. Même un petit montant automatique chaque mois fera une grosse différence sur la durée. L\'important c\'est la régularité !',
   capacite_negative: 'Attention ! Tes dépenses dépassent tes revenus. C\'est une situation qui peut vite devenir difficile. Priorité n°1 : identifie les dépenses à réduire immédiatement.',
 };
@@ -127,7 +128,7 @@ const REVENU_SOURCE_LABELS: Record<AutreRevenuSource, string> = {
   autre: 'Autre revenu',
 };
 
-/** Labels pour les catégories de dépenses fixes dans le backend V1 */
+/** Labels pour les catégories de dépenses essentielles dans le backend V1 */
 const FIXE_CATEGORY_LABELS_V2: Record<string, string> = {
   loyer: 'Loyer',
   charges: 'Charges',
@@ -148,6 +149,7 @@ const FIXE_CATEGORY_LABELS_V2: Record<string, string> = {
   acomptes: 'Impôts (acomptes)',
   credits: 'Crédits/Leasing',
   pension: 'Pension alimentaire',
+  alimentaire: 'Courses alimentaires',
 };
 
 const ABO_LABELS: Record<AbonnementNom, string> = {
@@ -160,6 +162,7 @@ const ABO_LABELS: Record<AbonnementNom, string> = {
 };
 
 const VARIABLE_CATEGORY_LABELS: Record<string, string> = {
+  // alimentaire moved to FIXE_CATEGORY_LABELS_V2
   alimentaire: 'Courses alimentaires',
   restaurants: 'Restaurants',
   sorties: 'Sorties/Loisirs',
@@ -171,8 +174,8 @@ const VARIABLE_CATEGORY_LABELS: Record<string, string> = {
 
 const PLAN_ACTION_LABELS: Record<PlanActionId, { title: string; description: string; priority: string }> = {
   reduire_depenses_fixes: {
-    title: 'Réduire les dépenses fixes',
-    description: 'Négocie tes contrats d\'assurance, compare les offres internet/mobile, vérifie les abonnements inutiles.',
+    title: 'Réduire les dépenses essentielles',
+    description: 'Négocie tes contrats d\'assurance, compare les offres internet/mobile, vérifie les abonnements inutiles. Réduis les courses alimentaires si possible.',
     priority: 'high',
   },
   mieux_suivre_envies: {
@@ -229,7 +232,7 @@ const toBackendPayload = (data: BudgetDataV2, objectifFinancier?: string, mindse
     revenus.push({ source: REVENU_SOURCE_LABELS[autre.source] ?? autre.source, montant: autre.montant });
   }
 
-  // --- Dépenses fixes ---
+  // --- Dépenses essentielles ---
   const depenses_fixes: BackendDepenseFixe[] = [];
 
   // Logement
@@ -272,10 +275,12 @@ const toBackendPayload = (data: BudgetDataV2, objectifFinancier?: string, mindse
     depenses_fixes.push({ categorie: ABO_LABELS[abo.nom] ?? abo.nom, montant: abo.montant });
   }
 
-  // --- Dépenses variables ---
+  // --- Dépenses essentielles : alimentaire ajouté ici ---
+  if (data.variables.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses alimentaires', montant: data.variables.alimentaire });
+
+  // --- Dépenses loisirs ---
   const v = data.variables;
   const depenses_variables: BackendDepenseVariable[] = [];
-  if (v.alimentaire > 0) depenses_variables.push({ categorie: 'Courses alimentaires', montant: v.alimentaire });
   if (v.restaurants > 0) depenses_variables.push({ categorie: 'Restaurants', montant: v.restaurants });
   if (v.sorties > 0) depenses_variables.push({ categorie: 'Sorties/Loisirs', montant: v.sorties });
   if (v.vetements > 0) depenses_variables.push({ categorie: 'Vêtements', montant: v.vetements });
@@ -513,7 +518,7 @@ interface BudgetStateV2 {
   addAbonnement: (nom: AbonnementNom, montant: number) => void;
   removeAbonnement: (nom: AbonnementNom) => void;
 
-  // ── Actions — Dépenses variables ──
+  // ── Actions — Dépenses loisirs ──
   setAlimentaire: (montant: number) => void;
   setRestaurants: (montant: number) => void;
   setSorties: (montant: number) => void;
@@ -834,7 +839,7 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
     })),
 
   // =========================================================================
-  // Actions — Dépenses variables
+  // Actions — Dépenses loisirs
   // =========================================================================
 
   setAlimentaire: (montant) =>
@@ -945,7 +950,7 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
 
       // Totaux principaux
       const totalRevenus = computeTotalRevenus(data.revenus);
-      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements;
+      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements + Math.max(0, data.variables.alimentaire);
       const totalVariables = computeTotalVariables(data.variables);
       const capaciteEpargne = totalRevenus - totalFixes - totalVariables;
 
@@ -1155,7 +1160,7 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
       const totalEngagements = computeTotalEngagements(data.engagements);
 
       const totalRevenus = computeTotalRevenus(data.revenus);
-      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements;
+      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements + Math.max(0, data.variables.alimentaire);
       const totalVariables = computeTotalVariables(data.variables);
       const capaciteEpargne = totalRevenus - totalFixes - totalVariables;
 

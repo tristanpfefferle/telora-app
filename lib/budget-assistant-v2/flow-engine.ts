@@ -69,7 +69,7 @@ import {
 const PHASE_NAMES: Record<PhaseId, string> = {
   1: 'Accueil',
   2: 'Revenus',
-  3: 'Dépenses fixes',
+  3: 'Dépenses essentielles',
   4: 'Envies',
   5: 'Épargne',
   6: 'Récapitulatif',
@@ -270,7 +270,7 @@ export class FlowEngine {
   /** L'étape en cours nécessite-t-elle un encouragement ? */
   shouldShowEncouragement(): boolean {
     const step = this.state.currentStep;
-    // Dans la phase 3 (dépenses fixes), toutes les 4 étapes
+    // Dans la phase 3 (dépenses essentielles), toutes les 4 étapes
     const phase3Steps = PHASE_STEPS[3];
     const idx = phase3Steps.indexOf(step);
     if (idx >= 0 && idx > 0 && idx % 4 === 0) return true;
@@ -926,7 +926,7 @@ export class FlowEngine {
     data.revenus.total = data.revenus.salaire.salaireNet + treiziemeParMois + data.revenus.autres.reduce((s, a) => s + a.montant, 0);
     data.totalRevenus = data.revenus.total;
 
-    // Total dépenses fixes
+    // Total dépenses essentielles
     const logementTotal = data.logement.loyer
       + (data.logement.charges >= 0 ? data.logement.charges : 0) // -1 = comprises
       + data.logement.electricite
@@ -955,7 +955,7 @@ export class FlowEngine {
 
     data.totalFixes = logementTotal + assurancesTotal + transportTotal + telecomTotal + impotsTotal + engagementsTotal;
 
-    // Total dépenses variables
+    // Total dépenses loisirs
     data.totalVariables = Math.max(0, data.variables.alimentaire)
       + Math.max(0, data.variables.restaurants)
       + Math.max(0, data.variables.sorties)
@@ -1249,7 +1249,7 @@ export class FlowEngine {
       case 'plan_action': {
         const diag = this.getDiagnostic();
         const ACTION_LABELS: Record<string, string> = {
-          reduire_depenses_fixes: 'Réduire les dépenses fixes',
+          reduire_depenses_fixes: 'Réduire les dépenses essentielles',
           mieux_suivre_envies: 'Mieux suivre mes envies',
           automatiser_epargne: 'Automatiser l\'épargne',
           definir_objectif_epargne: 'Définir un objectif d\'épargne',
@@ -1277,7 +1277,7 @@ export class FlowEngine {
           const conseil = PLAN_ACTION_CONSEILS[id as keyof typeof PLAN_ACTION_CONSEILS];
           if (conseil) {
             const titreMap: Record<string, string> = {
-              reduire_depenses_fixes: 'Réduire les fixes',
+              reduire_depenses_fixes: 'Réduire les essentielles',
               mieux_suivre_envies: 'Suivre les envies',
               automatiser_epargne: 'Automatiser l\'épargne',
               definir_objectif_epargne: 'Objectif épargne',

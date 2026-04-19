@@ -64,7 +64,7 @@ export function BudgetSummary({
       {/* Dépenses Fixes */}
       <Card>
         <CardHeader>
-          <CardTitle>🏠 Dépenses fixes</CardTitle>
+          <CardTitle>🏠 Dépenses essentielles</CardTitle>
         </CardHeader>
         <CardContent>
           <Text style={styles.depensesAmount}>
@@ -84,7 +84,7 @@ export function BudgetSummary({
       {/* Dépenses Variables */}
       <Card>
         <CardHeader>
-          <CardTitle>🛒 Dépenses variables</CardTitle>
+          <CardTitle>🎉 Dépenses loisirs</CardTitle>
         </CardHeader>
         <CardContent>
           <Text style={styles.depensesAmount}>
@@ -131,11 +131,11 @@ export function BudgetSummary({
         </CardHeader>
         <CardContent>
           <View style={styles.ratioItem}>
-            <Text style={styles.ratioLabel}>Dépenses fixes</Text>
+            <Text style={styles.ratioLabel}>Dépenses essentielles</Text>
             <Text style={styles.ratioTarget}>≤ 50%</Text>
           </View>
           <View style={styles.ratioItem}>
-            <Text style={styles.ratioLabel}>Dépenses variables</Text>
+            <Text style={styles.ratioLabel}>Dépenses loisirs</Text>
             <Text style={styles.ratioTarget}>≤ 30%</Text>
           </View>
           <View style={styles.ratioItem}>
