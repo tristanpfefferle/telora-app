@@ -53,6 +53,7 @@ import {
   pickEncouragement,
   pickSkip,
   pickMiniTip,
+  PHASE_MINI_TIPS,
   getVariantAvoidLast,
   ACK_VARIANTS,
   TRANSITION_VARIANTS,
@@ -277,10 +278,13 @@ export class FlowEngine {
     return false;
   }
 
-  /** L'étape en cours nécessite-t-elle un mini-conseil aléatoire ? */
+  /** L'étape en cours nécessite-t-elle un mini-conseil contextuel ? */
   shouldShowMiniTip(): boolean {
-    // ~15% de chance à chaque étape (sauf info_only)
+    // ~15% de chance à chaque étape (sauf info_only) — seulement pour les phases qui ont des tips
     if (this.getCurrentInputMode() === 'info_only') return false;
+    const phase = this.getCurrentPhase();
+    const tips = PHASE_MINI_TIPS[phase];
+    if (!tips || tips.length === 0) return false;
     return Math.random() < 0.15;
   }
 
@@ -349,15 +353,9 @@ export class FlowEngine {
       newMessages.push(encMsg);
     }
 
-    // 9. Mini-tip — max 2 par conversation
-    if (this.shouldShowMiniTip() && (this.miniTipCount ?? 0) < 2) {
-      const { text, state: vs } = pickMiniTip(this.variantsState);
-      this.variantsState = vs;
-      const tipMsg = this.createBotMessage(text, { quickRepliesActive: false });
-      this.messages.push(tipMsg);
-      newMessages.push(tipMsg);
-      this.miniTipCount = (this.miniTipCount ?? 0) + 1;
-    }
+    // 9. Mini-tips supprimés du chat — ils sont désormais affichés
+    // uniquement dans les cartes récap de chaque phase (FixesRecapCard, etc.)
+    // pour éviter les astuces hors contexte (ex: tip LAMal pendant qu'on parle du loyer)
 
     // 10. Avancer à la prochaine étape
     this.goToStep(nextStepId, newMessages);
@@ -500,6 +498,17 @@ export class FlowEngine {
 
   private goToStep(stepId: ConversationStepId, newMessages: ChatMessage[]): void {
     if (this.state.isComplete && stepId !== 'recap_fin') return;
+
+    // Sécurité : si on arrive sur assurances_vehicule sans avoir de voiture, on saute
+    if (stepId === 'assurances_vehicule' && !this.state.data.transport.aVoiture) {
+      this.goToStep('transport_publics', newMessages);
+      return;
+    }
+    // Sécurité : idem pour les étapes voiture-only
+    if (['transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing'].includes(stepId) && !this.state.data.transport.aVoiture) {
+      this.goToStep('transport_publics', newMessages);
+      return;
+    }
 
     this.state.previousStep = this.state.currentStep;
 
@@ -1200,11 +1209,18 @@ export class FlowEngine {
         for (const abo of data.engagements.abonnements) {
           if (abo.montant > 0) postes.push({ label: ABO_LABELS[abo.nom] ?? abo.nom, montant: formatCHF(abo.montant) });
         }
+        // Sélectionner 1-2 astuces contextuelles à afficher dans la carte récap
+        const phase3Tips = PHASE_MINI_TIPS[3] ?? [];
+        const selectedFixesTips = phase3Tips.length > 0
+          ? [phase3Tips[Math.floor(Math.random() * phase3Tips.length)]]
+          : [];
+
         return {
           total: formatCHF(data.totalFixes),
           ratio: formatPercent(data.totalFixes, data.totalRevenus),
           feedback: this.getRatioFeedback().fixes,
           postes,
+          tips: selectedFixesTips,
         };
       }
       case 'variables': {

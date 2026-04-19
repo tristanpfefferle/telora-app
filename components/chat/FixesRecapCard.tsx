@@ -16,6 +16,7 @@ interface FixesRecapCardProps {
     label: string;
     montant: string;
   }>;
+  tips?: string[];     // Astuces contextuelles affichées uniquement dans cette rubrique
 }
 
 export function FixesRecapCard({
@@ -23,6 +24,7 @@ export function FixesRecapCard({
   ratio,
   feedback,
   postes,
+  tips = [],
 }: FixesRecapCardProps) {
   // Ratio numérique pour la couleur de la barre
   const ratioNum = parseInt(ratio, 10) || 0;
@@ -82,6 +84,17 @@ export function FixesRecapCard({
       <View style={[styles.feedbackContainer, { borderLeftColor: barColor }]}>
         <Text style={styles.feedbackText}>{feedback}</Text>
       </View>
+
+      {/* Astuces contextuelles — uniquement dans cette rubrique */}
+      {tips.length > 0 && (
+        <View style={styles.tipsSection}>
+          {tips.map((tip, idx) => (
+            <View key={idx} style={styles.tipItem}>
+              <Text style={styles.tipText}>{tip}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </MotiView>
   );
 }
@@ -208,5 +221,22 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  tipsSection: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  tipItem: {
+    backgroundColor: '#F3E8FF',
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  tipText: {
+    fontSize: fontSize.xs,
+    color: '#6B21A8',
+    lineHeight: 18,
   },
 });

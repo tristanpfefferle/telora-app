@@ -227,6 +227,7 @@ export default function ChatScreen() {
               ratio={msg.cardData?.ratio || '0 %'}
               feedback={msg.cardData?.feedback || ''}
               postes={msg.cardData?.postes || []}
+              tips={msg.cardData?.tips || []}
             />
           </MotiView>
         );
@@ -603,12 +604,12 @@ export default function ChatScreen() {
             <TypingIndicator visible />
           )}
 
-          {/* Spacer pour laisser de la place quand l'input fixe est visible */}
+          {/* Spacer generous pour que les derniers messages ne soient pas cachés derrière l'input fixe */}
           {activeInputMode ? <View style={styles.inputSpacer} /> : <View style={styles.spacer} />}
         </ScrollView>
 
         {/* Input fixe en bas — toujours visible au-dessus du clavier et safe area */}
-        <View style={{ paddingBottom: Math.max(insets.bottom, 8), backgroundColor: colors.background }}>
+        <View style={styles.inputWrapper}>
           {renderBottomInput()}
         </View>
       </KeyboardAvoidingView>
@@ -788,6 +789,10 @@ const styles = StyleSheet.create({
     height: spacing.xxl,
   },
   inputSpacer: {
-    height: 16,
+    height: 120, // Assez grand pour que les derniers messages ne soient pas cachés derrière l'input
+  },
+  inputWrapper: {
+    paddingBottom: 8,
+    backgroundColor: colors.background,
   },
 });
