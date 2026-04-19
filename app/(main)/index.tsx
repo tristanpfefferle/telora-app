@@ -72,16 +72,17 @@ export default function DashboardScreen() {
         </View>
 
         {/* XP & Progression */}
-        {progress && (
+        {/* XP & Progression — ne montrer que si données valides */}
+        {progress && typeof progress.xp === 'number' && !isNaN(progress.xp) && (
           <XPDisplay
-            currentXP={progress.xp}
-            xpToNextLevel={progress.xpToNextLevel}
-            level={progress.level}
+            currentXP={progress.xp || 0}
+            xpToNextLevel={progress.xpToNextLevel || 100}
+            level={progress.level || 1}
           />
         )}
 
-        {/* Streak */}
-        {progress && (
+        {/* Streak — ne montrer que si > 0 */}
+        {progress && typeof progress.streak === 'number' && progress.streak > 0 && (
           <StreakDisplay streak={progress.streak} />
         )}
 

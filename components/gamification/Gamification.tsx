@@ -64,14 +64,17 @@ interface XPDisplayProps {
 }
 
 export function XPDisplay({ currentXP, xpToNextLevel, level }: XPDisplayProps) {
-  const progress = (currentXP / xpToNextLevel) * 100;
+  const safeXP = isNaN(currentXP) ? 0 : currentXP;
+  const safeNext = isNaN(xpToNextLevel) || xpToNextLevel <= 0 ? 100 : xpToNextLevel;
+  const safeLevel = isNaN(level) ? 1 : level;
+  const progress = Math.min(100, (safeXP / safeNext) * 100);
 
   return (
     <View style={styles.xpCard}>
       <View style={styles.xpHeader}>
-        <Text style={styles.xpLevel}>Niveau {level}</Text>
+        <Text style={styles.xpLevel}>Niveau {safeLevel}</Text>
         <Text style={styles.xpText}>
-          {currentXP} / {xpToNextLevel} XP
+          {safeXP} / {safeNext} XP
         </Text>
       </View>
       <View style={styles.xpBarContainer}>
@@ -80,7 +83,7 @@ export function XPDisplay({ currentXP, xpToNextLevel, level }: XPDisplayProps) {
         />
       </View>
       <Text style={styles.xpRemaining}>
-        {xpToNextLevel - currentXP} XP pour le niveau {level + 1}
+        {safeNext - safeXP} XP pour le niveau {safeLevel + 1}
       </Text>
     </View>
   );
@@ -91,10 +94,11 @@ interface StreakDisplayProps {
 }
 
 export function StreakDisplay({ streak }: StreakDisplayProps) {
+  const safeStreak = isNaN(streak) ? 0 : streak;
   return (
     <View style={styles.streakCard}>
       <Text style={styles.streakEmoji}>🔥</Text>
-      <Text style={styles.streakCount}>{streak}</Text>
+      <Text style={styles.streakCount}>{safeStreak}</Text>
       <Text style={styles.streakLabel}>jours consécutifs</Text>
     </View>
   );
