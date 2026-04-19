@@ -375,7 +375,7 @@ export class FlowEngine {
     const newMessages: ChatMessage[] = [];
     const step = this.getCurrentStep();
 
-    // 1. Désactiver les quick replies
+    // 1. Désactiver quick replies
     this.deactivateLastQuickReplies();
 
     // 2. Bulle utilisateur : on affiche le label du bouton skip
@@ -388,18 +388,13 @@ export class FlowEngine {
     const skipValue = step.numericConfig?.skipValue ?? 0;
     this.storeResponse(skipValue, step, 'numeric_chf');
 
-    // 4. Message de skip (variante)
-    const { text, state: newVarState } = pickSkip(this.variantsState);
-    this.variantsState = newVarState;
-    const skipMsg = this.createBotMessage(text, { quickRepliesActive: false });
-    this.messages.push(skipMsg);
-    newMessages.push(skipMsg);
-
-    // 5. Compteur de phase
+    // 4. Compteur de phase
     this.state.phaseStepCounts[step.phase] = (this.state.phaseStepCounts[step.phase] ?? 0) + 1;
 
-    // 6. Prochaine étape — résoudre les branchements conditionnels aussi en cas de skip
+    // 5. Prochaine étape — résoudre les branchements conditionnels aussi en cas de skip
     const nextStepId = this.resolveNextStep(skipValue, step);
+
+    // 6. Avancer
     this.goToStep(nextStepId, newMessages);
 
     // 7. Recalculer
