@@ -430,7 +430,7 @@ export class FlowEngine {
 
     // --- Cas 2 : Étape multi-select → lancer la boucle pour les montants ---
     if (step.inputMode === 'multi_select' && step.multiSelectConfig?.requireAmountPerSelection) {
-      const selectedIds = value as string[];
+      const selectedIds = Array.isArray(value) ? value : [];
       if (selectedIds.length > 0) {
         this.startAmountLoop(selectedIds, step.id);
         const amountStepId = LOOP_STEPS[step.id]?.multiSelectSourceStep
@@ -635,9 +635,13 @@ export class FlowEngine {
         break;
 
       case 'revenus_autres_sources': {
-        const sources = (value as string[]).map(id => id as AutreRevenuSource);
-        // Créer les entrées AutreRevenu avec montant=0 (seront remplies par la boucle)
-        data.revenus.autres = sources.map(s => ({ source: s, montant: 0 }));
+        if (Array.isArray(value)) {
+          const sources = value.map(id => id as AutreRevenuSource);
+          data.revenus.autres = sources.map(s => ({ source: s, montant: 0 }));
+        } else {
+          console.warn('[FlowEngine] revenus_autres_sources: attendait tableau, reçu', typeof value);
+          data.revenus.autres = [];
+        }
         break;
       }
 
@@ -744,8 +748,13 @@ export class FlowEngine {
         break;
 
       case 'engagements_abonnements': {
-        const aboIds = (value as string[]).map(id => id as AbonnementNom);
-        data.engagements.abonnements = aboIds.map(id => ({ nom: id, montant: 0 }));
+        if (Array.isArray(value)) {
+          const aboIds = value.map(id => id as AbonnementNom);
+          data.engagements.abonnements = aboIds.map(id => ({ nom: id, montant: 0 }));
+        } else {
+          console.warn('[FlowEngine] engagements_abonnements: attendait tableau, reçu', typeof value);
+          data.engagements.abonnements = [];
+        }
         break;
       }
 
@@ -823,12 +832,17 @@ export class FlowEngine {
 
       // ── Plan d'action ──
       case 'recap_plan_action': {
-        const actionIds = (value as string[]).map(id => id as PlanActionId);
-        data.planAction = actionIds.map(id => ({
-          id,
-          selected: true,
-          conseilPersonnalise: PLAN_ACTION_CONSEILS[id] ?? '',
-        }));
+        if (Array.isArray(value)) {
+          const actionIds = value.map(id => id as PlanActionId);
+          data.planAction = actionIds.map(id => ({
+            id,
+            selected: true,
+            conseilPersonnalise: PLAN_ACTION_CONSEILS[id] ?? '',
+          }));
+        } else {
+          console.warn('[FlowEngine] recap_plan_action: attendait tableau, reçu', typeof value);
+          data.planAction = [];
+        }
         break;
       }
 

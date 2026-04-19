@@ -459,13 +459,13 @@ export default function ChatScreen() {
   // ============================================================================
 
   const renderBottomInput = () => {
-    if (isComplete) return null;
+    if (isComplete || isTyping) return null;
 
     // Numeric CHF input
     if (activeInputMode === 'numeric_chf') {
       return (
         <NumericChfInput
-          key={currentStepId}
+          key={lastBotMessageId}
           config={activeNumericConfig as any}
           onSubmit={handleNumericSubmit}
           onSkip={handleNumericSkip}
@@ -479,7 +479,7 @@ export default function ChatScreen() {
     if (activeInputMode === 'multi_select') {
       return (
         <MultiSelectButtons
-          key={currentStepId}
+          key={lastBotMessageId}
           config={activeMultiSelectConfig}
           onSubmit={handleMultiSelectSubmit}
           onSkipNone={handleMultiSelectSkipNone}
