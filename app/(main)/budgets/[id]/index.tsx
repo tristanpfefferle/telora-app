@@ -503,13 +503,13 @@ export default function BudgetDetailScreen() {
 
   // Sous-catégories de dépenses essentielles avec leurs sous-totaux
   const fixesSubsectionData: { key: string; label: string; icon: string; total: number }[] = [
-    { key: 'logement', label: 'Logement', icon: '🏠', total: fixesSubtotals.logement },
-    { key: 'assurances', label: 'Assurances', icon: '🏥', total: fixesSubtotals.assurances },
-    { key: 'transport', label: 'Transport', icon: '🚗', total: fixesSubtotals.transport },
-    { key: 'telecom', label: 'Télécom', icon: '📱', total: fixesSubtotals.telecom },
-    { key: 'impots', label: 'Impôts', icon: '🏛️', total: fixesSubtotals.impots },
-    { key: 'engagements', label: 'Engagements', icon: '💳', total: fixesSubtotals.engagements },
-    { key: 'alimentaire', label: 'Alimentaire', icon: '🥑', total: fixesSubtotals.alimentaire },
+    { key: 'Logement', label: 'Logement', icon: '🏠', total: fixesSubtotals.logement },
+    { key: 'Assurances', label: 'Assurances', icon: '🏥', total: fixesSubtotals.assurances },
+    { key: 'Transport', label: 'Transport', icon: '🚗', total: fixesSubtotals.transport },
+    { key: 'Télécom', label: 'Télécom', icon: '📱', total: fixesSubtotals.telecom },
+    { key: 'Impôts', label: 'Impôts', icon: '🏛️', total: fixesSubtotals.impots },
+    { key: 'Engagements', label: 'Engagements', icon: '💳', total: fixesSubtotals.engagements },
+    { key: 'Courses', label: 'Courses', icon: '🥑', total: fixesSubtotals.alimentaire },
   ];
 
   return (
@@ -645,13 +645,13 @@ export default function BudgetDetailScreen() {
                   const items = budget.depensesFixes.filter(d => {
                     // Associer les items V1 aux sous-catégories
                     const subMap: Record<string, string[]> = {
-                      logement: ['Loyer', 'Charges', 'Électricité', 'Chauffage', 'Internet', 'SERAFE'],
-                      assurances: ['LAMal', 'Complémentaire santé', 'Assurance ménage/RC', 'Assurance véhicule'],
-                      transport: ['Essence', 'Entretien voiture', 'Parking', 'Leasing voiture', 'Transports publics'],
-                      telecom: ['Forfait mobile'],
-                      impots: ['Impôts (acomptes)', 'Impôts (acomptes/mois)'],
-                      engagements: ['Crédits/Leasing', 'Pension alimentaire', ...Object.values(ABO_LABELS)],
-                      alimentaire: ['Courses hebdomadaires'],
+                      Logement: ['Loyer', 'Charges', 'Électricité', 'Chauffage', 'Internet', 'SERAFE'],
+                      Assurances: ['LAMal', 'Complémentaire santé', 'Assurance ménage/RC', 'Assurance véhicule'],
+                      Transport: ['Essence', 'Entretien voiture', 'Parking', 'Leasing voiture', 'Transports publics'],
+                      Télécom: ['Forfait mobile'],
+                      'Impôts': ['Impôts (acomptes)', 'Impôts (acomptes/mois)'],
+                      Engagements: ['Crédits/Leasing', 'Pension alimentaire', ...Object.values(ABO_LABELS)],
+                      Courses: ['Courses hebdomadaires'],
                     };
                     return (subMap[sub.key] ?? []).includes(d.categorie);
                   });
