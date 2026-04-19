@@ -1018,13 +1018,26 @@ export class FlowEngine {
     let displayText: string;
 
     if (Array.isArray(value)) {
-      displayText = value.join(', ');
+      // Multi-select : afficher les labels, pas les IDs techniques
+      const step = this.getCurrentStep();
+      if (step.multiSelectConfig?.options) {
+        const labels = value.map(id => {
+          const opt = step.multiSelectConfig!.options.find(o => o.id === id);
+          return opt ? opt.label : id;
+        });
+        displayText = labels.join(', ');
+      } else {
+        displayText = value.join(', ');
+      }
     } else if (typeof value === 'number') {
       displayText = formatCHF(value);
     } else if (typeof value === 'boolean') {
       displayText = value ? 'Oui' : 'Non';
     } else {
-      displayText = value;
+      // String : chercher le label dans les quick replies de l'étape
+      const step = this.getCurrentStep();
+      const matchingQR = step.quickReplies?.find(q => q.value === value);
+      displayText = matchingQR ? matchingQR.label : value;
     }
 
     return {
