@@ -186,7 +186,7 @@ function computeVariablesSubtotals(data: BudgetDataV2) {
   };
 }
 
-/** Calcule les totaux et ratios depuis dataV2 */
+/** Calcule les totaux et ratios depuis dataV2 — avec 1 décimale */
 function computeBudgetMetrics(data: BudgetDataV2) {
   const r = data.revenus;
   const totalRevenus = r.salaire.salaireNet
@@ -198,9 +198,10 @@ function computeBudgetMetrics(data: BudgetDataV2) {
 
   const epargneNet = totalRevenus - totalFixes - totalVariables;
 
-  const ratioFixes = totalRevenus > 0 ? Math.round((totalFixes / totalRevenus) * 100) : 0;
-  const ratioVariables = totalRevenus > 0 ? Math.round((totalVariables / totalRevenus) * 100) : 0;
-  const ratioEpargne = totalRevenus > 0 ? Math.round((epargneNet / totalRevenus) * 100) : 0;
+  // Ratios avec 1 décimale pour plus de précision
+  const ratioFixes = totalRevenus > 0 ? Math.round((totalFixes / totalRevenus) * 1000) / 10 : 0;
+  const ratioVariables = totalRevenus > 0 ? Math.round((totalVariables / totalRevenus) * 1000) / 10 : 0;
+  const ratioEpargne = totalRevenus > 0 ? Math.round((epargneNet / totalRevenus) * 1000) / 10 : 0;
 
   return {
     totalRevenus,
@@ -480,15 +481,9 @@ export default function BudgetDetailScreen() {
   }
 
   const dataV2 = editData; // Toujours utiliser editData (mis à jour en mode édition)
-  const metrics = editing ? computeBudgetMetrics(editData) : {
-    totalRevenus: budget.totalRevenus,
-    totalFixes: budget.totalFixes,
-    totalVariables: budget.totalVariables,
-    capaciteEpargne: budget.capaciteEpargne,
-    ratioFixes: budget.ratioFixes,
-    ratioVariables: budget.ratioVariables,
-    ratioEpargne: budget.ratioEpargne,
-  };
+  // IMPORTANT : Toujours recalculer les ratios depuis data_v2 pour avoir la VRAIE répartition
+  // Ne jamais faire confiance aux ratios stockés en backend (arrondis imprécis)
+  const metrics = computeBudgetMetrics(dataV2);
 
   const totalDepenses = metrics.totalFixes + metrics.totalVariables;
   const fixesSubtotals = computeFixesSubtotals(dataV2);
@@ -570,12 +565,24 @@ export default function BudgetDetailScreen() {
               </View>
             </View>
 
-            {/* Barre empilée — vraie répartition du budget */}
+            {/* Barre empilée — vraie répartition du budget (flex = montants absolus pour proportions exactes) */}
             <View style={styles.stackedBarContainer}>
               <View style={styles.stackedBar}>
-                <View style={[styles.stackedBarFixes, { flex: Math.max(0.5, metrics.ratioFixes) }]} />
-                <View style={[styles.stackedBarVariables, { flex: Math.max(0.5, metrics.ratioVariables) }]} />
-                <View style={[styles.stackedBarEpargne, { flex: Math.max(0.5, Math.max(0, metrics.ratioEpargne)) }]} />
+                {metrics.totalRevenus > 0 && metrics.totalFixes > 0 && (
+                  <View style={[styles.stackedBarFixes, { flex: metrics.totalFixes }]} />
+                )}
+                {metrics.totalRevenus > 0 && metrics.totalVariables > 0 && (
+                  <View style={[styles.stackedBarVariables, { flex: metrics.totalVariables }]} />
+                )}
+                {metrics.totalRevenus > 0 && metrics.epargneNet > 0 && (
+                  <View style={[styles.stackedBarEpargne, { flex: metrics.epargneNet }]} />
+                )}
+                {metrics.totalRevenus > 0 && metrics.epargneNet < 0 && (
+                  <View style={[styles.stackedBarDeficit, { flex: Math.abs(metrics.epargneNet) }]} />
+                )}
+                {metrics.totalRevenus <= 0 && (
+                  <View style={[styles.stackedBarEmpty, { flex: 1 }]} />
+                )}
               </View>
               <View style={styles.stackedBarLegend}>
                 <View style={styles.legendItem}>
@@ -587,8 +594,10 @@ export default function BudgetDetailScreen() {
                   <Text style={styles.legendText}>Variables {metrics.ratioVariables}%</Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.secondary }]} />
-                  <Text style={styles.legendText}>Épargne {metrics.ratioEpargne}%</Text>
+                  <View style={[styles.legendDot, { backgroundColor: metrics.epargneNet >= 0 ? colors.secondary : '#9CA3AF' }]} />
+                  <Text style={styles.legendText}>
+                    {metrics.epargneNet >= 0 ? `Épargne ${metrics.ratioEpargne}%` : `Déficit ${Math.abs(metrics.ratioEpargne)}%`}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -989,6 +998,8 @@ const styles = StyleSheet.create({
   stackedBarFixes: { backgroundColor: colors.error },
   stackedBarVariables: { backgroundColor: '#F59E0B' },
   stackedBarEpargne: { backgroundColor: colors.secondary },
+  stackedBarEmpty: { backgroundColor: colors.surface },
+  stackedBarDeficit: { backgroundColor: '#9CA3AF' },
   stackedBarLegend: {
     flexDirection: 'row',
     justifyContent: 'center',
