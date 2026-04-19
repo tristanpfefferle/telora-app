@@ -149,7 +149,7 @@ const FIXE_CATEGORY_LABELS_V2: Record<string, string> = {
   acomptes: 'Impôts (acomptes)',
   credits: 'Crédits/Leasing',
   pension: 'Pension alimentaire',
-  alimentaire: 'Courses alimentaires',
+  alimentaire: 'Courses hebdomadaires',
 };
 
 const ABO_LABELS: Record<AbonnementNom, string> = {
@@ -163,7 +163,7 @@ const ABO_LABELS: Record<AbonnementNom, string> = {
 
 const VARIABLE_CATEGORY_LABELS: Record<string, string> = {
   // alimentaire moved to FIXE_CATEGORY_LABELS_V2
-  alimentaire: 'Courses alimentaires',
+  alimentaire: 'Courses hebdomadaires',
   restaurants: 'Restaurants',
   sorties: 'Sorties/Loisirs',
   vetements: 'Vêtements',
@@ -175,7 +175,7 @@ const VARIABLE_CATEGORY_LABELS: Record<string, string> = {
 const PLAN_ACTION_LABELS: Record<PlanActionId, { title: string; description: string; priority: string }> = {
   reduire_depenses_fixes: {
     title: 'Réduire les dépenses essentielles',
-    description: 'Négocie tes contrats d\'assurance, compare les offres internet/mobile, vérifie les abonnements inutiles. Réduis les courses alimentaires si possible.',
+    description: 'Négocie tes contrats d\'assurance, compare les offres internet/mobile, vérifie les abonnements inutiles. Optimise tes courses hebdomadaires si possible.',
     priority: 'high',
   },
   mieux_suivre_envies: {
@@ -276,7 +276,7 @@ const toBackendPayload = (data: BudgetDataV2, objectifFinancier?: string, mindse
   }
 
   // --- Dépenses essentielles : alimentaire ajouté ici ---
-  if (data.variables.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses alimentaires', montant: data.variables.alimentaire });
+  if (data.variables.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses hebdomadaires', montant: data.variables.alimentaire });
 
   // --- Dépenses loisirs ---
   const v = data.variables;

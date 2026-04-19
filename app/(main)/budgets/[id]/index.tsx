@@ -64,7 +64,7 @@ const DEPENSE_LABELS: Record<string, string> = {
   credits: 'Crédits/Leasing',
   pension: 'Pension alimentaire',
   // Variables (loisirs + alimentaire)
-  alimentaire: 'Courses alimentaires',
+  alimentaire: 'Courses hebdomadaires',
   restaurants: 'Restaurants',
   sorties: 'Sorties/Loisirs',
   vetements: 'Vêtements',
@@ -121,7 +121,7 @@ const EDIT_FIELDS: EditField[] = [
   { key: 'engagements.pension', label: 'Pension alimentaire', icon: '👨‍👩‍👧', section: 'Dépenses essentielles', subsection: 'Engagements' },
 
   // Alimentaire (dépense essentielle)
-  { key: 'variables.alimentaire', label: 'Courses alimentaires', icon: '🥑', section: 'Dépenses essentielles', subsection: 'Alimentaire' },
+  { key: 'variables.alimentaire', label: 'Courses hebdomadaires', icon: '🥑', section: 'Dépenses essentielles', subsection: 'Courses' },
 
   // Loisirs
   { key: 'variables.restaurants', label: 'Restaurants', icon: '🍽️', section: 'Dépenses loisirs' },
@@ -412,7 +412,7 @@ export default function BudgetDetailScreen() {
       }
       // Alimentaire est une dépense essentielle
       const v = editData.variables;
-      if (v.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses alimentaires', montant: v.alimentaire });
+      if (v.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses hebdomadaires', montant: v.alimentaire });
 
       const depenses_variables: { categorie: string; montant: number }[] = [];
       if (v.restaurants > 0) depenses_variables.push({ categorie: 'Restaurants', montant: v.restaurants });
@@ -651,7 +651,7 @@ export default function BudgetDetailScreen() {
                       telecom: ['Forfait mobile'],
                       impots: ['Impôts (acomptes)', 'Impôts (acomptes/mois)'],
                       engagements: ['Crédits/Leasing', 'Pension alimentaire', ...Object.values(ABO_LABELS)],
-                      alimentaire: ['Courses alimentaires'],
+                      alimentaire: ['Courses hebdomadaires'],
                     };
                     return (subMap[sub.key] ?? []).includes(d.categorie);
                   });

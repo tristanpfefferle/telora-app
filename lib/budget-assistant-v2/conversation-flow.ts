@@ -104,12 +104,14 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   'engagements_abonnements_oui_non',
   'engagements_abonnements_montant',
 
+  // Phase 3 : G. Courses hebdomadaires
+  'essentielles_courses',
+
   // Phase 3 : Récap
   'depenses_fixes_recap',
 
   // Phase 4 : Dépenses loisirs
   'variables_intro',
-  'variables_alimentaire',
   'variables_restaurants',
   'variables_sorties',
   'variables_vetements',
@@ -152,9 +154,10 @@ export const PHASE_STEPS: Record<PhaseId, ConversationStepId[]> = {
     'telecom_mobile',
     'impots_acomptes',
     'engagements_credits', 'engagements_pension', 'engagements_abonnements', 'engagements_abonnements_oui_non', 'engagements_abonnements_montant',
+    'essentielles_courses',
     'depenses_fixes_recap',
   ],
-  4: ['variables_intro', 'variables_alimentaire', 'variables_restaurants', 'variables_sorties', 'variables_vetements', 'variables_voyages', 'variables_cadeaux', 'variables_autres', 'variables_recap'],
+  4: ['variables_intro', 'variables_restaurants', 'variables_sorties', 'variables_vetements', 'variables_voyages', 'variables_cadeaux', 'variables_autres', 'variables_recap'],
   5: ['epargne_intro', 'epargne_montant_actuel', 'epargne_objectif_oui_non', 'epargne_objectif_montant', 'epargne_objectif_echeance', 'epargne_objectif_nature', 'epargne_suggestion_oui_non', 'epargne_automatisation'],
   6: ['recap_intro', 'recap_carte_finale', 'recap_diagnostic', 'recap_plan_action', 'recap_conseils_action', 'recap_fin'],
 };
@@ -725,6 +728,30 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     }),
     messages: [],
     // Répété pour chaque abonnement sélectionné
+    nextStep: 'essentielles_courses',
+  },
+
+  // --- G. Courses hebdomadaires ---
+  essentielles_courses: {
+    id: 'essentielles_courses',
+    phase: 3,
+    name: 'Courses hebdomadaires',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~300', value: 300 },
+        { label: '~500', value: 500 },
+        { label: '~700', value: 700 },
+      ],
+      {
+        placeholder: "Ex: 500",
+        min: 0,
+        max: 3000,
+        skipButtonLabel: BUTTON_LABELS.autreMontant,
+        skipValue: -1, // -1 signifie "ouvrir le champ custom"
+      }
+    ),
+    messages: [],
     nextStep: 'depenses_fixes_recap',
   },
 
@@ -746,29 +773,6 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     phase: 4,
     name: 'Intro dépenses loisirs',
     inputMode: 'info_only',
-    messages: [],
-    nextStep: 'variables_alimentaire',
-  },
-
-  variables_alimentaire: {
-    id: 'variables_alimentaire',
-    phase: 4,
-    name: 'Courses alimentaires',
-    inputMode: 'numeric_chf',
-    numericConfig: numWithSuggestions(
-      [
-        { label: '~300', value: 300 },
-        { label: '~500', value: 500 },
-        { label: '~700', value: 700 },
-      ],
-      {
-        placeholder: "Ex: 500",
-        min: 0,
-        max: 3000,
-        skipButtonLabel: BUTTON_LABELS.autreMontant,
-        skipValue: -1, // -1 signifie "ouvrir le champ custom"
-      }
-    ),
     messages: [],
     nextStep: 'variables_restaurants',
   },

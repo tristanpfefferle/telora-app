@@ -109,12 +109,14 @@ export type ConversationStepId =
   | 'engagements_abonnements_oui_non' // Multi-select
   | 'engagements_abonnements_montant' // Montant par abo sélectionné
 
+  // Phase 3 : G. Courses hebdomadaires
+  | 'essentielles_courses'
+
   // Phase 3 : Récap
   | 'depenses_fixes_recap'
 
-  // Phase 4 : Dépenses variables
+  // Phase 4 : Dépenses loisirs
   | 'variables_intro'
-  | 'variables_alimentaire'
   | 'variables_restaurants'
   | 'variables_sorties'
   | 'variables_vetements'
@@ -254,7 +256,7 @@ export interface DepenseEngagements {
 // --- Dépenses variables ---
 
 export interface DepenseVariables {
-  alimentaire: number;          // Courses alimentaires
+  alimentaire: number;          // Courses hebdomadaires (alimentaire + ménager)
   restaurants: number;          // Restaurants / livraisons / cafés
   sorties: number;              // Sorties / loisirs
   vetements: number;            // Vêtements / shopping

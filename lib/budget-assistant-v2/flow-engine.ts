@@ -826,10 +826,12 @@ export class FlowEngine {
         }
         break;
 
-      // ── Variables ──
-      case 'variables_alimentaire':
+      // ── Essentielles : Courses hebdomadaires ──
+      case 'essentielles_courses':
         data.variables.alimentaire = typeof value === 'number' ? value : 0;
         break;
+
+      // ── Variables (Loisirs) ──
 
       case 'variables_restaurants':
         data.variables.restaurants = typeof value === 'number' ? value : 0;
@@ -1207,7 +1209,7 @@ export class FlowEngine {
       }
       case 'variables': {
         const postes: Array<{ label: string; montant: string }> = [];
-        if (data.variables.alimentaire > 0) postes.push({ label: 'Alimentaire', montant: formatCHF(data.variables.alimentaire) });
+        if (data.variables.alimentaire > 0) postes.push({ label: 'Courses hebdomadaires', montant: formatCHF(data.variables.alimentaire) });
         if (data.variables.restaurants > 0) postes.push({ label: 'Restaurants', montant: formatCHF(data.variables.restaurants) });
         if (data.variables.sorties > 0) postes.push({ label: 'Sorties / Loisirs', montant: formatCHF(data.variables.sorties) });
         if (data.variables.vetements > 0) postes.push({ label: 'Vêtements', montant: formatCHF(data.variables.vetements) });

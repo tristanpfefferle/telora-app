@@ -278,6 +278,12 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
     ],
   },
 
+  essentielles_courses: {
+    messages: [
+      "Dernière question sur les essentielles ! 🛒\nTes courses hebdomadaires (nourriture, produits ménagers, hygiène) — combien par mois en moyenne ?",
+    ],
+  },
+
   depenses_fixes_recap: {
     messages: [
       "Et voilà ton socle mensuel ! Tu viens de lister tout ce qui est incompressible.",
@@ -289,14 +295,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   // ─────────────────────────────────────────────
   variables_intro: {
     messages: [
-      "OK, on passe à la partie plus flexible : tes dépenses du quotidien et tes envies. 🎉",
-      "C'est moins précis, on est sur des estimations mensuelles. Je te propose des fourchettes pour te donner un repère.",
-    ],
-  },
-
-  variables_alimentaire: {
-    messages: [
-      "Les courses alimentaires d'abord. 🛒\nEn moyenne, combien par mois ?",
+      "OK, on passe aux loisirs ! 🎉\nRestaurants, sorties, shopping… les petites dépenses qui font plaisir (ou qui s'accumulent !).",
     ],
   },
 
@@ -594,7 +593,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   abonnements: "Abonnements",
 
   // Variables
-  alimentaire: "Courses alimentaires",
+  alimentaire: "Courses hebdomadaires",
   restaurants: "Restaurants / Cafés",
   sorties: "Sorties / Loisirs",
   vetements: "Vêtements / Shopping",
