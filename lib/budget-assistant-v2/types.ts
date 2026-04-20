@@ -31,6 +31,7 @@ export interface NumericChfConfig {
   skipButtonLabel?: string;   // Texte du bouton "pas concerné" : 'Je n\'en ai pas', 'Pas concerné', etc.
   skipValue?: number;         // Valeur quand on clique skip (généralement 0)
   helpText?: string;          // Texte d'aide contextuel (ex: prime LAMal moyenne)
+  frequency?: 'monthly' | 'annual';  // Fréquence par défaut — si 'annual', le champ annuel est actif en premier
 }
 
 export interface MultiSelectConfig {

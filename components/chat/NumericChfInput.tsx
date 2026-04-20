@@ -12,6 +12,9 @@
  * - Texte d'aide contextuel (helpText)
  * - Valeur par défaut pré-remplie (defaultValue)
  * - Animation d'apparition (Moti)
+ * - **Double champ mensuel/annuel** : si config.frequency est défini,
+ *   l'utilisateur peut saisir en mensuel OU annuel, l'autre champ se
+ *   remplit automatiquement (conversion ×12 ou ÷12).
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -93,6 +96,13 @@ const formatLiveInput = (text: string): string => {
   return parts.length > 1 ? `${intPart}.${parts[1]}` : intPart;
 };
 
+/**
+ * Arrondit un nombre à 2 décimales (pour la division annuel→mensuel)
+ */
+const roundTo2Decimals = (num: number): number => {
+  return Math.round(num * 100) / 100;
+};
+
 // ============================================================================
 // Type guard — distinguer NumericChfConfig de NumericChfWithSuggestionsConfig
 // ============================================================================
@@ -122,22 +132,34 @@ export function NumericChfInput({
     skipButtonLabel,
     skipValue = 0,
     helpText,
+    frequency,
   } = config;
 
   const suggestions = hasSuggestions(config) ? config.suggestions : undefined;
 
+  // Mode dual (mensuel + annuel) activé quand frequency est défini
+  const isDualMode = !!frequency;
+
   // ── State ──
   const [inputValue, setInputValue] = useState('');
+  const [annualValue, setAnnualValue] = useState('');  // Champ annuel (mode dual)
+  const [activeField, setActiveField] = useState<'monthly' | 'annual'>(
+    frequency === 'annual' ? 'annual' : 'monthly'
+  );
   const [isValid, setIsValid] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [hasInteracted, setHasInteracted] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const annualInputRef = useRef<TextInput>(null);
 
   // ── Pré-remplir la valeur par défaut ──
   useEffect(() => {
     if (defaultValue !== undefined && defaultValue !== null && defaultValue > 0) {
       const formatted = formatCHFSwiss(defaultValue);
       setInputValue(formatted);
+      if (isDualMode) {
+        setAnnualValue(formatCHFSwiss(roundTo2Decimals(defaultValue * 12)));
+      }
       validateValue(defaultValue);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -163,21 +185,59 @@ export function NumericChfInput({
     [min, max]
   );
 
-  // ── Handlers ──
+  // ── Handlers — champ mensuel ──
   const handleInputChange = (text: string) => {
     if (disabled) return;
     setHasInteracted(true);
+    setActiveField('monthly');
 
     const formatted = formatLiveInput(text);
     setInputValue(formatted);
 
     const numValue = parseCHFInput(formatted);
     if (formatted.length > 0 && formatted.replace(/'/g, '').length > 0) {
+      // Mettre à jour le champ annuel automatiquement
+      if (isDualMode && numValue > 0) {
+        setAnnualValue(formatCHFSwiss(roundTo2Decimals(numValue * 12)));
+      } else if (isDualMode) {
+        setAnnualValue('');
+      }
       validateValue(numValue);
     } else {
+      if (isDualMode) setAnnualValue('');
       setIsValid(false);
       setErrorMsg(null);
     }
+  };
+
+  // ── Handlers — champ annuel ──
+  const handleAnnualChange = (text: string) => {
+    if (disabled) return;
+    setHasInteracted(true);
+    setActiveField('annual');
+
+    const formatted = formatLiveInput(text);
+    setAnnualValue(formatted);
+
+    const numAnnualValue = parseCHFInput(formatted);
+    if (formatted.length > 0 && formatted.replace(/'/g, '').length > 0 && numAnnualValue > 0) {
+      // Mettre à jour le champ mensuel automatiquement
+      const monthly = roundTo2Decimals(numAnnualValue / 12);
+      setInputValue(formatCHFSwiss(monthly));
+      validateValue(monthly);
+    } else {
+      setInputValue('');
+      setIsValid(false);
+      setErrorMsg(null);
+    }
+  };
+
+  const handleFocusMonthly = () => {
+    setActiveField('monthly');
+  };
+
+  const handleFocusAnnual = () => {
+    setActiveField('annual');
   };
 
   const handleSubmit = () => {
@@ -202,6 +262,9 @@ export function NumericChfInput({
     const formatted = formatCHFSwiss(suggestion.value);
     setInputValue(formatted);
     setHasInteracted(true);
+    if (isDualMode) {
+      setAnnualValue(formatCHFSwiss(roundTo2Decimals(suggestion.value * 12)));
+    }
     validateValue(suggestion.value);
     // Auto-submit après un léger délai pour laisser la validation s'afficher
     setTimeout(() => {
@@ -211,8 +274,12 @@ export function NumericChfInput({
   };
 
   const focusInput = () => {
-    if (!disabled && inputRef.current) {
-      inputRef.current.focus();
+    if (!disabled) {
+      if (isDualMode && activeField === 'annual' && annualInputRef.current) {
+        annualInputRef.current.focus();
+      } else if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
   };
 
@@ -245,38 +312,123 @@ export function NumericChfInput({
         </View>
       )}
 
-      {/* Input + Send row */}
-      <View style={styles.inputRow}>
-        <View style={[styles.inputWrapper, isValid && hasInteracted && styles.inputWrapperValid, errorMsg && styles.inputWrapperError]}>
-          <Text style={styles.chfPrefix}>CHF</Text>
-          <TextInput
-            ref={inputRef}
-            style={[styles.input, disabled && styles.inputDisabled]}
-            keyboardType="numeric"
-            placeholder={placeholder}
-            placeholderTextColor={colors.textMuted}
-            value={inputValue}
-            onChangeText={handleInputChange}
-            onSubmitEditing={isValid ? handleSubmit : undefined}
-            editable={!disabled}
-            selectTextOnFocus
-            returnKeyType={isValid ? 'done' : 'next'}
-            maxLength={15}
-          />
-        </View>
+      {isDualMode ? (
+        // ── Mode dual : 2 champs mensuel / annuel ──
+        <View style={styles.dualFieldContainer}>
+          {/* Labels */}
+          <View style={styles.dualLabelsRow}>
+            <Text style={[styles.fieldLabel, activeField === 'monthly' && styles.fieldLabelActive]}>
+              /mois
+            </Text>
+            <Text style={[styles.fieldLabel, activeField === 'annual' && styles.fieldLabelActive]}>
+              /an
+            </Text>
+          </View>
 
-        {/* Bouton ✓ */}
-        <TouchableOpacity
-          style={[styles.sendButton, (!isValid || disabled) && styles.sendButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={!isValid || disabled}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.sendButtonIcon, (!isValid || disabled) && styles.sendButtonIconDisabled]}>
-            ✓
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {/* Les 2 champs côte à côte */}
+          <View style={styles.dualInputRow}>
+            {/* Champ mensuel */}
+            <View style={[
+              styles.dualInputWrapper,
+              activeField === 'monthly' && isValid && hasInteracted && styles.inputWrapperValid,
+              activeField === 'monthly' && errorMsg && hasInteracted && styles.inputWrapperError,
+              activeField !== 'monthly' && styles.dualInputInactive,
+            ]}>
+              <Text style={styles.chfPrefix}>CHF</Text>
+              <TextInput
+                ref={inputRef}
+                style={[styles.dualInput, disabled && styles.inputDisabled]}
+                keyboardType="numeric"
+                placeholder={placeholder}
+                placeholderTextColor={colors.textMuted}
+                value={inputValue}
+                onChangeText={handleInputChange}
+                onFocus={handleFocusMonthly}
+                onSubmitEditing={isValid ? handleSubmit : undefined}
+                editable={!disabled}
+                selectTextOnFocus
+                returnKeyType={isValid ? 'done' : 'next'}
+                maxLength={15}
+              />
+            </View>
+
+            {/* Séparateur visuel */}
+            <View style={styles.dualSeparator}>
+              <Text style={styles.dualSeparatorIcon}>⇄</Text>
+            </View>
+
+            {/* Champ annuel */}
+            <View style={[
+              styles.dualInputWrapper,
+              activeField === 'annual' && isValid && hasInteracted && styles.inputWrapperValid,
+              activeField === 'annual' && errorMsg && hasInteracted && styles.inputWrapperError,
+              activeField !== 'annual' && styles.dualInputInactive,
+            ]}>
+              <Text style={styles.chfPrefix}>CHF</Text>
+              <TextInput
+                ref={annualInputRef}
+                style={[styles.dualInput, disabled && styles.inputDisabled]}
+                keyboardType="numeric"
+                placeholder={frequency === 'annual' ? "Ex: 4'560" : "Auto"}
+                placeholderTextColor={colors.textMuted}
+                value={annualValue}
+                onChangeText={handleAnnualChange}
+                onFocus={handleFocusAnnual}
+                onSubmitEditing={isValid ? handleSubmit : undefined}
+                editable={!disabled}
+                selectTextOnFocus
+                returnKeyType={isValid ? 'done' : 'next'}
+                maxLength={15}
+              />
+            </View>
+          </View>
+
+          {/* Bouton ✓ intégré dans le mode dual */}
+          <TouchableOpacity
+            style={[styles.sendButton, (!isValid || disabled) && styles.sendButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={!isValid || disabled}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sendButtonIcon, (!isValid || disabled) && styles.sendButtonIconDisabled]}>
+              ✓
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // ── Mode simple : 1 champ (comportement existant) ──
+        <View style={styles.inputRow}>
+          <View style={[styles.inputWrapper, isValid && hasInteracted && styles.inputWrapperValid, errorMsg && styles.inputWrapperError]}>
+            <Text style={styles.chfPrefix}>CHF</Text>
+            <TextInput
+              ref={inputRef}
+              style={[styles.input, disabled && styles.inputDisabled]}
+              keyboardType="numeric"
+              placeholder={placeholder}
+              placeholderTextColor={colors.textMuted}
+              value={inputValue}
+              onChangeText={handleInputChange}
+              onSubmitEditing={isValid ? handleSubmit : undefined}
+              editable={!disabled}
+              selectTextOnFocus
+              returnKeyType={isValid ? 'done' : 'next'}
+              maxLength={15}
+            />
+          </View>
+
+          {/* Bouton ✓ */}
+          <TouchableOpacity
+            style={[styles.sendButton, (!isValid || disabled) && styles.sendButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={!isValid || disabled}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sendButtonIcon, (!isValid || disabled) && styles.sendButtonIconDisabled]}>
+              ✓
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Validation message */}
       {errorMsg && hasInteracted && (
@@ -361,7 +513,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // ── Input row ──
+  // ── Simple input row ──
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -402,6 +554,63 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
+  // ── Dual field mode ──
+  dualFieldContainer: {
+    gap: spacing.sm,
+  },
+  dualLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  fieldLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  fieldLabelActive: {
+    color: colors.primary,
+  },
+  dualInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  dualInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.sm,
+    height: 52,
+  },
+  dualInputInactive: {
+    borderColor: colors.borderLight,
+    opacity: 0.6,
+  },
+  dualInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    paddingVertical: 0,
+    height: '100%',
+  },
+  dualSeparator: {
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dualSeparatorIcon: {
+    color: colors.textMuted,
+    fontSize: 16,
+  },
+
   // ── Send button ✓ ──
   sendButton: {
     width: 52,
@@ -410,6 +619,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'flex-end',
   },
   sendButtonDisabled: {
     backgroundColor: colors.borderLight,
