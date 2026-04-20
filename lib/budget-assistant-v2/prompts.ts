@@ -180,7 +180,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   // --- C. Transport ---
   transport_voiture: {
     messages: [
-      "On passe aux transports. ✈️… ben non, plutôt 🚗\nAs-tu une voiture ?",
+      "On passe aux transports. 🚗\nAs-tu une voiture ?",
     ],
   },
 
