@@ -1428,6 +1428,14 @@ export class FlowEngine {
       startedAt: savedState.startedAt,
       phaseStepCounts: savedState.phaseStepCounts,
     };
+
+    // Migration : anciennes données avec aVoiture → nouveau format vehicules
+    const transport = (this.state.data.transport as any);
+    if (transport && !transport.vehicules) {
+      transport.vehicules = transport.aVoiture ? ['voiture'] : [];
+      transport.nbVoitures = transport.aVoiture ? 1 : 0;
+      delete transport.aVoiture;
+    }
     this.variantsState = initVariantsState();
     this.impotsNeedsAmount = savedState._impotsNeedsAmount ?? false;
 

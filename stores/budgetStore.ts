@@ -53,7 +53,7 @@ const computeTotalAssurances = (a: DepenseAssurances): number =>
   a.lamal + a.complementaire + a.menageRc + a.vehicule;
 
 const computeTotalTransport = (t: DepenseTransport): number =>
-  (t.vehicules.some(vehiculeMotorise) ? t.essence + t.entretien + t.parking + t.leasing : 0) + t.transportsPublics;
+  ((t.vehicules?.some(vehiculeMotorise) ?? (t as any).aVoiture) ? t.essence + t.entretien + t.parking + t.leasing : 0) + t.transportsPublics;
 
 const computeTotalTelecom = (t: DepenseTelecom): number => t.mobile;
 
@@ -1155,6 +1155,14 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
   // =========================================================================
 
   loadBudgetData: (budgetData) => {
+    // Migration : anciennes données avec aVoiture → nouveau format vehicules
+    const transport = budgetData.transport as any;
+    if (transport && !transport.vehicules) {
+      transport.vehicules = transport.aVoiture ? ['voiture'] : [];
+      transport.nbVoitures = transport.aVoiture ? 1 : 0;
+      delete transport.aVoiture;
+    }
+
     // Fusion data + recalculate en UN SEUL set() pour éviter
     // le double re-render qui amplifie les cascades
     set((state) => {
