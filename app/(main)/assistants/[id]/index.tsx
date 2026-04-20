@@ -126,22 +126,28 @@ export default function ChatScreen() {
     );
   }, [restart]);
 
-  // Auto-scroll intelligent — seulement si l'utilisateur est déjà en bas (comme WhatsApp)
-  const isNearBottomRef = useRef(true);
+  // Auto-scroll quand le clavier s'ouvre (comme WhatsApp)
+  useEffect(() => {
+    const showListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
 
-  const handleScroll = useCallback((event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-    isNearBottomRef.current = distanceFromBottom < 150;
+    return () => {
+      showListener.remove();
+    };
   }, []);
 
+  // Scroll en bas à chaque nouveau message (inconditionnel — chat guidé)
   useEffect(() => {
-    if (isNearBottomRef.current) {
-      const timer = setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 150);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    return () => clearTimeout(timer);
   }, [messages.length, lastBotMessageId, isTyping]);
 
   // ============================================================================
@@ -584,8 +590,9 @@ export default function ChatScreen() {
 
       {/* Chat area : messages scrollent, input fixé en bas */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         {/* Messages — scrollable */}
         <ScrollView
@@ -595,8 +602,6 @@ export default function ChatScreen() {
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
-          onScroll={handleScroll}
-          scrollEventThrottle={100}
         >
           {messages.map((message, index) => renderMessage(message, index))}
 
@@ -604,8 +609,8 @@ export default function ChatScreen() {
             <TypingIndicator visible />
           )}
 
-          {/* Spacer generous pour que les derniers messages ne soient pas cachés derrière l'input fixe */}
-          {activeInputMode ? <View style={styles.inputSpacer} /> : <View style={styles.spacer} />}
+          {/* Petit padding pour que les derniers messages ne soient pas collés à l'input */}
+          <View style={{ height: 8 }} />
         </ScrollView>
 
         {/* Input fixe en bas — toujours visible au-dessus du clavier et safe area */}
@@ -721,6 +726,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     paddingHorizontal: spacing.md,
     flexGrow: 1,
+    justifyContent: 'flex-end',  // Les messages collent en bas, le vide est en haut
   },
   botBubble: {
     backgroundColor: colors.surface,
@@ -783,13 +789,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginLeft: spacing.md,
     maxWidth: '90%',
-  },
-  // Spacer normal (fin de conversation)
-  spacer: {
-    height: spacing.xxl,
-  },
-  inputSpacer: {
-    height: 120, // Assez grand pour que les derniers messages ne soient pas cachés derrière l'input
   },
   inputWrapper: {
     paddingBottom: 8,
