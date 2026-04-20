@@ -173,27 +173,33 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   assurances_vehicule: {
     messages: [
-      "Combien paies-tu d'assurance voiture par mois ou par an ?",
+      "Combien paies-tu d'assurance véhicule par mois ou par an ?",
     ],
   },
 
   // --- C. Transport ---
-  transport_voiture: {
+  transport_vehicules: {
     messages: [
-      "On passe aux transports. 🚗\nAs-tu une voiture ?",
+      "On passe aux transports. 🚗\nQuels véhicules possèdes-tu ? Sélectionne tout ce qui s'applique 👇",
+    ],
+  },
+
+  transport_nb_voitures: {
+    messages: [
+      "Combien de voitures as-tu ? 🚗",
     ],
   },
 
   transport_essence: {
     messages: [
-      "Combien dépenses-tu en essence par mois en moyenne ?\nTu peux aussi donner le montant par an.",
+      "Combien dépenses-tu en carburant par mois en moyenne ?\nTu peux aussi donner le montant par an.",
     ],
-    helpBubble: "Si tu as une voiture électrique, mets tes coûts de recharge ici.",
+    helpBubble: "Inclus essence pour voiture, moto, scooter… Électrique ? Mets tes coûts de recharge ici.",
   },
 
   transport_entretien: {
     messages: [
-      "Et l'entretien du véhicule ? (pneus, service, nettoyage…)\nDonne le montant par mois ou par an.",
+      "Et l'entretien de tes véhicules ? (pneus, service, nettoyage…)\nDonne le montant par mois ou par an.",
     ],
   },
 
@@ -564,10 +570,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
   vehicule: "Assurance véhicule",
 
   // Transport
-  essence: "Essence",
-  entretien: "Entretien voiture",
+  essence: "Carburant",
+  entretien: "Entretien véhicules",
   parking: "Parking",
-  leasing: "Leasing voiture",
+  leasing: "Leasing",
   transportsPublics: "Transports publics",
   mobile: "Forfait mobile",
 

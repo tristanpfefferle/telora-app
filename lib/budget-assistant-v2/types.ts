@@ -89,7 +89,8 @@ export type ConversationStepId =
   | 'assurances_vehicule'
 
   // Phase 3 : C. Transport
-  | 'transport_voiture'
+  | 'transport_vehicules'
+  | 'transport_nb_voitures'
   | 'transport_essence'
   | 'transport_entretien'
   | 'transport_parking'
@@ -208,13 +209,35 @@ export interface DepenseAssurances {
 
 // --- Dépenses fixes : C. Transport ---
 
+export type TypeVehicule = 'voiture' | 'moto_scooter' | 'velo_electrique' | 'bateau';
+
+export const VEHICULE_LABELS: Record<TypeVehicule, string> = {
+  voiture: 'Voiture',
+  moto_scooter: 'Moto / Scooter',
+  velo_electrique: 'Vélo électrique',
+  bateau: 'Bateau',
+};
+
+export const VEHICULE_ICONS: Record<TypeVehicule, string> = {
+  voiture: '🚗',
+  moto_scooter: '🛵',
+  velo_electrique: '🚲',
+  bateau: '🚤',
+};
+
+/** Vrai si le type de véhicule nécessite assurance + carburant/entretien */
+export function vehiculeMotorise(v: TypeVehicule): boolean {
+  return v === 'voiture' || v === 'moto_scooter' || v === 'bateau';
+}
+
 export interface DepenseTransport {
-  aVoiture: boolean;           // Possède une voiture ?
-  essence: number;              // Essence/mois
-  entretien: number;            // Entretien moyen/mois
-  parking: number;              // Parking/mois
-  leasing: number;              // Leasing voiture/mois — 0 si pas de leasing
-  transportsPublics: number;    // AG, demi-tarif, CFF — 0 si aucun
+  vehicules: TypeVehicule[];     // Types de véhicules possédés (sélection multiple)
+  nbVoitures: number;             // Nombre de voitures (1, 2, 3+)
+  essence: number;                // Carburant/mois (tous véhicules confondus)
+  entretien: number;              // Entretien moyen/mois
+  parking: number;                // Parking/mois
+  leasing: number;                // Leasing/mois — 0 si pas de leasing
+  transportsPublics: number;      // AG, demi-tarif, CFF — 0 si aucun
 }
 
 // --- Dépenses fixes : D. Télécom ---

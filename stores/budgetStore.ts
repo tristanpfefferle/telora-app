@@ -39,6 +39,7 @@ import type {
   BackendDepenseFixe,
   BackendDepenseVariable,
 } from '../lib/budget-assistant-v2/types';
+import { vehiculeMotorise } from '../lib/budget-assistant-v2/types';
 import { Revenu, DepenseFixe, DepenseVariable, PlanAction } from '../lib/api';
 
 // ============================================================================
@@ -52,7 +53,7 @@ const computeTotalAssurances = (a: DepenseAssurances): number =>
   a.lamal + a.complementaire + a.menageRc + a.vehicule;
 
 const computeTotalTransport = (t: DepenseTransport): number =>
-  (t.aVoiture ? t.essence + t.entretien + t.parking + t.leasing : 0) + t.transportsPublics;
+  (t.vehicules.some(vehiculeMotorise) ? t.essence + t.entretien + t.parking + t.leasing : 0) + t.transportsPublics;
 
 const computeTotalTelecom = (t: DepenseTelecom): number => t.mobile;
 
@@ -356,7 +357,8 @@ const DEFAULT_ASSURANCES: DepenseAssurances = {
 };
 
 const DEFAULT_TRANSPORT: DepenseTransport = {
-  aVoiture: false,
+  vehicules: [],
+  nbVoitures: 0,
   essence: 0,
   entretien: 0,
   parking: 0,
@@ -497,7 +499,8 @@ interface BudgetStateV2 {
   setVehiculeAssurance: (montant: number) => void;
 
   // ── Actions — Transport ──
-  setAVoiture: (has: boolean) => void;
+  setVehicules: (vehicules: import('../lib/budget-assistant-v2/types').TypeVehicule[]) => void;
+  setNbVoitures: (n: number) => void;
   setEssence: (montant: number) => void;
   setEntretien: (montant: number) => void;
   setParking: (montant: number) => void;
@@ -744,9 +747,14 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
   // Actions — Transport
   // =========================================================================
 
-  setAVoiture: (has) =>
+  setVehicules: (vehicules) =>
     set((state) => ({
-      data: { ...state.data, transport: { ...state.data.transport, aVoiture: has } },
+      data: { ...state.data, transport: { ...state.data.transport, vehicules } },
+    })),
+
+  setNbVoitures: (n) =>
+    set((state) => ({
+      data: { ...state.data, transport: { ...state.data.transport, nbVoitures: n } },
     })),
 
   setEssence: (montant) =>

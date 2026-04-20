@@ -32,7 +32,9 @@ import type {
   AbonnementNom,
   ObjectifEpargneNature,
   ObjectifEpargneEcheance,
+  TypeVehicule,
 } from './types';
+import { vehiculeMotorise } from './types';
 import { CONVERSATION_FLOW, STEP_SEQUENCE, STEP_INDEX, PHASE_STEPS, TOTAL_STEPS, LOOP_STEPS, IMPOTS_MONTANT_STEP } from './conversation-flow';
 import {
   STEP_MESSAGES,
@@ -137,7 +139,7 @@ export const createEmptyBudgetData = (): BudgetDataV2 => ({
     lamal: 0, complementaire: 0, menageRc: 0, vehicule: 0,
   },
   transport: {
-    aVoiture: false, essence: 0, entretien: 0, parking: 0, leasing: 0, transportsPublics: 0,
+    vehicules: [], nbVoitures: 0, essence: 0, entretien: 0, parking: 0, leasing: 0, transportsPublics: 0,
   },
   telecom: { mobile: 0 },
   impots: { mode: 'preleve_source', acomptes: 0 },
@@ -454,6 +456,21 @@ export class FlowEngine {
       }
     }
 
+    // --- Cas 3.5 : Branchements spéciaux transport_vehicules ---
+    if (step.id === 'transport_vehicules') {
+      const selectedVehicules = Array.isArray(value) ? value as TypeVehicule[] : [];
+      if (selectedVehicules.includes('voiture')) {
+        // Si voiture sélectionnée → demander combien
+        return 'transport_nb_voitures';
+      }
+      if (selectedVehicules.some(v => vehiculeMotorise(v))) {
+        // Motorisé mais pas voiture → assurances véhicule d'abord
+        return 'assurances_vehicule';
+      }
+      // Rien de motorisé → transports publics
+      return 'transport_publics';
+    }
+
     // --- Cas 4 : Séquentiel standard ---
     return step.nextStep ?? this.getNextSequentialStep();
   }
@@ -504,14 +521,22 @@ export class FlowEngine {
   private goToStep(stepId: ConversationStepId, newMessages: ChatMessage[]): void {
     if (this.state.isComplete && stepId !== 'recap_fin') return;
 
-    // Sécurité : si on arrive sur assurances_vehicule sans avoir de voiture, on saute
-    if (stepId === 'assurances_vehicule' && !this.state.data.transport.aVoiture) {
+    // Sécurité : si on arrive sur assurances_vehicule sans véhicule motorisé, on saute
+    if (stepId === 'assurances_vehicule' && !this.state.data.transport.vehicules.some(vehiculeMotorise)) {
       this.goToStep('transport_publics', newMessages);
       return;
     }
-    // Sécurité : idem pour les étapes voiture-only
-    if (['transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing'].includes(stepId) && !this.state.data.transport.aVoiture) {
+    // Sécurité : idem pour les étapes véhicules motorisés uniquement
+    if (['transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing'].includes(stepId) && !this.state.data.transport.vehicules.some(vehiculeMotorise)) {
       this.goToStep('transport_publics', newMessages);
+      return;
+    }
+    // Sécurité : transport_nb_voitures sans voiture → skip
+    if (stepId === 'transport_nb_voitures' && !this.state.data.transport.vehicules.includes('voiture')) {
+      // Pas de voiture → si motorisé quand même, assurance véhicule, sinon transports publics
+      const nextStep = this.state.data.transport.vehicules.some(vehiculeMotorise)
+        ? 'assurances_vehicule' : 'transport_publics';
+      this.goToStep(nextStep, newMessages);
       return;
     }
 
@@ -763,9 +788,27 @@ export class FlowEngine {
         break;
 
       // ── Transport ──
-      case 'transport_voiture':
-        data.transport.aVoiture = value === true;
+      case 'transport_vehicules': {
+        if (Array.isArray(value)) {
+          data.transport.vehicules = value.map(id => id as TypeVehicule);
+        } else {
+          console.warn('[FlowEngine] transport_vehicules: attendait tableau, reçu', typeof value);
+          data.transport.vehicules = [];
+        }
         break;
+      }
+
+      case 'transport_nb_voitures': {
+        if (typeof value === 'number') {
+          data.transport.nbVoitures = value;
+        } else if (typeof value === 'string') {
+          const parsed = parseInt(value.replace('+', ''), 10);
+          data.transport.nbVoitures = isNaN(parsed) ? 1 : parsed;
+        } else {
+          data.transport.nbVoitures = 1;
+        }
+        break;
+      }
 
       case 'transport_essence':
         data.transport.essence = typeof value === 'number' ? value : 0;
@@ -959,7 +1002,7 @@ export class FlowEngine {
       + data.assurances.menageRc
       + data.assurances.vehicule;
 
-    const transportTotal = (data.transport.aVoiture
+    const transportTotal = (data.transport.vehicules.some(vehiculeMotorise)
       ? data.transport.essence + data.transport.entretien + data.transport.parking + data.transport.leasing
       : 0) + data.transport.transportsPublics;
 

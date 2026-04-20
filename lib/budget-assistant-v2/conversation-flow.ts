@@ -81,7 +81,8 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   'assurances_menage_rc',
 
   // Phase 3 : C. Transport
-  'transport_voiture',
+  'transport_vehicules',
+  'transport_nb_voitures',
   'assurances_vehicule',
   'transport_essence',
   'transport_entretien',
@@ -148,7 +149,7 @@ export const PHASE_STEPS: Record<PhaseId, ConversationStepId[]> = {
     'depenses_fixes_intro',
     'logement_loyer', 'logement_charges', 'logement_electricite', 'logement_chauffage', 'logement_internet', 'logement_serafe',
     'assurances_intro', 'assurances_lamal', 'assurances_complementaire', 'assurances_menage_rc',
-    'transport_voiture', 'assurances_vehicule', 'transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing', 'transport_publics',
+    'transport_vehicules', 'transport_nb_voitures', 'assurances_vehicule', 'transport_essence', 'transport_entretien', 'transport_parking', 'transport_leasing', 'transport_publics',
     'telecom_mobile',
     'impots_acomptes',
     'engagements_credits', 'engagements_pension', 'engagements_abonnements', 'engagements_abonnements_oui_non', 'engagements_abonnements_montant',
@@ -467,25 +468,48 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
       frequency: 'annual',
     }),
     messages: [],
-    nextStep: 'transport_voiture',
+    nextStep: 'transport_vehicules',
   },
 
   // --- C. Transport ---
-  transport_voiture: {
-    id: 'transport_voiture',
+  transport_vehicules: {
+    id: 'transport_vehicules',
     phase: 3,
-    name: 'Possède une voiture',
+    name: 'Véhicules',
+    inputMode: 'multi_select',
+    multiSelectConfig: {
+      options: [
+        { id: 'voiture', label: 'Voiture', icon: '🚗' },
+        { id: 'moto_scooter', label: 'Moto / Scooter', icon: '🛵' },
+        { id: 'velo_electrique', label: 'Vélo électrique', icon: '🚲' },
+        { id: 'bateau', label: 'Bateau', icon: '🚤' },
+      ],
+      minSelections: 0,
+      maxSelections: 4,
+    },
+    messages: [],
+    // Si "voiture" sélectionné → transport_nb_voitures
+    // Si au moins un véhicule motorisé (sans voiture) → assurances_vehicule
+    // Sinon (rien ou vélo uniquement) → transport_publics
+    // (le branchement est géré dans resolveNextStep du flow-engine)
+    nextStep: 'transport_nb_voitures',
+  },
+
+  transport_nb_voitures: {
+    id: 'transport_nb_voitures',
+    phase: 3,
+    name: 'Nombre de voitures',
     inputMode: 'quick_replies',
     quickReplies: [
-      qr('oui', BUTTON_LABELS.oui, true, '🚗'),
-      qr('non', BUTTON_LABELS.non, false, '🚶'),
+      qr('1', '1', 1),
+      qr('2', '2', 2),
+      qr('3_plus', '3 ou plus', 3),
     ],
+    skipLabel: BUTTON_LABELS.pasConcerne,
     messages: [],
-    branchOn: [
-      { value: true, nextStep: 'assurances_vehicule' },
-      { value: false, nextStep: 'transport_publics' },
-    ],
-    nextStep: 'transport_publics',
+    nextStep: 'assurances_vehicule',
+    // Si pas de voiture dans la sélection, on saute cette étape
+    // (géré par goToStep dans le flow-engine)
   },
 
   assurances_vehicule: {
