@@ -144,8 +144,14 @@ export const createEmptyBudgetData = (): BudgetDataV2 => ({
   telecom: { mobile: 0 },
   impots: { mode: 'preleve_source', acomptes: 0 },
   engagements: { credits: 0, pension: 0, abonnements: [] },
+  courses: {
+    alimentation: 0, hygiene: 0, menagers: 0, animaux: 0,
+  },
+  servicesEssentiels: {
+    coiffeur: 0, sante: 0, veterinaire: 0, entretien: 0,
+  },
   variables: {
-    alimentaire: 0, restaurants: 0, sorties: 0, vetements: 0, voyages: 0, cadeaux: 0, autres: 0,
+    restaurants: 0, sorties: 0, vetements: 0, voyages: 0, cadeaux: 0, autres: 0,
   },
   epargne: {
     montantActuel: 0, objectif: null, suggestionDemandee: false,
@@ -539,6 +545,11 @@ export class FlowEngine {
       this.goToStep(nextStep, newMessages);
       return;
     }
+    // Sécurité : services_veterinaire si pas d'animaux → skip
+    if (stepId === 'services_veterinaire' && !this.state.data.courses.animaux) {
+      this.goToStep('services_entretien', newMessages);
+      return;
+    }
 
     this.state.previousStep = this.state.currentStep;
 
@@ -887,9 +898,38 @@ export class FlowEngine {
         }
         break;
 
-      // ── Essentielles : Courses hebdomadaires ──
-      case 'essentielles_courses':
-        data.variables.alimentaire = typeof value === 'number' ? value : 0;
+      // ── Essentielles : Courses hebdomadaires (détaillées) ──
+      case 'courses_alimentation':
+        data.courses.alimentation = typeof value === 'number' ? value : 0;
+        break;
+
+      case 'courses_hygiene':
+        data.courses.hygiene = typeof value === 'number' ? value : 0;
+        break;
+
+      case 'courses_menagers':
+        data.courses.menagers = typeof value === 'number' ? value : 0;
+        break;
+
+      case 'courses_animaux':
+        data.courses.animaux = typeof value === 'number' ? value : 0;
+        break;
+
+      // ── Essentielles : Services essentiels ──
+      case 'services_coiffeur':
+        data.servicesEssentiels.coiffeur = typeof value === 'number' ? value : 0;
+        break;
+
+      case 'services_sante':
+        data.servicesEssentiels.sante = typeof value === 'number' ? value : 0;
+        break;
+
+      case 'services_veterinaire':
+        data.servicesEssentiels.veterinaire = typeof value === 'number' ? value : 0;
+        break;
+
+      case 'services_entretien':
+        data.servicesEssentiels.entretien = typeof value === 'number' ? value : 0;
         break;
 
       // ── Variables (Loisirs) ──
@@ -1016,11 +1056,20 @@ export class FlowEngine {
       + data.engagements.pension
       + data.engagements.abonnements.reduce((s, a) => s + a.montant, 0);
 
-    data.totalFixes = logementTotal + assurancesTotal + transportTotal + telecomTotal + impotsTotal + engagementsTotal;
+    const coursesTotal = Math.max(0, data.courses.alimentation)
+      + Math.max(0, data.courses.hygiene)
+      + Math.max(0, data.courses.menagers)
+      + Math.max(0, data.courses.animaux);
+
+    const servicesEssentielsTotal = Math.max(0, data.servicesEssentiels.coiffeur)
+      + Math.max(0, data.servicesEssentiels.sante)
+      + Math.max(0, data.servicesEssentiels.veterinaire)
+      + Math.max(0, data.servicesEssentiels.entretien);
+
+    data.totalFixes = logementTotal + assurancesTotal + transportTotal + telecomTotal + impotsTotal + engagementsTotal + coursesTotal + servicesEssentielsTotal;
 
     // Total dépenses loisirs
-    data.totalVariables = Math.max(0, data.variables.alimentaire)
-      + Math.max(0, data.variables.restaurants)
+    data.totalVariables = Math.max(0, data.variables.restaurants)
       + Math.max(0, data.variables.sorties)
       + Math.max(0, data.variables.vetements)
       + Math.max(0, data.variables.voyages)
@@ -1269,6 +1318,16 @@ export class FlowEngine {
         for (const abo of data.engagements.abonnements) {
           if (abo.montant > 0) postes.push({ label: ABO_LABELS[abo.nom] ?? abo.nom, montant: formatCHF(abo.montant) });
         }
+        // Courses hebdomadaires
+        if (data.courses.alimentation > 0) postes.push({ label: 'Alimentation', montant: formatCHF(data.courses.alimentation) });
+        if (data.courses.hygiene > 0) postes.push({ label: 'Hygiène', montant: formatCHF(data.courses.hygiene) });
+        if (data.courses.menagers > 0) postes.push({ label: 'Produits ménagers', montant: formatCHF(data.courses.menagers) });
+        if (data.courses.animaux > 0) postes.push({ label: 'Animaux', montant: formatCHF(data.courses.animaux) });
+        // Services essentiels
+        if (data.servicesEssentiels.coiffeur > 0) postes.push({ label: 'Coiffeur', montant: formatCHF(data.servicesEssentiels.coiffeur) });
+        if (data.servicesEssentiels.sante > 0) postes.push({ label: 'Santé / Psy', montant: formatCHF(data.servicesEssentiels.sante) });
+        if (data.servicesEssentiels.veterinaire > 0) postes.push({ label: 'Vétérinaire', montant: formatCHF(data.servicesEssentiels.veterinaire) });
+        if (data.servicesEssentiels.entretien > 0) postes.push({ label: 'Entretien & réparations', montant: formatCHF(data.servicesEssentiels.entretien) });
         // Sélectionner 1-2 astuces contextuelles à afficher dans la carte récap
         const phase3Tips = PHASE_MINI_TIPS[3] ?? [];
         const selectedFixesTips = phase3Tips.length > 0
@@ -1285,7 +1344,6 @@ export class FlowEngine {
       }
       case 'variables': {
         const postes: Array<{ label: string; montant: string }> = [];
-        if (data.variables.alimentaire > 0) postes.push({ label: 'Courses hebdomadaires', montant: formatCHF(data.variables.alimentaire) });
         if (data.variables.restaurants > 0) postes.push({ label: 'Restaurants', montant: formatCHF(data.variables.restaurants) });
         if (data.variables.sorties > 0) postes.push({ label: 'Sorties / Loisirs', montant: formatCHF(data.variables.sorties) });
         if (data.variables.vetements > 0) postes.push({ label: 'Vêtements', montant: formatCHF(data.variables.vetements) });
@@ -1435,6 +1493,24 @@ export class FlowEngine {
       transport.vehicules = transport.aVoiture ? ['voiture'] : [];
       transport.nbVoitures = transport.aVoiture ? 1 : 0;
       delete transport.aVoiture;
+    }
+    // Migration : anciennes données avec variables.alimentaire → nouveau format courses
+    const vars = (this.state.data as any).variables;
+    if (vars && vars.alimentaire !== undefined && !(this.state.data as any).courses) {
+      const alimentaireValue = vars.alimentaire;
+      delete vars.alimentaire;
+      (this.state.data as any).courses = {
+        alimentation: alimentaireValue ?? 0,
+        hygiene: 0,
+        menagers: 0,
+        animaux: 0,
+      };
+      (this.state.data as any).servicesEssentiels = {
+        coiffeur: 0,
+        sante: 0,
+        veterinaire: 0,
+        entretien: 0,
+      };
     }
     this.variantsState = initVariantsState();
     this.impotsNeedsAmount = savedState._impotsNeedsAmount ?? false;

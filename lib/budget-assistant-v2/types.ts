@@ -111,7 +111,20 @@ export type ConversationStepId =
   | 'engagements_abonnements_montant' // Montant par abo sélectionné
 
   // Phase 3 : G. Courses hebdomadaires
-  | 'essentielles_courses'
+  | 'courses_intro'
+  | 'courses_alimentation'
+  | 'courses_hygiene'
+  | 'courses_menagers'
+  | 'courses_animaux'
+  | 'courses_recap'
+
+  // Phase 3 : H. Services essentiels
+  | 'services_essentiels_intro'
+  | 'services_coiffeur'
+  | 'services_sante'
+  | 'services_veterinaire'
+  | 'services_entretien'
+  | 'services_essentiels_recap'
 
   // Phase 3 : Récap
   | 'depenses_fixes_recap'
@@ -276,10 +289,27 @@ export interface DepenseEngagements {
   abonnements: Abonnement[];
 }
 
+// --- Dépenses fixes : G. Courses hebdomadaires ---
+
+export interface DepenseCourses {
+  alimentation: number;       // Épicerie, fruits/légumes, viande, produits laitiers, pain...
+  hygiene: number;            // Produits d'hygiène & soins (shampoing, dentifrice, protections...)
+  menagers: number;           // Produits ménagers (lessive, produits vaisselle, nettoyants...)
+  animaux: number;            // Alimentation & soins animaux (nourriture, litière, antipuces...)
+}
+
+// --- Dépenses fixes : H. Services essentiels ---
+
+export interface DepenseServicesEssentiels {
+  coiffeur: number;           // Coiffeur / barbier (lissé mensuel)
+  sante: number;              // Santé hors LAMal (psy, ostéopathe, dentiste, thérapies...)
+  veterinaire: number;        // Vétérinaire (consultations, vaccins, lissé mensuel)
+  entretien: number;          // Entretien & réparations (vêtements, chaussures, objets...)
+}
+
 // --- Dépenses variables ---
 
 export interface DepenseVariables {
-  alimentaire: number;          // Courses hebdomadaires (alimentaire + ménager)
   restaurants: number;          // Restaurants / livraisons / cafés
   sorties: number;              // Sorties / loisirs
   vetements: number;            // Vêtements / shopping
@@ -343,6 +373,8 @@ export interface BudgetDataV2 {
   telecom: DepenseTelecom;
   impots: DepenseImpots;
   engagements: DepenseEngagements;
+  courses: DepenseCourses;
+  servicesEssentiels: DepenseServicesEssentiels;
 
   // Phase 4 : Dépenses variables
   variables: DepenseVariables;

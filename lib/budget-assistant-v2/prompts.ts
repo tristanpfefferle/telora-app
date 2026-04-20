@@ -271,10 +271,82 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
     ],
   },
 
-  essentielles_courses: {
+  // --- G. Courses hebdomadaires ---
+  courses_intro: {
     messages: [
-      "Dernière question sur les essentielles ! 🛒\nTes courses hebdomadaires (nourriture, produits ménagers, hygiène) — combien par mois en moyenne ?\nTu peux aussi donner le montant par an.",
+      "On attaque un gros poste : les courses hebdomadaires ! 🛒\nAlimentation, hygiène, ménagers, animaux… on détaille poste par poste.",
     ],
+  },
+
+  courses_alimentation: {
+    messages: [
+      "D'abord l'essentiel : l'alimentation. 🍎\nÉpicerie, fruits & légumes, viande, produits laitiers, pain… Combien par mois en moyenne ?",
+    ],
+    helpBubble: "Si tu cuisines peu, ça peut grimper vite (repas préparés, livraisons…). Moyenne suisse : 200-500 CHF/mois pour 1 personne.",
+  },
+
+  courses_hygiene: {
+    messages: [
+      "Produits d'hygiène & soins ? 🧴\nShampoing, dentifrice, savon, protections, papier toilette…",
+    ],
+  },
+
+  courses_menagers: {
+    messages: [
+      "Et les produits ménagers ? 🧹\nLessive, vaisselle, nettoyants, sacs poubelle…",
+    ],
+  },
+
+  courses_animaux: {
+    messages: [
+      "As-tu des animaux de compagnie ? 🐾\nNourriture, litière, antipuces… Combien par mois ?",
+    ],
+  },
+
+  courses_recap: {
+    messages: [
+      "Voilà pour tes courses hebdomadaires !",
+    ],
+    ackFromPool: 'ack',
+  },
+
+  // --- H. Services essentiels ---
+  services_essentiels_intro: {
+    messages: [
+      "Dernière section d'essentielles ! 💇\nLes services du quotidien : coiffeur, santé hors LAMal, vétérinaire, réparations… On les détaille.",
+    ],
+  },
+
+  services_coiffeur: {
+    messages: [
+      "Coiffeur ou barbier ? 💈\nDonne-moi le coût lissé par mois (si 60 CHF toutes les 6 semaines → ~43 CHF/mois).",
+    ],
+  },
+
+  services_sante: {
+    messages: [
+      "Dépenses de santé hors LAMal ? 🩺\nPsy, ostéopathe, dentiste, thérapies… Montant mensuel moyen.",
+    ],
+  },
+
+  services_veterinaire: {
+    messages: [
+      "Vétérinaire ? 🏥\nConsultations, vaccins, traitements — lissé mensuel.",
+    ],
+    helpBubble: "Même si c'est irrégulier, donne une moyenne. Par ex. 2 visites/an à 150 CHF = ~25 CHF/mois.",
+  },
+
+  services_entretien: {
+    messages: [
+      "Entretien & réparations du quotidien ? 🔧\nCordonnerie, retouches vêtements, petits travaux… Montant mensuel moyen.",
+    ],
+  },
+
+  services_essentiels_recap: {
+    messages: [
+      "Voilà pour les services essentiels !",
+    ],
+    ackFromPool: 'ack',
   },
 
   depenses_fixes_recap: {
@@ -585,8 +657,19 @@ export const CATEGORY_LABELS: Record<string, string> = {
   pension: "Pension alimentaire",
   abonnements: "Abonnements",
 
+  // Courses hebdomadaires
+  alimentation: "Alimentation",
+  hygiene: "Hygiène & soins",
+  menagers: "Produits ménagers",
+  animaux: "Animaux",
+
+  // Services essentiels
+  coiffeur: "Coiffeur / Barbier",
+  sante: "Santé hors LAMal",
+  veterinaire: "Vétérinaire",
+  servicesEntretien: "Entretien & réparations",
+
   // Variables
-  alimentaire: "Courses hebdomadaires",
   restaurants: "Restaurants / Cafés",
   sorties: "Sorties / Loisirs",
   vetements: "Vêtements / Shopping",

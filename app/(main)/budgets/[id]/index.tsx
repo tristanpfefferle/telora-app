@@ -63,8 +63,17 @@ const DEPENSE_LABELS: Record<string, string> = {
   // Engagements
   credits: 'Crédits/Leasing',
   pension: 'Pension alimentaire',
-  // Variables (loisirs + alimentaire)
-  alimentaire: 'Courses hebdomadaires',
+  // Courses hebdomadaires
+  alimentation: 'Alimentation',
+  hygiene: 'Hygiène & soins',
+  menagers: 'Produits ménagers',
+  animaux: 'Animaux (nourriture/soins)',
+  // Services essentiels
+  coiffeur: 'Coiffeur / Barbier',
+  sante: 'Santé (psy, dentiste hors LAMal)',
+  veterinaire: 'Vétérinaire',
+  servicesEntretien: 'Entretien & réparations',
+  // Variables (loisirs uniquement)
   restaurants: 'Restaurants',
   sorties: 'Sorties/Loisirs',
   vetements: 'Vêtements',
@@ -120,8 +129,17 @@ const EDIT_FIELDS: EditField[] = [
   { key: 'engagements.credits', label: 'Crédits/leasing', icon: '💳', section: 'Dépenses essentielles', subsection: 'Engagements' },
   { key: 'engagements.pension', label: 'Pension alimentaire', icon: '👨‍👩‍👧', section: 'Dépenses essentielles', subsection: 'Engagements' },
 
-  // Alimentaire (dépense essentielle)
-  { key: 'variables.alimentaire', label: 'Courses hebdomadaires', icon: '🥑', section: 'Dépenses essentielles', subsection: 'Courses' },
+  // Courses hebdomadaires
+  { key: 'courses.alimentation', label: 'Alimentation', icon: '🥑', section: 'Dépenses essentielles', subsection: 'Courses' },
+  { key: 'courses.hygiene', label: 'Hygiène & soins', icon: '🧴', section: 'Dépenses essentielles', subsection: 'Courses' },
+  { key: 'courses.menagers', label: 'Produits ménagers', icon: '🧹', section: 'Dépenses essentielles', subsection: 'Courses' },
+  { key: 'courses.animaux', label: 'Animaux', icon: '🐾', section: 'Dépenses essentielles', subsection: 'Courses' },
+
+  // Services essentiels
+  { key: 'servicesEssentiels.coiffeur', label: 'Coiffeur / Barbier', icon: '💇', section: 'Dépenses essentielles', subsection: 'Services essentiels' },
+  { key: 'servicesEssentiels.sante', label: 'Santé hors LAMal', icon: '🩺', section: 'Dépenses essentielles', subsection: 'Services essentiels' },
+  { key: 'servicesEssentiels.veterinaire', label: 'Vétérinaire', icon: '🐕‍🦺', section: 'Dépenses essentielles', subsection: 'Services essentiels' },
+  { key: 'servicesEssentiels.entretien', label: 'Entretien & réparations', icon: '🔧', section: 'Dépenses essentielles', subsection: 'Services essentiels' },
 
   // Loisirs
   { key: 'variables.restaurants', label: 'Restaurants', icon: '🍽️', section: 'Dépenses loisirs' },
@@ -171,8 +189,9 @@ function computeFixesSubtotals(data: BudgetDataV2) {
   const impots = data.impots.acomptes;
   const e = data.engagements;
   const engagements = e.credits + e.pension + e.abonnements.reduce((s, ab) => s + ab.montant, 0);
-  const alimentaire = data.variables?.alimentaire || 0;
-  return { logement, assurances, transport, telecom, impots, engagements, alimentaire };
+  const courses = data.courses ? data.courses.alimentation + data.courses.hygiene + data.courses.menagers + data.courses.animaux : (data.variables as any)?.alimentaire || 0;
+  const servicesEssentiels = data.servicesEssentiels ? data.servicesEssentiels.coiffeur + data.servicesEssentiels.sante + data.servicesEssentiels.veterinaire + data.servicesEssentiels.entretien : 0;
+  return { logement, assurances, transport, telecom, impots, engagements, courses, servicesEssentiels };
 }
 
 /** Calcule les sous-totaux par catégorie de dépenses loisirs (sans alimentaire) */
@@ -410,10 +429,25 @@ export default function BudgetDetailScreen() {
       for (const abo of editData.engagements.abonnements) {
         depenses_fixes.push({ categorie: ABO_LABELS[abo.nom] ?? abo.nom, montant: abo.montant });
       }
-      // Alimentaire est une dépense essentielle
-      const v = editData.variables;
-      if (v.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses hebdomadaires', montant: v.alimentaire });
+      // Courses & services essentiels (anciennement alimentaire dans variables)
+      const c = editData.courses;
+      if (c) {
+        if (c.alimentation > 0) depenses_fixes.push({ categorie: 'Alimentation', montant: c.alimentation });
+        if (c.hygiene > 0) depenses_fixes.push({ categorie: 'Hygiène', montant: c.hygiene });
+        if (c.menagers > 0) depenses_fixes.push({ categorie: 'Produits ménagers', montant: c.menagers });
+        if (c.animaux > 0) depenses_fixes.push({ categorie: 'Animaux', montant: c.animaux });
+      } else if ((editData.variables as any)?.alimentaire > 0) {
+        depenses_fixes.push({ categorie: 'Courses hebdomadaires', montant: (editData.variables as any).alimentaire });
+      }
+      const se = editData.servicesEssentiels;
+      if (se) {
+        if (se.coiffeur > 0) depenses_fixes.push({ categorie: 'Coiffeur', montant: se.coiffeur });
+        if (se.sante > 0) depenses_fixes.push({ categorie: 'Santé hors LAMal', montant: se.sante });
+        if (se.veterinaire > 0) depenses_fixes.push({ categorie: 'Vétérinaire', montant: se.veterinaire });
+        if (se.entretien > 0) depenses_fixes.push({ categorie: 'Entretien & réparations', montant: se.entretien });
+      }
 
+      const v = editData.variables;
       const depenses_variables: { categorie: string; montant: number }[] = [];
       if (v.restaurants > 0) depenses_variables.push({ categorie: 'Restaurants', montant: v.restaurants });
       if (v.sorties > 0) depenses_variables.push({ categorie: 'Sorties/Loisirs', montant: v.sorties });
@@ -509,7 +543,8 @@ export default function BudgetDetailScreen() {
     { key: 'Télécom', label: 'Télécom', icon: '📱', total: fixesSubtotals.telecom },
     { key: 'Impôts', label: 'Impôts', icon: '🏛️', total: fixesSubtotals.impots },
     { key: 'Engagements', label: 'Engagements', icon: '💳', total: fixesSubtotals.engagements },
-    { key: 'Courses', label: 'Courses', icon: '🥑', total: fixesSubtotals.alimentaire },
+    { key: 'Courses', label: 'Courses', icon: '🥑', total: fixesSubtotals.courses },
+    { key: 'Services essentiels', label: 'Services essentiels', icon: '💇', total: fixesSubtotals.servicesEssentiels },
   ];
 
   return (

@@ -24,6 +24,8 @@ import type {
   DepenseEngagements,
   Abonnement,
   AbonnementNom,
+  DepenseCourses,
+  DepenseServicesEssentiels,
   DepenseVariables,
   EpargneData,
   ObjectifEpargne,
@@ -63,6 +65,12 @@ const computeTotalImpots = (i: DepenseImpots): number =>
 const computeTotalEngagements = (e: DepenseEngagements): number =>
   e.credits + e.pension + e.abonnements.reduce((sum, a) => sum + a.montant, 0);
 
+const computeTotalCourses = (c: DepenseCourses): number =>
+  Math.max(0, c.alimentation) + Math.max(0, c.hygiene) + Math.max(0, c.menagers) + Math.max(0, c.animaux);
+
+const computeTotalServicesEssentiels = (s: DepenseServicesEssentiels): number =>
+  Math.max(0, s.coiffeur) + Math.max(0, s.sante) + Math.max(0, s.veterinaire) + Math.max(0, s.entretien);
+
 const computeTotalFixes = (data: BudgetDataV2): number =>
   computeTotalLogement(data.logement) +
   computeTotalAssurances(data.assurances) +
@@ -70,7 +78,8 @@ const computeTotalFixes = (data: BudgetDataV2): number =>
   computeTotalTelecom(data.telecom) +
   computeTotalImpots(data.impots) +
   computeTotalEngagements(data.engagements) +
-  Math.max(0, data.variables.alimentaire);
+  computeTotalCourses(data.courses) +
+  computeTotalServicesEssentiels(data.servicesEssentiels);
 
 const computeTotalVariables = (v: DepenseVariables): number =>
   Math.max(0, v.restaurants) + Math.max(0, v.sorties) +
@@ -150,7 +159,14 @@ const FIXE_CATEGORY_LABELS_V2: Record<string, string> = {
   acomptes: 'Impôts (acomptes)',
   credits: 'Crédits/Leasing',
   pension: 'Pension alimentaire',
-  alimentaire: 'Courses hebdomadaires',
+  alimentation: 'Alimentation',
+  hygiene: 'Hygiène',
+  menagers: 'Produits ménagers',
+  animaux: 'Animaux (nourriture/soins)',
+  coiffeur: 'Coiffeur',
+  sante: 'Santé (psy, dentiste hors LAMal)',
+  veterinaire: 'Vétérinaire',
+  servicesEntretien: 'Entretien & réparations',
 };
 
 const ABO_LABELS: Record<AbonnementNom, string> = {
@@ -163,8 +179,6 @@ const ABO_LABELS: Record<AbonnementNom, string> = {
 };
 
 const VARIABLE_CATEGORY_LABELS: Record<string, string> = {
-  // alimentaire moved to FIXE_CATEGORY_LABELS_V2
-  alimentaire: 'Courses hebdomadaires',
   restaurants: 'Restaurants',
   sorties: 'Sorties/Loisirs',
   vetements: 'Vêtements',
@@ -276,8 +290,21 @@ const toBackendPayload = (data: BudgetDataV2, objectifFinancier?: string, mindse
     depenses_fixes.push({ categorie: ABO_LABELS[abo.nom] ?? abo.nom, montant: abo.montant });
   }
 
-  // --- Dépenses essentielles : alimentaire ajouté ici ---
-  if (data.variables.alimentaire > 0) depenses_fixes.push({ categorie: 'Courses hebdomadaires', montant: data.variables.alimentaire });
+  // --- Dépenses essentielles : Courses (sous-catégories) ---
+  if (data.courses) {
+    if (data.courses.alimentation > 0) depenses_fixes.push({ categorie: 'Alimentation', montant: data.courses.alimentation });
+    if (data.courses.hygiene > 0) depenses_fixes.push({ categorie: 'Hygiène', montant: data.courses.hygiene });
+    if (data.courses.menagers > 0) depenses_fixes.push({ categorie: 'Produits ménagers', montant: data.courses.menagers });
+    if (data.courses.animaux > 0) depenses_fixes.push({ categorie: 'Animaux (nourriture/soins)', montant: data.courses.animaux });
+  }
+
+  // --- Dépenses essentielles : Services essentiels ---
+  if (data.servicesEssentiels) {
+    if (data.servicesEssentiels.coiffeur > 0) depenses_fixes.push({ categorie: 'Coiffeur', montant: data.servicesEssentiels.coiffeur });
+    if (data.servicesEssentiels.sante > 0) depenses_fixes.push({ categorie: 'Santé (psy, dentiste hors LAMal)', montant: data.servicesEssentiels.sante });
+    if (data.servicesEssentiels.veterinaire > 0) depenses_fixes.push({ categorie: 'Vétérinaire', montant: data.servicesEssentiels.veterinaire });
+    if (data.servicesEssentiels.entretien > 0) depenses_fixes.push({ categorie: 'Entretien & réparations', montant: data.servicesEssentiels.entretien });
+  }
 
   // --- Dépenses loisirs ---
   const v = data.variables;
@@ -382,13 +409,26 @@ const DEFAULT_ENGAGEMENTS: DepenseEngagements = {
 };
 
 const DEFAULT_VARIABLES: DepenseVariables = {
-  alimentaire: 0,
   restaurants: 0,
   sorties: 0,
   vetements: 0,
   voyages: 0,
   cadeaux: 0,
   autres: 0,
+};
+
+const DEFAULT_COURSES: DepenseCourses = {
+  alimentation: 0,
+  hygiene: 0,
+  menagers: 0,
+  animaux: 0,
+};
+
+const DEFAULT_SERVICES_ESSENTIELS: DepenseServicesEssentiels = {
+  coiffeur: 0,
+  sante: 0,
+  veterinaire: 0,
+  entretien: 0,
 };
 
 const DEFAULT_EPARGNE: EpargneData = {
@@ -413,6 +453,8 @@ const DEFAULT_BUDGET_DATA_V2: BudgetDataV2 = {
   telecom: DEFAULT_TELECOM,
   impots: DEFAULT_IMPOTS,
   engagements: DEFAULT_ENGAGEMENTS,
+  courses: DEFAULT_COURSES,
+  servicesEssentiels: DEFAULT_SERVICES_ESSENTIELS,
   variables: DEFAULT_VARIABLES,
   epargne: DEFAULT_EPARGNE,
   planAction: DEFAULT_PLAN_ACTION,
@@ -447,6 +489,8 @@ interface BudgetStateV2 {
   totalTelecom: number;
   totalImpots: number;
   totalEngagements: number;
+  totalCourses: number;
+  totalServicesEssentiels: number;
   capaciteEpargne: number;
 
   // ── Ratios (calculés) ──
@@ -521,8 +565,19 @@ interface BudgetStateV2 {
   addAbonnement: (nom: AbonnementNom, montant: number) => void;
   removeAbonnement: (nom: AbonnementNom) => void;
 
+  // ── Actions — Courses (dépenses essentielles) ──
+  setAlimentation: (montant: number) => void;
+  setHygiene: (montant: number) => void;
+  setMenagers: (montant: number) => void;
+  setAnimaux: (montant: number) => void;
+
+  // ── Actions — Services essentiels ──
+  setCoiffeur: (montant: number) => void;
+  setSanteEssentiel: (montant: number) => void;
+  setVeterinaire: (montant: number) => void;
+  setServicesEntretien: (montant: number) => void;
+
   // ── Actions — Dépenses loisirs ──
-  setAlimentaire: (montant: number) => void;
   setRestaurants: (montant: number) => void;
   setSorties: (montant: number) => void;
   setVetements: (montant: number) => void;
@@ -597,6 +652,8 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
   totalTelecom: 0,
   totalImpots: 0,
   totalEngagements: 0,
+  totalCourses: 0,
+  totalServicesEssentiels: 0,
   capaciteEpargne: 0,
 
   // Ratios
@@ -847,13 +904,56 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
     })),
 
   // =========================================================================
-  // Actions — Dépenses loisirs
+  // Actions — Courses (dépenses essentielles)
   // =========================================================================
 
-  setAlimentaire: (montant) =>
+  setAlimentation: (montant) =>
     set((state) => ({
-      data: { ...state.data, variables: { ...state.data.variables, alimentaire: montant } },
+      data: { ...state.data, courses: { ...state.data.courses, alimentation: montant } },
     })),
+
+  setHygiene: (montant) =>
+    set((state) => ({
+      data: { ...state.data, courses: { ...state.data.courses, hygiene: montant } },
+    })),
+
+  setMenagers: (montant) =>
+    set((state) => ({
+      data: { ...state.data, courses: { ...state.data.courses, menagers: montant } },
+    })),
+
+  setAnimaux: (montant) =>
+    set((state) => ({
+      data: { ...state.data, courses: { ...state.data.courses, animaux: montant } },
+    })),
+
+  // =========================================================================
+  // Actions — Services essentiels
+  // =========================================================================
+
+  setCoiffeur: (montant) =>
+    set((state) => ({
+      data: { ...state.data, servicesEssentiels: { ...state.data.servicesEssentiels, coiffeur: montant } },
+    })),
+
+  setSanteEssentiel: (montant) =>
+    set((state) => ({
+      data: { ...state.data, servicesEssentiels: { ...state.data.servicesEssentiels, sante: montant } },
+    })),
+
+  setVeterinaire: (montant) =>
+    set((state) => ({
+      data: { ...state.data, servicesEssentiels: { ...state.data.servicesEssentiels, veterinaire: montant } },
+    })),
+
+  setServicesEntretien: (montant) =>
+    set((state) => ({
+      data: { ...state.data, servicesEssentiels: { ...state.data.servicesEssentiels, entretien: montant } },
+    })),
+
+  // =========================================================================
+  // Actions — Dépenses loisirs
+  // =========================================================================
 
   setRestaurants: (montant) =>
     set((state) => ({
@@ -958,7 +1058,9 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
 
       // Totaux principaux
       const totalRevenus = computeTotalRevenus(data.revenus);
-      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements + Math.max(0, data.variables.alimentaire);
+      const totalCourses = computeTotalCourses(data.courses);
+      const totalServicesEssentiels = computeTotalServicesEssentiels(data.servicesEssentiels);
+      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements + totalCourses + totalServicesEssentiels;
       const totalVariables = computeTotalVariables(data.variables);
       const capaciteEpargne = totalRevenus - totalFixes - totalVariables;
 
@@ -1004,6 +1106,8 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
         totalTelecom,
         totalImpots,
         totalEngagements,
+        totalCourses,
+        totalServicesEssentiels,
         capaciteEpargne,
         ratioFixes,
         ratioVariables,
@@ -1132,6 +1236,8 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
       totalTelecom: 0,
       totalImpots: 0,
       totalEngagements: 0,
+      totalCourses: 0,
+      totalServicesEssentiels: 0,
       capaciteEpargne: 0,
       ratioFixes: 0,
       ratioVariables: 0,
@@ -1163,6 +1269,24 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
       delete transport.aVoiture;
     }
 
+    // Migration : anciennes données avec variables.alimentaire → courses.alimentation + servicesEssentiels
+    const vars = budgetData.variables as any;
+    if (vars && vars.alimentaire !== undefined && !budgetData.courses) {
+      (budgetData as any).courses = {
+        alimentation: vars.alimentaire,
+        hygiene: 0,
+        menagers: 0,
+        animaux: 0,
+      };
+      delete vars.alimentaire;
+    }
+    if (!budgetData.servicesEssentiels) {
+      (budgetData as any).servicesEssentiels = DEFAULT_SERVICES_ESSENTIELS;
+    }
+    if (!budgetData.courses) {
+      (budgetData as any).courses = DEFAULT_COURSES;
+    }
+
     // Fusion data + recalculate en UN SEUL set() pour éviter
     // le double re-render qui amplifie les cascades
     set((state) => {
@@ -1176,7 +1300,9 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
       const totalEngagements = computeTotalEngagements(data.engagements);
 
       const totalRevenus = computeTotalRevenus(data.revenus);
-      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements + Math.max(0, data.variables.alimentaire);
+      const totalCourses = computeTotalCourses(data.courses);
+      const totalServicesEssentiels = computeTotalServicesEssentiels(data.servicesEssentiels);
+      const totalFixes = totalLogement + totalAssurances + totalTransport + totalTelecom + totalImpots + totalEngagements + totalCourses + totalServicesEssentiels;
       const totalVariables = computeTotalVariables(data.variables);
       const capaciteEpargne = totalRevenus - totalFixes - totalVariables;
 
@@ -1218,6 +1344,8 @@ export const useBudgetStore = create<BudgetStateV2>((set, get) => ({
         totalTelecom,
         totalImpots,
         totalEngagements,
+        totalCourses,
+        totalServicesEssentiels,
         capaciteEpargne,
         ratioFixes,
         ratioVariables,

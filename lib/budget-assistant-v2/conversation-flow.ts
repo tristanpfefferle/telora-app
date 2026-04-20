@@ -104,7 +104,20 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   'engagements_abonnements_montant',
 
   // Phase 3 : G. Courses hebdomadaires
-  'essentielles_courses',
+  'courses_intro',
+  'courses_alimentation',
+  'courses_hygiene',
+  'courses_menagers',
+  'courses_animaux',
+  'courses_recap',
+
+  // Phase 3 : H. Services essentiels
+  'services_essentiels_intro',
+  'services_coiffeur',
+  'services_sante',
+  'services_veterinaire',
+  'services_entretien',
+  'services_essentiels_recap',
 
   // Phase 3 : Récap
   'depenses_fixes_recap',
@@ -153,7 +166,8 @@ export const PHASE_STEPS: Record<PhaseId, ConversationStepId[]> = {
     'telecom_mobile',
     'impots_acomptes',
     'engagements_credits', 'engagements_pension', 'engagements_abonnements', 'engagements_abonnements_oui_non', 'engagements_abonnements_montant',
-    'essentielles_courses',
+    'courses_intro', 'courses_alimentation', 'courses_hygiene', 'courses_menagers', 'courses_animaux', 'courses_recap',
+    'services_essentiels_intro', 'services_coiffeur', 'services_sante', 'services_veterinaire', 'services_entretien', 'services_essentiels_recap',
     'depenses_fixes_recap',
   ],
   4: ['variables_intro', 'variables_restaurants', 'variables_sorties', 'variables_vetements', 'variables_voyages', 'variables_cadeaux', 'variables_autres', 'variables_recap'],
@@ -700,7 +714,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     messages: [],
     branchOn: [
       { value: true, nextStep: 'engagements_abonnements_oui_non' },
-      { value: false, nextStep: 'depenses_fixes_recap' },
+      { value: false, nextStep: 'courses_intro' },
     ],
     nextStep: 'engagements_abonnements_oui_non',
   },
@@ -741,31 +755,247 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
     }),
     messages: [],
     // Répété pour chaque abonnement sélectionné
-    nextStep: 'essentielles_courses',
+    nextStep: 'courses_intro',
   },
 
   // --- G. Courses hebdomadaires ---
-  essentielles_courses: {
-    id: 'essentielles_courses',
+  courses_intro: {
+    id: 'courses_intro',
     phase: 3,
-    name: 'Courses hebdomadaires',
+    name: 'Intro courses',
+    inputMode: 'info_only',
+    messages: [],
+    nextStep: 'courses_alimentation',
+  },
+
+  courses_alimentation: {
+    id: 'courses_alimentation',
+    phase: 3,
+    name: 'Alimentation',
     inputMode: 'numeric_chf',
     numericConfig: numWithSuggestions(
       [
-        { label: '~300', value: 300 },
+        { label: '~200', value: 200 },
+        { label: '~350', value: 350 },
         { label: '~500', value: 500 },
-        { label: '~700', value: 700 },
       ],
       {
-        placeholder: "Ex: 500",
+        placeholder: "Ex: 350",
         min: 0,
         max: 3000,
         skipButtonLabel: BUTTON_LABELS.autreMontant,
-        skipValue: -1, // -1 signifie "ouvrir le champ custom"
+        skipValue: -1,
         frequency: 'monthly',
+        helpText: "Épicerie, fruits & légumes, viande, produits laitiers, pain, boissons non-alcoolisées…",
       }
     ),
     messages: [],
+    nextStep: 'courses_hygiene',
+  },
+
+  courses_hygiene: {
+    id: 'courses_hygiene',
+    phase: 3,
+    name: 'Hygiène & soins',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~30', value: 30 },
+        { label: '~50', value: 50 },
+        { label: '~80', value: 80 },
+      ],
+      {
+        placeholder: "Ex: 50",
+        min: 0,
+        max: 500,
+        skipButtonLabel: BUTTON_LABELS.autreMontant,
+        skipValue: -1,
+        frequency: 'monthly',
+        helpText: "Shampoing, dentifrice, savon, protections, papier toilette…",
+      }
+    ),
+    messages: [],
+    nextStep: 'courses_menagers',
+  },
+
+  courses_menagers: {
+    id: 'courses_menagers',
+    phase: 3,
+    name: 'Produits ménagers',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~20', value: 20 },
+        { label: '~35', value: 35 },
+        { label: '~50', value: 50 },
+      ],
+      {
+        placeholder: "Ex: 35",
+        min: 0,
+        max: 300,
+        skipButtonLabel: BUTTON_LABELS.autreMontant,
+        skipValue: -1,
+        frequency: 'monthly',
+        helpText: "Lessive, produits vaisselle, nettoyants, sacs poubelle…",
+      }
+    ),
+    messages: [],
+    nextStep: 'courses_animaux',
+  },
+
+  courses_animaux: {
+    id: 'courses_animaux',
+    phase: 3,
+    name: 'Animaux',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~30', value: 30 },
+        { label: '~60', value: 60 },
+        { label: '~100', value: 100 },
+      ],
+      {
+        placeholder: "Ex: 50",
+        min: 0,
+        max: 1000,
+        skipButtonLabel: BUTTON_LABELS.jenAiPas,
+        skipValue: 0,
+        frequency: 'monthly',
+        helpText: "Nourriture, litière, antipuces, accessoires pour vos animaux.",
+      }
+    ),
+    messages: [],
+    // services_veterinaire sera skippé automatiquement via goToStep si courses.animaux === 0
+    nextStep: 'courses_recap',
+  },
+
+  courses_recap: {
+    id: 'courses_recap',
+    phase: 3,
+    name: 'Récap courses',
+    inputMode: 'info_only',
+    messages: [],
+    showRecapCard: 'depenses_fixes',
+    nextStep: 'services_essentiels_intro',
+  },
+
+  // --- H. Services essentiels ---
+  services_essentiels_intro: {
+    id: 'services_essentiels_intro',
+    phase: 3,
+    name: 'Intro services essentiels',
+    inputMode: 'info_only',
+    messages: [],
+    nextStep: 'services_coiffeur',
+  },
+
+  services_coiffeur: {
+    id: 'services_coiffeur',
+    phase: 3,
+    name: 'Coiffeur / Barbier',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~30', value: 30 },
+        { label: '~60', value: 60 },
+        { label: '~100', value: 100 },
+      ],
+      {
+        placeholder: "Ex: 60",
+        min: 0,
+        max: 500,
+        skipButtonLabel: BUTTON_LABELS.pasConcerne,
+        skipValue: 0,
+        frequency: 'monthly',
+        helpText: "Lissé mensuel : si 60 CHF toutes les 6 semaines → ~43 CHF/mois.",
+      }
+    ),
+    messages: [],
+    nextStep: 'services_sante',
+  },
+
+  services_sante: {
+    id: 'services_sante',
+    phase: 3,
+    name: 'Santé hors LAMal',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~50', value: 50 },
+        { label: '~100', value: 100 },
+        { label: '~200', value: 200 },
+      ],
+      {
+        placeholder: "Ex: 100",
+        min: 0,
+        max: 2000,
+        skipButtonLabel: BUTTON_LABELS.pasConcerne,
+        skipValue: 0,
+        frequency: 'monthly',
+        helpText: "Psychologue, ostéopathe, dentiste (hors LAMal), thérapies alternatives…",
+      }
+    ),
+    messages: [],
+    nextStep: 'services_veterinaire',
+  },
+
+  services_veterinaire: {
+    id: 'services_veterinaire',
+    phase: 3,
+    name: 'Vétérinaire',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~30', value: 30 },
+        { label: '~50', value: 50 },
+        { label: '~80', value: 80 },
+      ],
+      {
+        placeholder: "Ex: 50",
+        min: 0,
+        max: 1000,
+        skipButtonLabel: BUTTON_LABELS.pasConcerne,
+        skipValue: 0,
+        frequency: 'monthly',
+        helpText: "Consultations, vaccins, traitements — lissé mensuel.",
+      }
+    ),
+    messages: [],
+    nextStep: 'services_entretien',
+  },
+
+  services_entretien: {
+    id: 'services_entretien',
+    phase: 3,
+    name: 'Entretien & réparations',
+    inputMode: 'numeric_chf',
+    numericConfig: numWithSuggestions(
+      [
+        { label: '~20', value: 20 },
+        { label: '~40', value: 40 },
+        { label: '~60', value: 60 },
+      ],
+      {
+        placeholder: "Ex: 40",
+        min: 0,
+        max: 500,
+        skipButtonLabel: BUTTON_LABELS.pasConcerne,
+        skipValue: 0,
+        frequency: 'monthly',
+        helpText: "Réparations vêtements, cordonnerie, entretien vélo/voiture hors garage…",
+      }
+    ),
+    messages: [],
+    nextStep: 'services_essentiels_recap',
+  },
+
+  services_essentiels_recap: {
+    id: 'services_essentiels_recap',
+    phase: 3,
+    name: 'Récap services essentiels',
+    inputMode: 'info_only',
+    messages: [],
+    showRecapCard: 'depenses_fixes',
     nextStep: 'depenses_fixes_recap',
   },
 
