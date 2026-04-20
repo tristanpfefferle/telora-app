@@ -614,7 +614,7 @@ export default function ChatScreen() {
         </ScrollView>
 
         {/* Input fixe en bas — toujours visible au-dessus du clavier et safe area */}
-        <View style={styles.inputWrapper}>
+        <View style={[styles.inputWrapper, { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 0 }]}>
           {renderBottomInput()}
         </View>
       </KeyboardAvoidingView>
@@ -791,7 +791,6 @@ const styles = StyleSheet.create({
     maxWidth: '90%',
   },
   inputWrapper: {
-    paddingBottom: 8,
     backgroundColor: colors.background,
   },
 });

@@ -11,6 +11,11 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "backgroundColor": "#0A0A0F",
+    "androidStatusBar": {
+      "backgroundColor": "#0A0A0F",
+      "barStyle": "light-content"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.telora.app",
@@ -25,7 +30,8 @@
         "backgroundColor": "#0A0A0F"
       },
       "package": "com.telora.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "navigationBarColor": "#0A0A0F"
     },
     "web": {
       "bundler": "metro",
