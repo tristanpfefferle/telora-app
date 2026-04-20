@@ -154,7 +154,7 @@ export default function ChatScreen() {
   // Handlers — adaptateurs entre les composants UI et le FlowEngine
   // ============================================================================
 
-  const handleNumericSubmit = (value: number) => {
+  const handleNumericSubmit = (value: number | { salaireNet: number; treizieme: boolean; treiziemeMontant: number }) => {
     submitValue(value);
   };
 

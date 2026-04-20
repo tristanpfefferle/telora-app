@@ -63,22 +63,9 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   revenus_salaire: {
     messages: [
-      "On commence par l'essentiel : ton salaire.\nQuel est ton revenu mensuel net ? (après déductions, ce qui arrive vraiment sur ton compte)",
+      "On commence par l'essentiel : ton salaire.\nQuel est ton revenu net ? (après déductions, ce qui arrive vraiment sur ton compte)\nTu peux entrer le montant par mois ou par an.",
     ],
-    helpBubble: "Si tu as des frais professionnels déduits, donne-moi le montant après tout.",
-  },
-
-  revenus_treizieme: {
-    messages: [
-      "Question rapide : tu touches un 13e salaire ?",
-    ],
-  },
-
-  revenus_treizieme_montant: {
-    messages: [
-      "Super. Combien touche-tu pour ce 13e ?",
-    ],
-    helpBubble: "Je diviserai par 12 pour l'intégrer à ton budget mensuel.",
+    helpBubble: "Coche « 13e salaire » si tu en touches un — et entre le montant dans le champ qui apparaît.",
   },
 
   revenus_autres: {
@@ -95,7 +82,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   revenus_autres_montant: {
     messages: [
-      "Combien par mois pour {source} ?",
+      "Combien pour {source} par mois ou par an ?",
     ],
   },
 
@@ -118,7 +105,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   // --- A. Logement ---
   logement_loyer: {
     messages: [
-      "On attaque par la base : ton logement. 💪\nCombien paies-tu de loyer ou de mensualité hypothèque par mois ?",
+      "On attaque par la base : ton logement. 💪\nCombien paies-tu de loyer ou de mensualité hypothèque par mois ou par an ?",
     ],
     helpBubble: "Si coloc, indique juste TA part.",
   },
@@ -166,27 +153,27 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   assurances_lamal: {
     messages: [
-      "LAMal (assurance maladie de base) — impossible d'y couper.\nCombien paies-tu par mois ?",
+      "LAMal (assurance maladie de base) — impossible d'y couper.\nCombien paies-tu par mois ou par an ?",
     ],
     helpBubble: "Prime moyenne : 300 à 500 CHF/mois selon canton et franchise. Vérifie sur bonus.ch si tu peux trouver moins cher.",
   },
 
   assurances_complementaire: {
     messages: [
-      "As-tu une complémentaire santé ? (chambre privée, médecine douce, lunettes…)",
+      "As-tu une complémentaire santé ? (chambre privée, médecine douce, lunettes…)\nTu peux donner le montant par mois ou par an.",
     ],
   },
 
   assurances_menage_rc: {
     messages: [
-      "Assurance ménage ou RC privée ? Souvent groupées ensemble.",
+      "Assurance ménage ou RC privée ? Souvent groupées ensemble.\nMontant par mois ou par an.",
     ],
     helpBubble: "RC privée = ~100-150 CHF/an. Ménage = varie selon superficie.",
   },
 
   assurances_vehicule: {
     messages: [
-      "Combien paies-tu d'assurance voiture par mois ?",
+      "Combien paies-tu d'assurance voiture par mois ou par an ?",
     ],
   },
 
@@ -199,14 +186,14 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   transport_essence: {
     messages: [
-      "Combien dépenses-tu en essence par mois en moyenne ?",
+      "Combien dépenses-tu en essence par mois en moyenne ?\nTu peux aussi donner le montant par an.",
     ],
     helpBubble: "Si tu as une voiture électrique, mets tes coûts de recharge ici.",
   },
 
   transport_entretien: {
     messages: [
-      "Et l'entretien du véhicule ? (pneus, service, nettoyage…)\nSi tu raisonnes à l'année, divise par 12.",
+      "Et l'entretien du véhicule ? (pneus, service, nettoyage…)\nDonne le montant par mois ou par an.",
     ],
   },
 
@@ -232,7 +219,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
   // --- D. Télécom ---
   telecom_mobile: {
     messages: [
-      "Ton forfait mobile ? 📱\nDonne-moi le montant mensuel.",
+      "Ton forfait mobile ? 📱\nDonne-moi le montant par mois ou par an.",
     ],
     helpBubble: "En Suisse : 25-80 CHF/mois selon le forfait (Wingo/Muvon = moins cher, Swisscom = plus cher).",
   },
@@ -274,13 +261,13 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   engagements_abonnements_montant: {
     messages: [
-      "Combien pour {aboName} par mois ?",
+      "Combien pour {aboName} par mois ou par an ?",
     ],
   },
 
   essentielles_courses: {
     messages: [
-      "Dernière question sur les essentielles ! 🛒\nTes courses hebdomadaires (nourriture, produits ménagers, hygiène) — combien par mois en moyenne ?",
+      "Dernière question sur les essentielles ! 🛒\nTes courses hebdomadaires (nourriture, produits ménagers, hygiène) — combien par mois en moyenne ?\nTu peux aussi donner le montant par an.",
     ],
   },
 
@@ -307,31 +294,31 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   variables_sorties: {
     messages: [
-      "Sorties, loisirs : cinéma, concerts, bars… 🎬\nCombien par mois environ ?",
+      "Sorties, loisirs : cinéma, concerts, bars… 🎬\nCombien par mois environ ?\nTu peux aussi donner le montant par an.",
     ],
   },
 
   variables_vetements: {
     messages: [
-      "Vêtements et shopping ? 👔\nLissé sur l'année, ça donne quoi par mois ?",
+      "Vêtements et shopping ? 👔\nDonne le montant par mois ou par an.",
     ],
   },
 
   variables_voyages: {
     messages: [
-      "Voyages et weekends ! ✈️\nPense à lisser sur 12 mois (ex : 1 voyage à 1'200 CHF/an = 100 CHF/mois).",
+      "Voyages et weekends ! ✈️\nDonne le montant par mois ou par an (je lisse automatiquement sur 12 mois).",
     ],
   },
 
   variables_cadeaux: {
     messages: [
-      "Cadeaux, anniversaires, occasions spéciales ? 🎁\nLà aussi, lisse sur l'année.",
+      "Cadeaux, anniversaires, occasions spéciales ? 🎁\nDonne le montant par mois ou par an.",
     ],
   },
 
   variables_autres: {
     messages: [
-      "Autres envies pas encore couvertes ? (sport hors abo, cosmétiques, hobbies, jeux…)",
+      "Autres envies pas encore couvertes ? (sport hors abo, cosmétiques, hobbies, jeux…)\nMontant par mois ou par an.",
     ],
   },
 
@@ -352,7 +339,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   epargne_montant_actuel: {
     messages: [
-      "Combien épargnes-tu actuellement chaque mois en moyenne ?\nPas de jugement, je veux juste le chiffre réel.",
+      "Combien épargnes-tu actuellement en moyenne ?\nPas de jugement, je veux juste le chiffre réel.\nTu peux donner le montant par mois ou par an.",
     ],
   },
 

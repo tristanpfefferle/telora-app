@@ -36,7 +36,7 @@ import { useBudgetStore } from '../stores/budgetStore';
 
 export interface FlowEngineActions {
   /** Soumettre une valeur (number pour numeric_chf, string pour quick_replies) */
-  submitValue: (value: string | number | boolean) => void;
+  submitValue: (value: string | number | boolean | { salaireNet: number; treizieme: boolean; treiziemeMontant: number }) => void;
   /** Soumettre une sélection multiple (string[] d'IDs) */
   submitMultiSelect: (selectedIds: string[]) => void;
   /** Passer / skip l'étape en cours */
@@ -335,7 +335,7 @@ export function useFlowEngine(): UseFlowEngineReturn {
   );
 
   const submitValue = useCallback(
-    (value: string | number | boolean) => {
+    (value: string | number | boolean | { salaireNet: number; treizieme: boolean; treiziemeMontant: number }) => {
       processWithTyping(() => {
         engineRef.current.processUserResponse(value);
       });

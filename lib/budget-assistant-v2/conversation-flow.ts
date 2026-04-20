@@ -60,8 +60,6 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
   // Phase 2 : Revenus
   'revenus_intro',
   'revenus_salaire',
-  'revenus_treizieme',
-  'revenus_treizieme_montant',
   'revenus_autres',
   'revenus_autres_sources',
   'revenus_autres_montant',
@@ -145,7 +143,7 @@ export const STEP_SEQUENCE: ConversationStepId[] = [
 
 export const PHASE_STEPS: Record<PhaseId, ConversationStepId[]> = {
   1: ['welcome', 'welcome_confirm'],
-  2: ['revenus_intro', 'revenus_salaire', 'revenus_treizieme', 'revenus_treizieme_montant', 'revenus_autres', 'revenus_autres_sources', 'revenus_autres_montant', 'revenus_recap'],
+  2: ['revenus_intro', 'revenus_salaire', 'revenus_autres', 'revenus_autres_sources', 'revenus_autres_montant', 'revenus_recap'],
   3: [
     'depenses_fixes_intro',
     'logement_loyer', 'logement_charges', 'logement_electricite', 'logement_chauffage', 'logement_internet', 'logement_serafe',
@@ -217,45 +215,14 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
       skipButtonLabel: BUTTON_LABELS.sansRevenuSalarial,
       skipValue: 0,
       frequency: 'monthly',
+      checkbox13e: true,
     }),
     messages: [],
-    // Si l'utilisateur n'a pas de salaire (skip/valeur 0), on saute le 13e
-    // et on va directement aux autres revenus
+    // Si l'utilisateur n'a pas de salaire (skip/valeur 0), on saute
+    // les autres revenus et on va directement à revenus_autres
     branchOn: [
       { value: 0, nextStep: 'revenus_autres' },
     ],
-    nextStep: 'revenus_treizieme',
-  },
-
-  revenus_treizieme: {
-    id: 'revenus_treizieme',
-    phase: 2,
-    name: '13e salaire',
-    inputMode: 'quick_replies',
-    quickReplies: [
-      qr('oui', BUTTON_LABELS.oui, true),
-      qr('non', BUTTON_LABELS.non, false),
-    ],
-    messages: [],
-    branchOn: [
-      { value: true, nextStep: 'revenus_treizieme_montant' },
-      { value: false, nextStep: 'revenus_autres' },
-    ],
-    nextStep: 'revenus_autres', // fallback si pas de branch
-  },
-
-  revenus_treizieme_montant: {
-    id: 'revenus_treizieme_montant',
-    phase: 2,
-    name: 'Montant 13e',
-    inputMode: 'numeric_chf',
-    numericConfig: numConfig({
-      placeholder: "Ex: 5'000",
-      min: 0,
-      max: 100000,
-      frequency: 'monthly',
-    }),
-    messages: [],
     nextStep: 'revenus_autres',
   },
 
@@ -561,7 +528,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
       placeholder: "Ex: 50",
       min: 0,
       max: 2000,
-      helpText: "Divise par 12 si tu raisonnes à l'année.",
+      helpText: "Entretien courant : pneus, service, nettoyage…",
       frequency: 'monthly',
     }),
     messages: [],
@@ -771,6 +738,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         max: 3000,
         skipButtonLabel: BUTTON_LABELS.autreMontant,
         skipValue: -1, // -1 signifie "ouvrir le champ custom"
+        frequency: 'monthly',
       }
     ),
     messages: [],
@@ -816,6 +784,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         max: 2000,
         skipButtonLabel: BUTTON_LABELS.autreMontant,
         skipValue: -1,
+        frequency: 'monthly',
       }
     ),
     messages: [],
@@ -839,6 +808,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         max: 2000,
         skipButtonLabel: BUTTON_LABELS.autreMontant,
         skipValue: -1,
+        frequency: 'monthly',
       }
     ),
     messages: [],
@@ -862,6 +832,7 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         max: 2000,
         skipButtonLabel: BUTTON_LABELS.autreMontant,
         skipValue: -1,
+        frequency: 'monthly',
       }
     ),
     messages: [],
@@ -883,9 +854,10 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         placeholder: "Ex: 250",
         min: 0,
         max: 5000,
-        helpText: "Lissé sur 12 mois (ex : 1 voyage à 1'200 CHF/an = 100 CHF/mois).",
+        helpText: "Lissé sur 12 mois automatiquement si tu entres un montant annuel.",
         skipButtonLabel: BUTTON_LABELS.autreMontant,
         skipValue: -1,
+        frequency: 'monthly',
       }
     ),
     messages: [],
@@ -906,9 +878,10 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         placeholder: "Ex: 50",
         min: 0,
         max: 2000,
-        helpText: "Lissé sur 12 mois.",
+        helpText: "Lissé sur 12 mois automatiquement si tu entres un montant annuel.",
         skipButtonLabel: BUTTON_LABELS.autreMontant,
         skipValue: -1,
+        frequency: 'monthly',
       }
     ),
     messages: [],

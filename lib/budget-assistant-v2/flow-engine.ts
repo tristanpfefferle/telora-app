@@ -308,7 +308,7 @@ export class FlowEngine {
    * Traite la réponse de l'utilisateur et avance dans le flow.
    * Retourne les nouveaux messages générés.
    */
-  processUserResponse(value: string | number | boolean | string[]): ChatMessage[] {
+  processUserResponse(value: string | number | boolean | string[] | { salaireNet: number; treizieme: boolean; treiziemeMontant: number }): ChatMessage[] {
     const newMessages: ChatMessage[] = [];
     const step = this.getCurrentStep();
     const inputMode = this.getCurrentInputMode();
@@ -406,9 +406,14 @@ export class FlowEngine {
   // ==========================================================================
 
   private resolveNextStep(
-    value: string | number | boolean | string[],
+    value: string | number | boolean | string[] | { salaireNet: number; treizieme: boolean; treiziemeMontant: number },
     step: ConversationStep
   ): ConversationStepId {
+    // Normaliser la valeur pour le branchement : si objet composite, extraire salaireNet
+    const branchValue = typeof value === 'object' && !Array.isArray(value) && value !== null && 'salaireNet' in value
+      ? (value as { salaireNet: number }).salaireNet
+      : value;
+
     // --- Cas 1 : Boucle en cours (multi-select → montant par item) ---
     if (this.currentLoopItem) {
       // On vient de saisir le montant pour un item de la boucle
@@ -437,10 +442,10 @@ export class FlowEngine {
 
     // --- Cas 3 : Branchements conditionnels ---
     if (step.branchOn && step.branchOn.length > 0) {
-      const branch = step.branchOn.find(b => b.value === value);
+      const branch = step.branchOn.find(b => b.value === branchValue);
       if (branch) {
         // Cas spécial : impôts → si acomptes ou provision, on doit insérer une sous-étape
-        if (step.id === 'impots_acomptes' && (value === 'acomptes_mensuels' || value === 'provision_personnelle')) {
+        if (step.id === 'impots_acomptes' && (branchValue === 'acomptes_mensuels' || branchValue === 'provision_personnelle')) {
           this.impotsNeedsAmount = true;
           // Stay on impots_acomptes to show the amount input sub-step
           return 'impots_acomptes';
@@ -664,7 +669,7 @@ export class FlowEngine {
   // ==========================================================================
 
   private storeResponse(
-    value: string | number | boolean | string[],
+    value: string | number | boolean | string[] | { salaireNet: number; treizieme: boolean; treiziemeMontant: number },
     step: ConversationStep,
     inputMode: InputMode
   ): void {
@@ -672,17 +677,21 @@ export class FlowEngine {
 
     switch (step.id) {
       // ── Revenus ──
-      case 'revenus_salaire':
-        data.revenus.salaire.salaireNet = typeof value === 'number' ? value : 0;
+      case 'revenus_salaire': {
+        type Composite13e = { salaireNet: number; treizieme: boolean; treiziemeMontant: number };
+        if (typeof value === 'object' && value !== null && !Array.isArray(value) && 'salaireNet' in value) {
+          const composite = value as Composite13e;
+          data.revenus.salaire.salaireNet = composite.salaireNet;
+          data.revenus.salaire.treizieme = composite.treizieme;
+          data.revenus.salaire.treiziemeMontant = composite.treiziemeMontant;
+        } else {
+          data.revenus.salaire.salaireNet = typeof value === 'number' ? value : 0;
+          // Si pas d'info 13e, on met à false/0 par défaut
+          data.revenus.salaire.treizieme = false;
+          data.revenus.salaire.treiziemeMontant = 0;
+        }
         break;
-
-      case 'revenus_treizieme':
-        data.revenus.salaire.treizieme = value === true;
-        break;
-
-      case 'revenus_treizieme_montant':
-        data.revenus.salaire.treiziemeMontant = typeof value === 'number' ? value : 0;
-        break;
+      }
 
       case 'revenus_autres':
         // bool : a-t-il d'autres revenus ?
@@ -1082,12 +1091,20 @@ export class FlowEngine {
   }
 
   private createUserMessage(
-    value: string | number | boolean | string[],
+    value: string | number | boolean | string[] | { salaireNet: number; treizieme: boolean; treiziemeMontant: number },
     inputMode: InputMode
   ): ChatMessage {
     let displayText: string;
 
-    if (Array.isArray(value)) {
+    if (typeof value === 'object' && !Array.isArray(value) && value !== null && 'salaireNet' in value) {
+      // Objet composite (13e salaire)
+      const composite = value as { salaireNet: number; treizieme: boolean; treiziemeMontant: number };
+      let text = formatCHF(composite.salaireNet) + '/mois';
+      if (composite.treizieme && composite.treiziemeMontant > 0) {
+        text += ' + 13e : ' + formatCHF(composite.treiziemeMontant) + '/an';
+      }
+      displayText = text;
+    } else if (Array.isArray(value)) {
       // Multi-select : afficher les labels, pas les IDs techniques
       const step = this.getCurrentStep();
       if (step.multiSelectConfig?.options) {

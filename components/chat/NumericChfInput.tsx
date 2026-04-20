@@ -36,7 +36,7 @@ import { colors, spacing, borderRadius, fontSize } from '../../lib/theme';
 
 interface NumericChfInputProps {
   config: NumericChfConfig | NumericChfWithSuggestionsConfig;
-  onSubmit: (value: number) => void;
+  onSubmit: (value: number | { salaireNet: number; treizieme: boolean; treiziemeMontant: number }) => void;
   onSkip?: () => void;
   visible?: boolean;
   /** Désactive tout le composant (quand l'étape est passée) */
@@ -139,10 +139,14 @@ export function NumericChfInput({
 
   // Mode dual (mensuel + annuel) activé quand frequency est défini
   const isDualMode = !!frequency;
+  // Mode 13e salaire activé quand checkbox13e est défini
+  const show13eCheckbox = !!config.checkbox13e;
 
   // ── State ──
   const [inputValue, setInputValue] = useState('');
   const [annualValue, setAnnualValue] = useState('');  // Champ annuel (mode dual)
+  const [has13e, setHas13e] = useState(false);          // Checkbox 13e salaire
+  const [treiziemeInput, setTreiziemeInput] = useState(''); // Montant du 13e
   const [activeField, setActiveField] = useState<'monthly' | 'annual'>(
     frequency === 'annual' ? 'annual' : 'monthly'
   );
@@ -241,10 +245,26 @@ export function NumericChfInput({
   };
 
   const handleSubmit = () => {
-    if (disabled || !isValid) return;
+    if (disabled) return;
     const numValue = parseCHFInput(inputValue);
+    // Validation du salaire
+    if (!validateValue(numValue)) return;
+    // Si mode 13e, il faut aussi valider le montant du 13e si coché
+    if (show13eCheckbox && has13e) {
+      const num13e = parseCHFInput(treiziemeInput);
+      if (num13e <= 0) return;
+    }
     Keyboard.dismiss();
-    onSubmit(numValue);
+    if (show13eCheckbox) {
+      const num13e = has13e ? parseCHFInput(treiziemeInput) : 0;
+      onSubmit({
+        salaireNet: numValue,
+        treizieme: has13e,
+        treiziemeMontant: num13e,
+      });
+    } else {
+      onSubmit(numValue);
+    }
   };
 
   const handleSkip = () => {
@@ -282,6 +302,9 @@ export function NumericChfInput({
       }
     }
   };
+
+  // Peut-on soumettre ? (valide + si 13e coché, montant 13e rempli)
+  const canSubmit = isValid && (!show13eCheckbox || !has13e || parseCHFInput(treiziemeInput) > 0);
 
   // ── Render ──
   if (!visible) return null;
@@ -332,7 +355,6 @@ export function NumericChfInput({
               styles.dualInputWrapper,
               activeField === 'monthly' && isValid && hasInteracted && styles.inputWrapperValid,
               activeField === 'monthly' && errorMsg && hasInteracted && styles.inputWrapperError,
-              activeField !== 'monthly' && styles.dualInputInactive,
             ]}>
               <Text style={styles.chfPrefix}>CHF</Text>
               <TextInput
@@ -346,7 +368,6 @@ export function NumericChfInput({
                 onFocus={handleFocusMonthly}
                 onSubmitEditing={isValid ? handleSubmit : undefined}
                 editable={!disabled}
-                selectTextOnFocus
                 returnKeyType={isValid ? 'done' : 'next'}
                 maxLength={15}
               />
@@ -362,21 +383,19 @@ export function NumericChfInput({
               styles.dualInputWrapper,
               activeField === 'annual' && isValid && hasInteracted && styles.inputWrapperValid,
               activeField === 'annual' && errorMsg && hasInteracted && styles.inputWrapperError,
-              activeField !== 'annual' && styles.dualInputInactive,
             ]}>
               <Text style={styles.chfPrefix}>CHF</Text>
               <TextInput
                 ref={annualInputRef}
                 style={[styles.dualInput, disabled && styles.inputDisabled]}
                 keyboardType="numeric"
-                placeholder={frequency === 'annual' ? "Ex: 4'560" : "Auto"}
+                placeholder={frequency === 'annual' ? "Ex: 4'560" : "Ex: 54'000"}
                 placeholderTextColor={colors.textMuted}
                 value={annualValue}
                 onChangeText={handleAnnualChange}
                 onFocus={handleFocusAnnual}
                 onSubmitEditing={isValid ? handleSubmit : undefined}
                 editable={!disabled}
-                selectTextOnFocus
                 returnKeyType={isValid ? 'done' : 'next'}
                 maxLength={15}
               />
@@ -385,12 +404,12 @@ export function NumericChfInput({
 
           {/* Bouton ✓ intégré dans le mode dual */}
           <TouchableOpacity
-            style={[styles.sendButton, (!isValid || disabled) && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!canSubmit || disabled) && styles.sendButtonDisabled]}
             onPress={handleSubmit}
-            disabled={!isValid || disabled}
+            disabled={!canSubmit || disabled}
             activeOpacity={0.7}
           >
-            <Text style={[styles.sendButtonIcon, (!isValid || disabled) && styles.sendButtonIconDisabled]}>
+            <Text style={[styles.sendButtonIcon, (!canSubmit || disabled) && styles.sendButtonIconDisabled]}>
               ✓
             </Text>
           </TouchableOpacity>
@@ -418,12 +437,12 @@ export function NumericChfInput({
 
           {/* Bouton ✓ */}
           <TouchableOpacity
-            style={[styles.sendButton, (!isValid || disabled) && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!canSubmit || disabled) && styles.sendButtonDisabled]}
             onPress={handleSubmit}
-            disabled={!isValid || disabled}
+            disabled={!canSubmit || disabled}
             activeOpacity={0.7}
           >
-            <Text style={[styles.sendButtonIcon, (!isValid || disabled) && styles.sendButtonIconDisabled]}>
+            <Text style={[styles.sendButtonIcon, (!canSubmit || disabled) && styles.sendButtonIconDisabled]}>
               ✓
             </Text>
           </TouchableOpacity>
@@ -444,6 +463,68 @@ export function NumericChfInput({
       {/* Help text */}
       {helpText && !errorMsg && (
         <Text style={styles.helpText}>{helpText}</Text>
+      )}
+
+      {/* Checkbox 13e salaire */}
+      {show13eCheckbox && (
+        <View style={styles.checkbox13eContainer}>
+          <TouchableOpacity
+            style={styles.checkbox13eRow}
+            onPress={() => {
+              if (disabled) return;
+              const newVal = !has13e;
+              setHas13e(newVal);
+              if (!newVal) {
+                setTreiziemeInput('');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox13eBox, has13e && styles.checkbox13eBoxChecked]}>
+              {has13e && <Text style={styles.checkbox13eCheck}>✓</Text>}
+            </View>
+            <Text style={styles.checkbox13eLabel}>J'ai un 13e salaire</Text>
+          </TouchableOpacity>
+
+          {/* Champ montant du 13e — visible uniquement si coché */}
+          {has13e && (
+            <MotiView
+              from={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: 'timing', duration: 200 }}
+            >
+              <Text style={styles.treiziemeLabel}>Montant du 13e (net)</Text>
+              <View style={styles.treiziemeInputRow}>
+                <View style={[
+                  styles.inputWrapper,
+                  parseCHFInput(treiziemeInput) > 0 && has13e && styles.inputWrapperValid,
+                ]}>
+                  <Text style={styles.chfPrefix}>CHF</Text>
+                  <TextInput
+                    style={[styles.input, disabled && styles.inputDisabled]}
+                    keyboardType="numeric"
+                    placeholder="Ex: 5'000"
+                    placeholderTextColor={colors.textMuted}
+                    value={treiziemeInput}
+                    onChangeText={(text) => {
+                      if (disabled) return;
+                      setTreiziemeInput(formatLiveInput(text));
+                    }}
+                    onSubmitEditing={() => {
+                      if (isValid && parseCHFInput(treiziemeInput) > 0) handleSubmit();
+                    }}
+                    editable={!disabled}
+                    selectTextOnFocus
+                    returnKeyType={isValid ? 'done' : 'next'}
+                    maxLength={15}
+                  />
+                </View>
+                <Text style={styles.treiziemeHint}>/an (un seul versement)</Text>
+              </View>
+            </MotiView>
+          )}
+        </View>
       )}
 
       {/* Skip button */}
@@ -556,7 +637,7 @@ const styles = StyleSheet.create({
 
   // ── Dual field mode ──
   dualFieldContainer: {
-    gap: spacing.sm,
+    gap: 8,
   },
   dualLabelsRow: {
     flexDirection: 'row',
@@ -588,10 +669,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.sm,
     height: 52,
-  },
-  dualInputInactive: {
-    borderColor: colors.borderLight,
-    opacity: 0.6,
   },
   dualInput: {
     flex: 1,
@@ -660,6 +737,57 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceLight,
     borderWidth: 1,
     borderColor: colors.borderLight,
+  },
+
+  // ── Checkbox 13e salaire ──
+  checkbox13eContainer: {
+    marginTop: spacing.md,
+  },
+  checkbox13eRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  checkbox13eBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkbox13eBoxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkbox13eCheck: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  checkbox13eLabel: {
+    color: colors.textPrimary,
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  treiziemeLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    marginLeft: spacing.xs,
+  },
+  treiziemeInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  treiziemeHint: {
+    color: colors.textMuted,
+    fontSize: fontSize.sm,
   },
   skipButtonDisabled: {
     opacity: 0.4,

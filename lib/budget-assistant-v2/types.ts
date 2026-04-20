@@ -24,7 +24,7 @@ export interface QuickReplyOption {
 }
 
 export interface NumericChfConfig {
-  placeholder: string;        // Ex: 'Ex: 1\'450'
+  placeholder: string;        // Ex: '1\'450'
   min?: number;               // Validation min
   max?: number;               // Validation max
   defaultValue?: number;      // Valeur pré-remplie (ex: SERAFE = 28)
@@ -32,6 +32,7 @@ export interface NumericChfConfig {
   skipValue?: number;         // Valeur quand on clique skip (généralement 0)
   helpText?: string;          // Texte d'aide contextuel (ex: prime LAMal moyenne)
   frequency?: 'monthly' | 'annual';  // Fréquence par défaut — si 'annual', le champ annuel est actif en premier
+  checkbox13e?: boolean;      // Si true, affiche une checkbox "13e salaire" avec champ montant
 }
 
 export interface MultiSelectConfig {
@@ -66,8 +67,6 @@ export type ConversationStepId =
   // Phase 2 : Revenus
   | 'revenus_intro'
   | 'revenus_salaire'
-  | 'revenus_treizieme'
-  | 'revenus_treizieme_montant'
   | 'revenus_autres'
   | 'revenus_autres_sources'      // Choix multiple : allocations, rente, freelance...
   | 'revenus_autres_montant'      // Montant pour chaque source choisie
