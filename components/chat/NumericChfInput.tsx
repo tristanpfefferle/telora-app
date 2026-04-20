@@ -168,6 +168,16 @@ export function NumericChfInput({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Pré-remplir le 13e avec le salaire mensuel quand la checkbox est cochée ──
+  useEffect(() => {
+    if (show13eCheckbox && has13e && treiziemeInput === '') {
+      const salaireNum = parseCHFInput(inputValue);
+      if (salaireNum > 0) {
+        setTreiziemeInput(formatCHFSwiss(salaireNum));
+      }
+    }
+  }, [has13e]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Validation ──
   const validateValue = useCallback(
     (numValue: number): boolean => {
