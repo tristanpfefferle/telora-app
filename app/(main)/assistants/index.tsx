@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing } from '../../../lib/theme';
 import { AssistantCard } from '../../../components/assistants/AssistantCard';
 
@@ -41,10 +42,15 @@ export default function AssistantsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mes Assistants</Text>
-        <Text style={styles.subtitle}>
-          Choisis un assistant pour t'accompagner dans tes finances
-        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.title}>Mes Assistants</Text>
+          <Text style={styles.subtitle}>
+            Choisis un assistant pour t'accompagner dans tes finances
+          </Text>
+        </View>
       </View>
 
       <FlatList
@@ -67,6 +73,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
     paddingBottom: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  backBtn: {
+    marginTop: 4,
   },
   title: {
     fontSize: 28,

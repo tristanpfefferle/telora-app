@@ -4,6 +4,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { budgetAPI, formatCHF, formatPercent, type Budget } from '../../../../lib/api';
 import { colors, borderRadius, spacing } from '../../../../lib/theme';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/Card';
@@ -587,8 +588,11 @@ export default function BudgetDetailScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header avec bouton modifier / supprimer */}
+        {/* Header avec bouton retour + modifier / supprimer */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="chevron-back" size={28} color={colors.textPrimary} />
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{budget.name || `Budget #${budget.id.slice(0, 8)}`}</Text>
             <Text style={styles.date}>
@@ -1046,6 +1050,7 @@ const styles = StyleSheet.create({
   errorText: { color: colors.error, fontSize: 16, textAlign: 'center', marginBottom: spacing.lg },
   backLink: { color: colors.primary, fontSize: 16 },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg },
+  backBtn: { marginRight: spacing.sm, marginTop: 2 },
   title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
   date: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
   headerActions: {
