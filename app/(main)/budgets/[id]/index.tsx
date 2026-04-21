@@ -645,18 +645,24 @@ export default function BudgetDetailScreen() {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
+              onPress={editing ? cancelEdit : startRename}
+              style={styles.iconButton}
+            >
+              <Text style={styles.iconButtonText}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={editing ? cancelEdit : enterEditMode}
               style={styles.editButton}
             >
               <Text style={styles.editButtonText}>
-                {editing ? 'Annuler' : '✏️ Modifier'}
+                {editing ? 'Annuler' : 'Modifier'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={deleteBudget}
-              style={styles.deleteButton}
+              style={styles.iconButton}
             >
-              <Text style={styles.deleteButtonText}>🗑️</Text>
+              <Text style={styles.iconButtonText}>🗑️</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1108,15 +1114,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   editButtonText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
-  deleteButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: '#3F1F1F',
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  iconButton: {
+    padding: 8,
   },
-  deleteButtonText: { fontSize: 16 },
+  iconButtonText: {
+    fontSize: 18,
+  },
   renameRow: {
     flexDirection: 'row',
     alignItems: 'center',
