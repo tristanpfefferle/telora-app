@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -67,28 +67,33 @@ export default function DashboardScreen() {
     );
   };
 
-  const renameBudget = (budgetId: string, currentName: string | null) => {
-    Alert.prompt(
-      'Renommer le budget',
-      'Entre un nouveau nom :',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'OK',
-          onPress: async (newName?: string) => {
-            if (!newName?.trim()) return;
-            try {
-              await budgetAPI.update(budgetId, { name: newName.trim() });
-              setBudgets(prev => prev.map(b => b.id === budgetId ? { ...b, name: newName.trim() } : b));
-            } catch (err) {
-              Alert.alert('Erreur', 'Impossible de renommer le budget');
-            }
-          },
-        },
-      ],
-      'plain-text',
-      currentName || ''
-    );
+  // State pour le modal de renommage
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [renameBudgetId, setRenameBudgetId] = useState<string>('');
+  const [renameText, setRenameText] = useState('');
+  const renameInputRef = useRef<TextInput>(null);
+
+  const openRenameModal = (budgetId: string, currentName: string | null) => {
+    setRenameBudgetId(budgetId);
+    setRenameText(currentName || '');
+    setRenameModalVisible(true);
+    // Focus l'input après que le modal soit monté
+    setTimeout(() => renameInputRef.current?.focus(), 300);
+  };
+
+  const confirmRename = async () => {
+    const trimmed = renameText.trim();
+    if (!trimmed) {
+      setRenameModalVisible(false);
+      return;
+    }
+    try {
+      await budgetAPI.update(renameBudgetId, { name: trimmed });
+      setBudgets(prev => prev.map(b => b.id === renameBudgetId ? { ...b, name: trimmed } : b));
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible de renommer le budget');
+    }
+    setRenameModalVisible(false);
   };
 
   return (
@@ -177,7 +182,7 @@ export default function DashboardScreen() {
                       <CardTitle>{budgetName}</CardTitle>
                       <View style={styles.budgetActions}>
                         <TouchableOpacity
-                          onPress={() => renameBudget(budget.id, budget.name)}
+                          onPress={() => openRenameModal(budget.id, budget.name)}
                           style={styles.actionBtn}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                         >
@@ -293,6 +298,49 @@ export default function DashboardScreen() {
         {/* Spacer */}
         <View style={styles.spacer} />
       </View>
+
+      {/* Modal de renommage */}
+      <Modal
+        visible={renameModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRenameModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setRenameModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Renommer le budget</Text>
+            <TextInput
+              ref={renameInputRef}
+              style={styles.modalInput}
+              value={renameText}
+              onChangeText={setRenameText}
+              placeholder="Nom du budget"
+              placeholderTextColor={colors.textMuted}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={confirmRename}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setRenameModalVisible(false)}
+                style={styles.modalBtnCancel}
+              >
+                <Text style={styles.modalBtnCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmRename}
+                style={styles.modalBtnConfirm}
+              >
+                <Text style={styles.modalBtnConfirmText}>Enregistrer</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -422,5 +470,62 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 80,
+  },
+  // Modal de renommage
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xxl,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: spacing.lg,
+  },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: spacing.xl,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+  },
+  modalBtnCancel: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: borderRadius.sm,
+  },
+  modalBtnCancelText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalBtnConfirm: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: borderRadius.sm,
+  },
+  modalBtnConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
