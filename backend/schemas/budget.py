@@ -44,10 +44,31 @@ class BudgetCreate(BaseModel):
     plan_action: List[Dict[str, Any]] = []
     data_v2: Optional[Dict[str, Any]] = None
 
+
+class BudgetUpdate(BaseModel):
+    """Schema pour mise à jour partielle — seuls les champs fournis seront modifiés"""
+    name: Optional[str] = None
+    objectif_financier: Optional[str] = None
+    mindset: Optional[str] = None
+    revenus: Optional[List[Dict[str, Any]]] = None
+    depenses_fixes: Optional[List[Dict[str, Any]]] = None
+    depenses_variables: Optional[List[Dict[str, Any]]] = None
+    epargne_actuelle: Optional[float] = None
+    epargne_objectif: Optional[float] = None
+    total_revenus: Optional[float] = None
+    total_fixes: Optional[float] = None
+    total_variables: Optional[float] = None
+    capacite_epargne: Optional[float] = None
+    ratio_fixes: Optional[float] = None
+    ratio_variables: Optional[float] = None
+    ratio_epargne: Optional[float] = None
+    plan_action: Optional[List[Dict[str, Any]]] = None
+    data_v2: Optional[Dict[str, Any]] = None
+
 class BudgetResponse(BaseModel):
     id: str
     user_id: str
-    name: Optional[str]
+    name: Optional[str] = None
     objectif_financier: Optional[str]
     mindset: Optional[str]
     revenus: List[Dict[str, Any]]

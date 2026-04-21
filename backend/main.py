@@ -10,11 +10,11 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 
-from database import engine, get_db, create_tables, migrate_add_data_v2
+from database import engine, get_db, create_tables, migrate_add_data_v2, migrate_add_budget_name
 from models import User, Budget, UserProgress, ConversationHistory
 from schemas import (
     UserCreate, UserResponse, Token,
-    BudgetCreate, BudgetResponse,
+    BudgetCreate, BudgetPartialUpdate, BudgetResponse,
     ProgressResponse, XPAward
 )
 from services.auth import authenticate_user, create_access_token, get_password_hash
@@ -205,38 +205,19 @@ def get_budget(
 @app.put("/api/budget/{budget_id}", response_model=BudgetResponse)
 def update_budget(
     budget_id: str,
-    budget_data: BudgetCreate,
+    budget_data: BudgetPartialUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Mettre à jour un budget"""
+    """Mettre à jour un budget — seuls les champs fournis sont modifiés"""
     budget = db.query(Budget).filter(Budget.id == budget_id, Budget.user_id == current_user.id).first()
     if not budget:
         raise HTTPException(status_code=404, detail="Budget non trouvé")
     
-    # Mapping camelCase → snake_case pour les champs du frontend
-    camel_to_snake = {
-        "objectifFinancier": "objectif_financier",
-        "depensesFixes": "depenses_fixes",
-        "depensesVariables": "depenses_variables",
-        "epargneActuelle": "epargne_actuelle",
-        "epargneObjectif": "epargne_objectif",
-        "totalRevenus": "total_revenus",
-        "totalFixes": "total_fixes",
-        "totalVariables": "total_variables",
-        "capaciteEpargne": "capacite_epargne",
-        "ratioFixes": "ratio_fixes",
-        "ratioVariables": "ratio_variables",
-        "ratioEpargne": "ratio_epargne",
-        "planAction": "plan_action",
-        "dataV2": "data_v2",
-    }
-    
-    update_dict = budget_data.dict(exclude_unset=True)
-    for field, value in update_dict.items():
-        snake_field = camel_to_snake.get(field, field)
-        if hasattr(budget, snake_field):
-            setattr(budget, snake_field, value)
+    # Utiliser exclude_unset pour ne mettre à jour que les champs explicitement fournis
+    update_data = budget_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(budget, field, value)
     
     db.commit()
     db.refresh(budget)
