@@ -14,6 +14,9 @@ class Budget(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     
+    # Nom personnalisé du budget
+    name = Column(String, nullable=True)
+    
     # Étape 1 : Mindset
     objectif_financier = Column(Text, nullable=True)
     mindset = Column(String, nullable=True)  # 'contrainte', 'outil', 'jamais_reflechi'

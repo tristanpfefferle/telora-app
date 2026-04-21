@@ -105,6 +105,7 @@ class BudgetCreate(BudgetDataBase):
 
 class BudgetUpdate(BaseModel):
     """Schéma de mise à jour d'un budget"""
+    name: Optional[str] = None
     objectifFinancier: Optional[str] = None
     revenus: Optional[List[Dict[str, Any]]] = None
     depensesFixes: Optional[List[Dict[str, Any]]] = None

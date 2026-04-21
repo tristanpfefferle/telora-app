@@ -61,17 +61,24 @@ export const CATEGORY_INTRO_VARIANTS = [
   "Direction {category} !",
 ] as const;
 
-/** Mini-conseils contextuels (aléatoires) */
-export const MINI_TIP_VARIANTS = [
-  "💡 Petit truc : vérifie ta franchise LAMal — passer de 300 à 2500 CHF peut économiser 100+ CHF/mois.",
-  "💡 Le comparateur bonus.ch permet de comparer les primes LAMal dans ton canton.",
-  "💡 Abonnement CFF demi-tarif : 190 CHF/an, souvent rentable dès 2-3 trajets.",
-  "💡 Un virement automatique en début de mois, c'est l'astuce n°1 pour épargner sans y penser.",
-  "💡 SERAFE (335 CHF/an) : tu peux te faire exempter si tu ne regardes pas la TV.",
-  "💡 Regroupe tes abonnements : Spotify Duo/Famille, c'est rentable à 2+.",
-  "💡 L'assurance RC privée coûte ~100-150 CHF/an, mais elle te couvre pour beaucoup de pépins.",
-  "💡 Vérifie si tes charges incluent le chauffage — ça change tout dans le calcul.",
-] as const;
+/** Mini-conseils contextuels — organisés par phase pour ne jamais être hors-sujet */
+export const PHASE_MINI_TIPS: Record<number, string[]> = {
+  3: [ // Dépenses essentielles
+    "💡 Petit truc : vérifie ta franchise LAMal — passer de 300 à 2500 CHF peut économiser 100+ CHF/mois.",
+    "💡 Le comparateur bonus.ch permet de comparer les primes LAMal dans ton canton.",
+    "💡 Abonnement CFF demi-tarif : 190 CHF/an, souvent rentable dès 2-3 trajets.",
+    "💡 SERAFE (335 CHF/an) : tu peux te faire exempter si tu ne regardes pas la TV.",
+    "💡 L'assurance RC privée coûte ~100-150 CHF/an, mais elle te couvre pour beaucoup de pépins.",
+    "💡 Vérifie si tes charges incluent le chauffage — ça change tout dans le calcul.",
+    "💡 Regroupe tes abonnements : Spotify Duo/Famille, c'est rentable à 2+.",
+  ],
+  5: [ // Épargne
+    "💡 Un virement automatique en début de mois, c'est l'astuce n°1 pour épargner sans y penser.",
+  ],
+};
+
+/** Ancien export conservé pour compatibilité (pool plat) — sera retiré plus tard */
+export const MINI_TIP_VARIANTS = Object.values(PHASE_MINI_TIPS).flat() as unknown as readonly string[];
 
 // ============================================================================
 // Sélection aléatoire avec anti-répétition

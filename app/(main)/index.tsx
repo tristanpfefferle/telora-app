@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { ProgressBar } from '../../components/gamification/ProgressBar';
 import { XPDisplay, StreakDisplay, Badge } from '../../components/gamification/Gamification';
 import { useUserStore } from '../../stores/userStore';
 import { progressAPI, budgetAPI, formatCHF, type Budget } from '../../lib/api';
@@ -44,6 +43,52 @@ export default function DashboardScreen() {
     if (hour < 12) return 'Bonjour';
     if (hour < 18) return 'Bon après-midi';
     return 'Bonsoir';
+  };
+
+  const deleteBudget = (budgetId: string, budgetName: string) => {
+    Alert.alert(
+      'Supprimer le budget',
+      `Veux-tu vraiment supprimer "${budgetName}" ? Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await budgetAPI.delete(budgetId);
+              setBudgets(prev => prev.filter(b => b.id !== budgetId));
+            } catch (err) {
+              Alert.alert('Erreur', 'Impossible de supprimer le budget');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renameBudget = (budgetId: string, currentName: string | null) => {
+    Alert.prompt(
+      'Renommer le budget',
+      'Entre un nouveau nom :',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'OK',
+          onPress: async (newName?: string) => {
+            if (!newName?.trim()) return;
+            try {
+              await budgetAPI.update(budgetId, { name: newName.trim() });
+              setBudgets(prev => prev.map(b => b.id === budgetId ? { ...b, name: newName.trim() } : b));
+            } catch (err) {
+              Alert.alert('Erreur', 'Impossible de renommer le budget');
+            }
+          },
+        },
+      ],
+      'plain-text',
+      currentName || ''
+    );
   };
 
   return (
@@ -114,47 +159,100 @@ export default function DashboardScreen() {
               </Text>
             </View>
             
-            {budgets.slice(0, 3).map((budget: any) => (
-              <Card key={budget.id} style={styles.budgetCard} onPress={() => router.push(`/(main)/budgets/${budget.id}` as any)}>
-                <CardHeader>
-                  <View style={styles.budgetCardHeader}>
-                    <CardTitle>Budget #{budget.id.slice(0, 8)}</CardTitle>
-                    <Text style={styles.budgetDate}>
-                      {new Date(budget.createdAt).toLocaleDateString('fr-CH')}
-                    </Text>
-                  </View>
-                </CardHeader>
-                <CardContent>
-                  <View style={styles.budgetRow}>
-                    <Text style={styles.budgetLabel}>Revenus</Text>
-                    <Text style={styles.budgetValue}>
-                      {formatCHF(budget.totalRevenus || 0)}
-                    </Text>
-                  </View>
-                  <View style={styles.budgetRow}>
-                    <Text style={styles.budgetLabel}>Dépenses</Text>
-                    <Text style={styles.budgetValue}>
-                      {formatCHF((budget.totalFixes || 0) + (budget.totalVariables || 0))}
-                    </Text>
-                  </View>
-                  <View style={styles.budgetRow}>
-                    <Text style={styles.budgetLabel}>Épargne</Text>
-                    <Text style={styles.budgetSavings}>
-                      {formatCHF(budget.capaciteEpargne || 0)}
-                    </Text>
-                  </View>
-                  <View style={styles.budgetTapHint}>
-                    <Text style={styles.budgetTapHintText}>Appuyer pour voir ou modifier →</Text>
-                  </View>
-                  <ProgressBar
-                    progress={budget.ratios?.epargneRevenus || 0}
-                    color="secondary"
-                    size="sm"
-                    showValue={false}
-                  />
-                </CardContent>
-              </Card>
-            ))}
+            {budgets.slice(0, 3).map((budget: any) => {
+              // Calculer les ratios pour la barre empilée
+              const totalFixes = budget.totalFixes || 0;
+              const totalVariables = budget.totalVariables || 0;
+              const totalRevenus = budget.totalRevenus || 0;
+              const epargne = totalRevenus - totalFixes - totalVariables;
+              const ratioFixes = totalRevenus > 0 ? Math.round((totalFixes / totalRevenus) * 1000) / 10 : 0;
+              const ratioVariables = totalRevenus > 0 ? Math.round((totalVariables / totalRevenus) * 1000) / 10 : 0;
+              const ratioEpargne = totalRevenus > 0 ? Math.round((epargne / totalRevenus) * 1000) / 10 : 0;
+              const budgetName = budget.name || `Budget #${budget.id.slice(0, 8)}`;
+              
+              return (
+                <Card key={budget.id} style={styles.budgetCard} onPress={() => router.push(`/(main)/budgets/${budget.id}` as any)}>
+                  <CardHeader>
+                    <View style={styles.budgetCardHeader}>
+                      <CardTitle>{budgetName}</CardTitle>
+                      <View style={styles.budgetActions}>
+                        <TouchableOpacity
+                          onPress={() => renameBudget(budget.id, budget.name)}
+                          style={styles.actionBtn}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+                        >
+                          <Text style={styles.actionBtnText}>✏️</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => deleteBudget(budget.id, budgetName)}
+                          style={styles.actionBtn}
+                          hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+                        >
+                          <Text style={styles.actionBtnText}>🗑️</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </CardHeader>
+                  <CardContent>
+                    <View style={styles.budgetRow}>
+                      <Text style={styles.budgetLabel}>Revenus</Text>
+                      <Text style={styles.budgetValue}>
+                        {formatCHF(totalRevenus)}
+                      </Text>
+                    </View>
+                    <View style={styles.budgetRow}>
+                      <Text style={styles.budgetLabel}>Dépenses</Text>
+                      <Text style={styles.budgetValue}>
+                        {formatCHF(totalFixes + totalVariables)}
+                      </Text>
+                    </View>
+                    <View style={styles.budgetRow}>
+                      <Text style={styles.budgetLabel}>Épargne</Text>
+                      <Text style={styles.budgetSavings}>
+                        {formatCHF(epargne)}
+                      </Text>
+                    </View>
+                    
+                    {/* Barre empilée Essentielles / Loisirs / Épargne */}
+                    <View style={styles.stackedBarContainer}>
+                      <View style={styles.stackedBar}>
+                        {totalRevenus > 0 && totalFixes > 0 && (
+                          <View style={[styles.stackedBarFixes, { flex: totalFixes }]} />
+                        )}
+                        {totalRevenus > 0 && totalVariables > 0 && (
+                          <View style={[styles.stackedBarVariables, { flex: totalVariables }]} />
+                        )}
+                        {totalRevenus > 0 && epargne > 0 && (
+                          <View style={[styles.stackedBarEpargne, { flex: epargne }]} />
+                        )}
+                        {totalRevenus > 0 && epargne < 0 && (
+                          <View style={[styles.stackedBarDeficit, { flex: Math.abs(epargne) }]} />
+                        )}
+                        {totalRevenus <= 0 && (
+                          <View style={[styles.stackedBarEmpty, { flex: 1 }]} />
+                        )}
+                      </View>
+                      <View style={styles.stackedBarLegend}>
+                        <View style={styles.legendItem}>
+                          <View style={[styles.legendDot, { backgroundColor: colors.error }]} />
+                          <Text style={styles.legendText}>Essentielles {ratioFixes}%</Text>
+                        </View>
+                        <View style={styles.legendItem}>
+                          <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
+                          <Text style={styles.legendText}>Loisirs {ratioVariables}%</Text>
+                        </View>
+                        <View style={styles.legendItem}>
+                          <View style={[styles.legendDot, { backgroundColor: epargne >= 0 ? colors.secondary : '#9CA3AF' }]} />
+                          <Text style={styles.legendText}>
+                            {epargne >= 0 ? `Épargne ${ratioEpargne}%` : `Déficit ${Math.abs(ratioEpargne)}%`}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </View>
         )}
 
@@ -262,6 +360,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  budgetActions: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  actionBtn: {
+    padding: 4,
+  },
+  actionBtnText: {
+    fontSize: 16,
+  },
   budgetDate: {
     color: colors.textMuted,
     fontSize: 12,
@@ -283,17 +391,31 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     fontSize: 14,
   },
-  budgetTapHint: {
+  // Barre empilée (stacked bar) — même style que la page budget détail
+  stackedBarContainer: {
+    marginTop: spacing.md,
+  },
+  stackedBar: {
+    flexDirection: 'row',
+    height: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  stackedBarFixes: { backgroundColor: colors.error },
+  stackedBarVariables: { backgroundColor: '#F59E0B' },
+  stackedBarEpargne: { backgroundColor: colors.secondary },
+  stackedBarEmpty: { backgroundColor: colors.surface },
+  stackedBarDeficit: { backgroundColor: '#9CA3AF' },
+  stackedBarLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
     marginTop: 8,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
-  budgetTapHintText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    textAlign: 'center',
-  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 7, height: 7, borderRadius: 3.5 },
+  legendText: { fontSize: 10, color: colors.textMuted },
   badgesRow: {
     flexDirection: 'row',
     gap: spacing.lg,

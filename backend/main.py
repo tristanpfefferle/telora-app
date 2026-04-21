@@ -52,6 +52,7 @@ app.include_router(budget_assistant_router.router)
 def startup_event():
     create_tables()
     migrate_add_data_v2()
+    migrate_add_budget_name()
 
 # Helper to convert SQLAlchemy model to dict
 def model_to_dict(model):
@@ -213,8 +214,29 @@ def update_budget(
     if not budget:
         raise HTTPException(status_code=404, detail="Budget non trouvé")
     
-    for field, value in budget_data.dict().items():
-        setattr(budget, field, value)
+    # Mapping camelCase → snake_case pour les champs du frontend
+    camel_to_snake = {
+        "objectifFinancier": "objectif_financier",
+        "depensesFixes": "depenses_fixes",
+        "depensesVariables": "depenses_variables",
+        "epargneActuelle": "epargne_actuelle",
+        "epargneObjectif": "epargne_objectif",
+        "totalRevenus": "total_revenus",
+        "totalFixes": "total_fixes",
+        "totalVariables": "total_variables",
+        "capaciteEpargne": "capacite_epargne",
+        "ratioFixes": "ratio_fixes",
+        "ratioVariables": "ratio_variables",
+        "ratioEpargne": "ratio_epargne",
+        "planAction": "plan_action",
+        "dataV2": "data_v2",
+    }
+    
+    update_dict = budget_data.dict(exclude_unset=True)
+    for field, value in update_dict.items():
+        snake_field = camel_to_snake.get(field, field)
+        if hasattr(budget, snake_field):
+            setattr(budget, snake_field, value)
     
     db.commit()
     db.refresh(budget)

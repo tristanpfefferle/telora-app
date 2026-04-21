@@ -40,6 +40,19 @@ def migrate_add_data_v2():
     else:
         print("Migration: colonne data_v2 déjà présente")
 
+def migrate_add_budget_name():
+    """Ajouter la colonne name à la table budgets si elle n'existe pas"""
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    columns = [col['name'] for col in inspector.get_columns('budgets')]
+    if 'name' not in columns:
+        with engine.connect() as conn:
+            conn.execute(text('ALTER TABLE budgets ADD COLUMN name VARCHAR'))
+            conn.commit()
+        print("Migration: colonne name ajoutée à la table budgets")
+    else:
+        print("Migration: colonne name déjà présente")
+
 def drop_tables():
     """Supprimer toutes les tables (dev only)"""
     Base.metadata.drop_all(bind=engine)

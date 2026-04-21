@@ -26,6 +26,7 @@ class PlanActionSchema(BaseModel):
     priority: str = "medium"
 
 class BudgetCreate(BaseModel):
+    name: Optional[str] = None
     objectif_financier: Optional[str] = None
     mindset: Optional[str] = None
     revenus: List[Dict[str, Any]] = []
@@ -46,6 +47,7 @@ class BudgetCreate(BaseModel):
 class BudgetResponse(BaseModel):
     id: str
     user_id: str
+    name: Optional[str]
     objectif_financier: Optional[str]
     mindset: Optional[str]
     revenus: List[Dict[str, Any]]

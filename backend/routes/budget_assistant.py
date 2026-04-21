@@ -349,6 +349,7 @@ async def update_budget(
 
     # Mapping camelCase (Pydantic) → snake_case (SQLAlchemy)
     camel_to_snake = {
+        "name": "name",
         "objectifFinancier": "objectif_financier",
         "depensesFixes": "depenses_fixes",
         "depensesVariables": "depenses_variables",

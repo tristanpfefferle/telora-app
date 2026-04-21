@@ -77,6 +77,7 @@ function mapBudgetFromApi(raw: any): Budget {
   return {
     id: raw.id,
     userId: raw.user_id,
+    name: raw.name || null,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
     objectifFinancier: raw.objectif_financier,
@@ -106,6 +107,7 @@ function mapBudgetFromApi(raw: any): Budget {
 export interface Budget {
   id: string;
   userId: string;
+  name: string | null;
   createdAt: string;
   updatedAt: string;
   objectifFinancier?: string;
@@ -202,7 +204,7 @@ export const budgetAPI = {
     return { ...res, data: mapBudgetFromApi(res.data) };
   },
   
-  update: async (id: string, data: Partial<BackendBudgetPayload>) => {
+  update: async (id: string, data: Partial<BackendBudgetPayload> | { name: string }) => {
     const res = await api.put<any>(`/api/budget/${id}`, data);
     return { ...res, data: mapBudgetFromApi(res.data) };
   },

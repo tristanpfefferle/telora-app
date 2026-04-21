@@ -258,6 +258,9 @@ export default function BudgetDetailScreen() {
   const [editData, setEditData] = useState<BudgetDataV2>(createEmptyBudgetData());
   // Cache les valeurs string pour les TextInput
   const [editStrings, setEditStrings] = useState<Record<string, string>>({});
+  // Renommage du budget
+  const [renaming, setRenaming] = useState(false);
+  const [renameText, setRenameText] = useState('');
 
   // Charger le budget
   useEffect(() => {
@@ -494,6 +497,56 @@ export default function BudgetDetailScreen() {
     }
   }, [budget, editData]);
 
+  // Supprimer le budget
+  const deleteBudget = useCallback(async () => {
+    if (!budget) return;
+    const budgetName = budget.name || `Budget #${budget.id.slice(0, 8)}`;
+    Alert.alert(
+      'Supprimer le budget',
+      `Veux-tu vraiment supprimer "${budgetName}" ? Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await budgetAPI.delete(budget.id);
+              Alert.alert('✅ Supprimé', 'Ton budget a été supprimé.', [
+                { text: 'OK', onPress: () => router.back() },
+              ]);
+            } catch (err: any) {
+              Alert.alert('Erreur', err?.response?.data?.detail || 'Impossible de supprimer le budget');
+            }
+          },
+        },
+      ]
+    );
+  }, [budget, router]);
+
+  // Renommer le budget
+  const startRename = useCallback(() => {
+    setRenameText(budget?.name || '');
+    setRenaming(true);
+  }, [budget]);
+
+  const saveRename = useCallback(async () => {
+    if (!budget) return;
+    const trimmed = renameText.trim();
+    if (!trimmed) {
+      setRenaming(false);
+      return;
+    }
+    try {
+      const res = await budgetAPI.update(budget.id, { name: trimmed });
+      setBudget(res.data);
+      setRenaming(false);
+    } catch (err: any) {
+      Alert.alert('Erreur', 'Impossible de renommer le budget');
+      setRenaming(false);
+    }
+  }, [budget, renameText]);
+
   // ========================================================================
   // Rendu
   // ========================================================================
@@ -557,24 +610,55 @@ export default function BudgetDetailScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header avec bouton modifier */}
+        {/* Header avec bouton modifier / supprimer */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Budget #{budget.id.slice(0, 8)}</Text>
+            {renaming ? (
+              <View style={styles.renameRow}>
+                <TextInput
+                  style={styles.renameInput}
+                  value={renameText}
+                  onChangeText={setRenameText}
+                  placeholder="Nom du budget"
+                  placeholderTextColor={colors.textMuted}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={saveRename}
+                />
+                <TouchableOpacity onPress={saveRename} style={styles.renameBtn}>
+                  <Text style={styles.renameBtnText}>✓</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setRenaming(false)} style={styles.renameBtn}>
+                  <Text style={styles.renameBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={startRename}>
+                <Text style={styles.title}>{budget.name || `Budget #${budget.id.slice(0, 8)}`}</Text>
+              </TouchableOpacity>
+            )}
             <Text style={styles.date}>
               {new Date(budget.createdAt).toLocaleDateString('fr-CH', {
                 day: 'numeric', month: 'long', year: 'numeric',
               })}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={editing ? cancelEdit : enterEditMode}
-            style={styles.editButton}
-          >
-            <Text style={styles.editButtonText}>
-              {editing ? 'Annuler' : '✏️ Modifier'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={editing ? cancelEdit : enterEditMode}
+              style={styles.editButton}
+            >
+              <Text style={styles.editButtonText}>
+                {editing ? 'Annuler' : '✏️ Modifier'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={deleteBudget}
+              style={styles.deleteButton}
+            >
+              <Text style={styles.deleteButtonText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Résumé visuel avec vraie répartition */}
@@ -1010,6 +1094,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.lg },
   title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
   date: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
   editButton: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -1019,6 +1108,40 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   editButtonText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  deleteButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#3F1F1F',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  deleteButtonText: { fontSize: 16 },
+  renameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  renameInput: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flex: 1,
+  },
+  renameBtn: {
+    padding: 8,
+  },
+  renameBtnText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: '700',
+  },
 
   // Résumé
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },

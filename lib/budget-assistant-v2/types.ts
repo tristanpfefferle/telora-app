@@ -531,6 +531,7 @@ export interface BackendDepenseVariable {
 }
 
 export interface BackendBudgetPayload {
+  name?: string;
   objectif_financier?: string;
   mindset?: string;
   revenus: BackendRevenu[];
