@@ -258,9 +258,7 @@ export default function BudgetDetailScreen() {
   const [editData, setEditData] = useState<BudgetDataV2>(createEmptyBudgetData());
   // Cache les valeurs string pour les TextInput
   const [editStrings, setEditStrings] = useState<Record<string, string>>({});
-  // Renommage du budget
-  const [renaming, setRenaming] = useState(false);
-  const [renameText, setRenameText] = useState('');
+
 
   // Charger le budget
   useEffect(() => {
@@ -524,28 +522,7 @@ export default function BudgetDetailScreen() {
     );
   }, [budget, router]);
 
-  // Renommer le budget
-  const startRename = useCallback(() => {
-    setRenameText(budget?.name || '');
-    setRenaming(true);
-  }, [budget]);
 
-  const saveRename = useCallback(async () => {
-    if (!budget) return;
-    const trimmed = renameText.trim();
-    if (!trimmed) {
-      setRenaming(false);
-      return;
-    }
-    try {
-      const res = await budgetAPI.update(budget.id, { name: trimmed });
-      setBudget(res.data);
-      setRenaming(false);
-    } catch (err: any) {
-      Alert.alert('Erreur', 'Impossible de renommer le budget');
-      setRenaming(false);
-    }
-  }, [budget, renameText]);
 
   // ========================================================================
   // Rendu
@@ -613,30 +590,7 @@ export default function BudgetDetailScreen() {
         {/* Header avec bouton modifier / supprimer */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            {renaming ? (
-              <View style={styles.renameRow}>
-                <TextInput
-                  style={styles.renameInput}
-                  value={renameText}
-                  onChangeText={setRenameText}
-                  placeholder="Nom du budget"
-                  placeholderTextColor={colors.textMuted}
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={saveRename}
-                />
-                <TouchableOpacity onPress={saveRename} style={styles.renameBtn}>
-                  <Text style={styles.renameBtnText}>✓</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setRenaming(false)} style={styles.renameBtn}>
-                  <Text style={styles.renameBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity onPress={startRename}>
-                <Text style={styles.title}>{budget.name || `Budget #${budget.id.slice(0, 8)}`}</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={styles.title}>{budget.name || `Budget #${budget.id.slice(0, 8)}`}</Text>
             <Text style={styles.date}>
               {new Date(budget.createdAt).toLocaleDateString('fr-CH', {
                 day: 'numeric', month: 'long', year: 'numeric',
@@ -644,12 +598,6 @@ export default function BudgetDetailScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={editing ? cancelEdit : startRename}
-              style={styles.iconButton}
-            >
-              <Text style={styles.iconButtonText}>✏️</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               onPress={editing ? cancelEdit : enterEditMode}
               style={styles.editButton}
@@ -1120,31 +1068,7 @@ const styles = StyleSheet.create({
   iconButtonText: {
     fontSize: 18,
   },
-  renameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  renameInput: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    flex: 1,
-  },
-  renameBtn: {
-    padding: 8,
-  },
-  renameBtnText: {
-    fontSize: 18,
-    color: colors.primary,
-    fontWeight: '700',
-  },
+
 
   // Résumé
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg },

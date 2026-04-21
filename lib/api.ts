@@ -72,6 +72,17 @@ function toCamelCase<T = any>(obj: any): T {
   return result;
 }
 
+/** Mappe un user backend (snake_case) vers le type User frontend (camelCase) */
+function mapUserFromApi(raw: any): User {
+  return {
+    id: raw.id,
+    email: raw.email,
+    firstName: raw.first_name ?? raw.firstName ?? '',
+    lastName: raw.last_name ?? raw.lastName ?? '',
+    createdAt: raw.created_at ?? raw.createdAt ?? '',
+  };
+}
+
 /** Mappe un budget backend (snake_case) vers le type Budget frontend (camelCase) */
 function mapBudgetFromApi(raw: any): Budget {
   return {
@@ -175,14 +186,25 @@ export interface Badge {
 
 // Endpoints API
 export const authAPI = {
-  login: (email: string, password: string) =>
-    api.post<{ token: string; user: User; progress: UserProgress }>('/api/auth/login', { email, password }),
+  login: async (email: string, password: string) => {
+    const res = await api.post<any>('/api/auth/login', { email, password });
+    return { ...res, data: { token: res.data.token, user: mapUserFromApi(res.data.user), progress: res.data.progress } };
+  },
   
-  signup: (email: string, password: string, firstName?: string, lastName?: string) =>
-    api.post<{ token: string; user: User; progress: UserProgress }>('/api/auth/signup', { email, password, firstName, lastName }),
+  signup: async (email: string, password: string, firstName?: string, lastName?: string) => {
+    const res = await api.post<any>('/api/auth/signup', { email, password, firstName, lastName });
+    return { ...res, data: { token: res.data.token, user: mapUserFromApi(res.data.user), progress: res.data.progress } };
+  },
   
-  me: () =>
-    api.get<User>('/api/auth/me'),
+  me: async () => {
+    const res = await api.get<any>('/api/auth/me');
+    return { ...res, data: mapUserFromApi(res.data.user) };
+  },
+  
+  updateProfile: async (data: { email?: string; firstName?: string; lastName?: string; password?: string }) => {
+    const res = await api.put<any>('/api/auth/profile', data);
+    return { ...res, data: { user: mapUserFromApi(res.data.user), progress: res.data.progress } };
+  },
   
   logout: () =>
     api.post('/api/auth/logout'),
