@@ -13,7 +13,7 @@ import os
 from database import engine, get_db, create_tables, migrate_add_data_v2, migrate_add_budget_name
 from models import User, Budget, UserProgress, ConversationHistory
 from schemas import (
-    UserCreate, UserResponse, Token,
+    UserCreate, UserPartialUpdate, UserResponse, Token,
     BudgetCreate, BudgetPartialUpdate, BudgetResponse,
     ProgressResponse, XPAward
 )
@@ -160,6 +160,38 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
         "progress": model_to_dict(progress) if progress else None,
     }
 
+@app.put("/api/auth/profile", response_model=UserResponse)
+def update_profile(
+    profile_data: UserPartialUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mettre à jour mon profil — seuls les champs fournis sont modifiés"""
+    update_data = profile_data.model_dump(exclude_unset=True)
+    
+    # Si un nouveau mot de passe est fourni, le hasher
+    if "password" in update_data:
+        from services.auth import get_password_hash
+        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+    
+    # Si l'email est changé, vérifier qu'il n'est pas déjà pris
+    if "email" in update_data and update_data["email"] != current_user.email:
+        existing = db.query(User).filter(User.email == update_data["email"]).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    progress = db.query(UserProgress).filter(UserProgress.user_id == current_user.id).first()
+    return {
+        "user": model_to_dict(current_user),
+        "progress": model_to_dict(progress) if progress else None,
+    }
+
 # ─────────────────────────────────────────────────────────────
 # BUDGET ROUTES
 # ─────────────────────────────────────────────────────────────
@@ -177,9 +209,14 @@ def create_budget(
     db: Session = Depends(get_db)
 ):
     """Créer un nouveau budget"""
+    data = budget_data.dict()
+    # Auto-nommer le budget si pas de nom fourni
+    if not data.get("name") and current_user.first_name:
+        data["name"] = f"Budget de {current_user.first_name}"
+    
     budget = Budget(
         user_id=current_user.id,
-        **budget_data.dict(),
+        **data,
     )
     db.add(budget)
     db.commit()

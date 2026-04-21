@@ -2,7 +2,7 @@
 Schémas Pydantic
 """
 
-from .user import UserCreate, UserResponse, Token
+from .user import UserCreate, UserPartialUpdate, UserResponse, Token
 from .budget import BudgetCreate, BudgetUpdate as BudgetPartialUpdate, BudgetResponse
 from .progress import ProgressResponse, XPAward
 from .budget_assistant import (
