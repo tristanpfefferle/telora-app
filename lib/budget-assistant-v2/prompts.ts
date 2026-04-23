@@ -173,7 +173,7 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   assurances_vehicule: {
     messages: [
-      "Combien paies-tu d'assurance véhicule par mois ou par an ?",
+      "Combien paies-tu d'assurance {vehiculeContext} par mois ou par an ?",
     ],
   },
 
@@ -192,26 +192,26 @@ export const STEP_MESSAGES: Record<ConversationStepId, StepMessages> = {
 
   transport_essence: {
     messages: [
-      "Combien dépenses-tu en carburant par mois en moyenne ?\nTu peux aussi donner le montant par an.",
+      "Combien dépenses-tu en carburant {vehiculeContext} par mois en moyenne ?\nTu peux aussi donner le montant par an.",
     ],
     helpBubble: "Inclus essence pour voiture, moto, scooter… Électrique ? Mets tes coûts de recharge ici.",
   },
 
   transport_entretien: {
     messages: [
-      "Et l'entretien de tes véhicules ? (pneus, service, nettoyage…)\nDonne le montant par mois ou par an.",
+      "Et l'entretien {vehiculeContext} ? (pneus, service, nettoyage…)\nDonne le montant par mois ou par an.",
     ],
   },
 
   transport_parking: {
     messages: [
-      "Frais de parking ? (à domicile, au travail, ou les deux)",
+      "Frais de parking {vehiculeContext} ? (à domicile, au travail, ou les deux)",
     ],
   },
 
   transport_leasing: {
     messages: [
-      "Tu as un leasing ou crédit auto en cours ?",
+      "Tu as un leasing ou crédit {vehiculeContext} en cours ?",
     ],
   },
 

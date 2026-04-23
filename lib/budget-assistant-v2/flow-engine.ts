@@ -618,8 +618,19 @@ export class FlowEngine {
       if (this.currentLoopItem && msg.includes('{aboName}')) {
         return fillTemplate(msg, { aboName: this.currentLoopItem.sourceLabel });
       }
+      // Remplacer le contexte véhicule pour les étapes transport
+      if (msg.includes('{vehiculeContext}')) {
+        return fillTemplate(msg, { vehiculeContext: this.getVehiculeContextMessage() });
+      }
       return msg;
     });
+
+    // Remplacer {vehiculeContext} aussi dans le helpBubble
+    const helpBubble = stepMsgs.helpBubble
+      ? stepMsgs.helpBubble.includes('{vehiculeContext}')
+        ? fillTemplate(stepMsgs.helpBubble, { vehiculeContext: this.getVehiculeContextMessage() })
+        : stepMsgs.helpBubble
+      : undefined;
 
     // Ajouter chaque bulle
     for (const msg of messages) {
@@ -632,8 +643,8 @@ export class FlowEngine {
     }
 
     // Ajouter la bulle d'aide si présente
-    if (stepMsgs.helpBubble) {
-      const helpMsg = this.createBotMessage(stepMsgs.helpBubble, { quickRepliesActive: false });
+    if (helpBubble) {
+      const helpMsg = this.createBotMessage(helpBubble, { quickRepliesActive: false });
       this.messages.push(helpMsg);
       newMessages?.push(helpMsg);
     }
@@ -1209,7 +1220,12 @@ export class FlowEngine {
         displayText = value.join(', ');
       }
     } else if (typeof value === 'number') {
-      displayText = formatCHF(value);
+      // Exception : ne pas afficher CHF pour le nombre de voitures (c'est un compte, pas un montant)
+      if (this.state.currentStep === 'transport_nb_voitures') {
+        displayText = value >= 3 ? '3 ou plus' : String(value);
+      } else {
+        displayText = formatCHF(value);
+      }
     } else if (typeof value === 'boolean') {
       displayText = value ? 'Oui' : 'Non';
     } else {
@@ -1233,6 +1249,47 @@ export class FlowEngine {
     if (inputMode === 'info_only') return null;
     const { text } = pickAck(this.variantsState);
     return text;
+  }
+
+  /**
+   * Retourne un contexte véhicule adapté pour les messages de Théo.
+   * Exemples : "pour ta voiture", "pour tes 2 voitures", "pour tes véhicules (voiture + moto)"
+   */
+  private getVehiculeContextMessage(): string {
+    const vehicules = this.state.data.transport.vehicules;
+    const nbVoitures = this.state.data.transport.nbVoitures;
+    const hasVoiture = vehicules.includes('voiture');
+    const hasMoto = vehicules.includes('moto_scooter');
+    const hasBateau = vehicules.includes('bateau');
+    const hasAutres = vehicules.includes('autres');
+
+    // Filtrer les véhicules motorisés seulement (seuls ceux qui concernent assurance/essence/entretien/parking/leasing)
+    const motoriseCount = [hasVoiture, hasMoto, hasBateau, hasAutres].filter(Boolean).length;
+
+    if (motoriseCount === 0) {
+      // Aucun motorisé (ne devrait pas arriver car ces étapes sont skipées, mais fallback)
+      return 'pour tes véhicules';
+    }
+
+    if (motoriseCount === 1) {
+      // Un seul type motorisé
+      if (hasVoiture) {
+        if (nbVoitures >= 3) return 'pour tes 3 voitures ou plus';
+        if (nbVoitures === 2) return 'pour tes 2 voitures';
+        return 'pour ta voiture';
+      }
+      if (hasMoto) return 'pour ta moto/scooter';
+      if (hasBateau) return 'pour ton bateau';
+      if (hasAutres) return 'pour ton véhicule';
+    }
+
+    // Mixte : plusieurs types motorisés
+    if (hasVoiture && hasMoto && motoriseCount === 2) {
+      return 'pour tes véhicules (voiture + moto)';
+    }
+
+    // Mixte général
+    return 'pour tes véhicules';
   }
 
   private getStepNumericConfig() {

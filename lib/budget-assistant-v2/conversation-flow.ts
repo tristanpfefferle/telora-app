@@ -497,9 +497,10 @@ export const CONVERSATION_FLOW: Record<ConversationStepId, ConversationStep> = {
         { id: 'moto_scooter', label: 'Moto / Scooter', icon: '🛵' },
         { id: 'velo_electrique', label: 'Vélo électrique', icon: '🚲' },
         { id: 'bateau', label: 'Bateau', icon: '🚤' },
+        { id: 'autres', label: 'Autres', icon: '🔧' },
       ],
       minSelections: 0,
-      maxSelections: 4,
+      maxSelections: 5,
     },
     messages: [],
     // Si "voiture" sélectionné → transport_nb_voitures

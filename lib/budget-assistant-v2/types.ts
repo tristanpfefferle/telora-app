@@ -222,13 +222,14 @@ export interface DepenseAssurances {
 
 // --- Dépenses fixes : C. Transport ---
 
-export type TypeVehicule = 'voiture' | 'moto_scooter' | 'velo_electrique' | 'bateau';
+export type TypeVehicule = 'voiture' | 'moto_scooter' | 'velo_electrique' | 'bateau' | 'autres';
 
 export const VEHICULE_LABELS: Record<TypeVehicule, string> = {
   voiture: 'Voiture',
   moto_scooter: 'Moto / Scooter',
   velo_electrique: 'Vélo électrique',
   bateau: 'Bateau',
+  autres: 'Autres',
 };
 
 export const VEHICULE_ICONS: Record<TypeVehicule, string> = {
@@ -236,11 +237,12 @@ export const VEHICULE_ICONS: Record<TypeVehicule, string> = {
   moto_scooter: '🛵',
   velo_electrique: '🚲',
   bateau: '🚤',
+  autres: '🔧',
 };
 
 /** Vrai si le type de véhicule nécessite assurance + carburant/entretien */
 export function vehiculeMotorise(v: TypeVehicule): boolean {
-  return v === 'voiture' || v === 'moto_scooter' || v === 'bateau';
+  return v === 'voiture' || v === 'moto_scooter' || v === 'bateau' || v === 'autres';
 }
 
 export interface DepenseTransport {
