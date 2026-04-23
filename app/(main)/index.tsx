@@ -120,13 +120,24 @@ export default function DashboardScreen() {
             <Text style={styles.cardDescription}>
               Crée ton budget personnalisé avec ton assistant personnel !
             </Text>
-            <Button
-              onPress={() => router.push('/(main)/assistants' as any)}
-              size="lg"
-              icon={<Text style={styles.buttonIcon}>💬</Text>}
-            >
-              Parler à Théo
-            </Button>
+            <View style={styles.buttonRow}>
+              <Button
+                onPress={() => router.push('/(main)/assistants' as any)}
+                size="lg"
+                icon={<Text style={styles.buttonIcon}>💬</Text>}
+              >
+                Parler à Théo
+              </Button>
+              <View style={styles.buttonSpacing} />
+              <Button
+                onPress={() => router.push('/(main)/budgets/new' as any)}
+                variant="outline"
+                size="lg"
+                icon={<Text style={styles.buttonIconOutline}>✏️</Text>}
+              >
+                Manuel
+              </Button>
+            </View>
           </CardContent>
         </Card>
 
@@ -309,7 +320,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonSpacing: {
+    width: 12,
+  },
   buttonIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  buttonIconOutline: {
     fontSize: 18,
     marginRight: 8,
   },
